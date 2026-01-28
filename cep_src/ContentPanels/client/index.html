@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="style.css">
+    <title>News Helper</title>
+</head>
+<body>
+
+    <div class="header">
+        <button id="btn-load-json">📂 ЗАГРУЗИТЬ JSON (ВСЁ)</button>
+        <button id="btn-deep-clean">🧹 ГЛУБОКАЯ ЧИСТКА</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-link active" onclick="openTab(event, 'subtitles')">СУБТИТРЫ / ИНФО</button>
+        <button class="tab-link" onclick="openTab(event, 'titles')">ТИТРЫ СПИКЕРОВ</button>
+    </div>
+
+    <div id="subtitles" class="tab-content active">
+    
+        <textarea id="sub-text" placeholder="Вставьте текст для субтитров..."></textarea>
+        <div class="sub-controls-row">
+            <button id="btn-clear-sub" class="secondary-btn">Очистить поле</button>
+
+            <div class="inline-toggle">
+                <input type="checkbox" id="chk-playhead-jump">
+                <label for="chk-playhead-jump">Playhead jump</label>
+            </div>
+        </div>
+
+
+
+    <div class="panel-group">
+        <label>Генерация Субтитров (Ручная)</label>
+        <div class="row">
+            <button id="btn-gen-regular">Regular</button>
+            <button id="btn-gen-italic">Italic</button>
+        </div>
+    </div>
+
+    <div class="panel-group">
+    <label>Инфо-плашки (Ручной ввод)</label>
+
+    <div class="input-block">
+        <div class="clearable">
+            <input type="text" id="input-head-title" placeholder="Название сюжета (HEAD)">
+            <button type="button" class="clear-btn" data-clear="input-head-title">✕</button>
+        </div>
+
+        <div class="clearable topic-field" id="topic-field">
+            <input type="text" id="input-head-topic" placeholder="Название рубрики (TOPIC)">
+            <button type="button" class="dropdown-btn" id="btn-topic-dropdown" aria-label="Выбрать рубрику">▾</button>
+            <button type="button" class="clear-btn" data-clear="input-head-topic">✕</button>
+            <div id="topic-dropdown" class="topic-dropdown"></div>
+        </div>
+    </div>
+
+    <div class="input-block" style="margin-top: 10px; border-top: 1px dashed #444; padding-top: 10px;">
+        <div class="clearable">
+            <input type="text" id="input-geotag" placeholder="GEOTAG">
+            <button type="button" class="clear-btn" data-clear="input-geotag">✕</button>
+        </div>
+    </div>
+
+    <button id="btn-create-branding" class="full-width">Создать плашки</button>
+    </div>
+
+</div>
+
+    <div id="titles" class="tab-content">
+        <button id="btn-open-database" class="full-width">База (Эталон)</button>
+        
+        <div class="input-block">
+            <label>ФИО:</label>
+            <textarea id="input-name" class="high-input"></textarea>
+        </div>
+        
+        <div class="input-block">
+            <label>Должность:</label>
+            <textarea id="input-job" class="high-input"></textarea>
+        </div>
+
+        <button id="btn-clear-spk" class="secondary-btn right">Очистить поля</button>
+        <div style="clear: both;"></div>
+
+        <div class="settings-grid">
+            <div class="setting-box">
+                <label>Сторона</label>
+                <div class="radio-group">
+                    <input type="radio" name="side" id="side-left" value="left" checked> 
+                    <label for="side-left">Left</label>
+                    
+                    <input type="radio" name="side" id="side-right" value="right"> 
+                    <label for="side-right">Right</label>
+                </div>
+            </div>
+            <div class="setting-box">
+                <label>Размер</label>
+                <div class="radio-group">
+                    <input type="radio" name="size" id="size-def" value="def" checked> 
+                    <label for="size-def">Def</label>
+                    
+                    <input type="radio" name="size" id="size-short" value="short"> 
+                    <label for="size-short">Short</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="slider-group">
+            <label>BG Offset: <span id="bg-val">0</span></label>
+            <input type="range" id="bg-slider" min="-1500" max="1500" value="0">
+        </div>
+
+        <button id="btn-add-speaker" class="secondary-btn full-width" disabled>Добавить в базу</button>
+        <button id="btn-create-title" class="main-action">СОЗДАТЬ ТИТР</button>
+        
+        <div class="footer-actions">
+            <button id="btn-trim">TRIM</button>
+        </div>
+    </div>
+
+<!-- ===== Speakers Database Modal ===== -->
+<div id="db-overlay" class="modal-overlay" style="display:none;">
+    <div class="modal-window">
+        <div class="modal-header">
+            <div class="modal-title">База спикеров (Эталон)</div>
+            <button id="btn-db-close" class="modal-close">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="modal-footer">
+            <button id="btn-db-add" class="main-action" style="margin:0;">Добавить</button>
+            </div>
+            <input id="db-search" type="text" placeholder="Поиск по ФИО..." />
+            <div id="db-list" class="db-list">
+                <!-- список будет заполняться из main.js -->
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ===== /Speakers Database Modal ===== -->
+
+
+    <script src="js/CSInterface.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

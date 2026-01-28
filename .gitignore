@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Node / tooling
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# Build/dist (будем генерировать)
+dist/
+
+# Visual Studio / C++ build artifacts (когда появятся)
+aex_bridge/**/.vs/
+aex_bridge/**/x64/
+aex_bridge/**/Debug/
+aex_bridge/**/Release/
+aex_bridge/**/obj/
+
+# Temporary files
+*.tmp
+*.temp
