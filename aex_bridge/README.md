@@ -44,7 +44,7 @@ Host -> UI:
 - При первом сообщении плагин выполняет `$.evalFile(<root>/host/index.jsx)`.
 - `bridge.js` автоматически выбирает WebView2 среду.
 - Нужен установленный WebView2 Evergreen Runtime.
-- База спикеров берётся из сетевого пути:
+- База спикеров берётся из сетевого пути, указанного в `config.json`:
   `H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json`
-  Путь задаётся в `cep_src/ContentPanels/host/lib/speakers.jsx` (переменная `SPEAKERS_DB_PATH`).
+  Меняется в `cep_src/ContentPanels/config.json` (ключ `speakersDbPath`).
 - Логи пишутся в `C:\Users\<you>\AppData\Roaming\CaptionPanels\`.

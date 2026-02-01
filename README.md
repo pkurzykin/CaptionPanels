@@ -25,9 +25,9 @@ legacy_cep/       архив CEP версии
 `C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\`
 
 ## Данные
-База спикеров берётся из сетевого пути:
+База спикеров берётся из сетевого пути, заданного в `config.json`:
 `H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json`
-Путь настраивается в `cep_src/ContentPanels/host/lib/speakers.jsx` (переменная `SPEAKERS_DB_PATH`).
+Путь настраивается в `cep_src/ContentPanels/config.json` (ключ `speakersDbPath`).
 Логи пишутся в:
 `C:\Users\<you>\AppData\Roaming\CaptionPanels\`
 

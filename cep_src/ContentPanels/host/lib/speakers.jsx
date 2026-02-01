@@ -12,8 +12,8 @@
 (function () {
 
     // ===== Speakers DB location (shared network path) =====
-    // Change this path if you move the shared DB.
-    var SPEAKERS_DB_PATH = "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json";
+    // Default path (can be overridden via config.json).
+    var DEFAULT_SPEAKERS_DB_PATH = "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json";
 
     // --------- Internal state (persist while AE session is alive) ---------
     var _inited = false;
@@ -272,9 +272,20 @@
         return out;
     }
 
+    function _resolveSpeakersPath() {
+        try {
+            if (typeof getSpeakersDbPath === "function") {
+                var p = getSpeakersDbPath();
+                if (p) return p;
+            }
+        } catch (e) {}
+        return DEFAULT_SPEAKERS_DB_PATH;
+    }
+
     function _getSpeakersDbFile() {
-        if (!SPEAKERS_DB_PATH) return null;
-        return new File(SPEAKERS_DB_PATH);
+        var path = _resolveSpeakersPath();
+        if (!path) return null;
+        return new File(path);
     }
 
     getSpeakersDbJson = function () {

@@ -109,7 +109,7 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(TargetDir)CaptionPanels" mkdir "$(TargetDir)CaptionPanels" &amp; copy /Y "$(TargetPath)" "$(TargetDir)CaptionPanels" &amp; "%SystemRoot%\System32\xcopy.exe" /E /I /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\client" "$(TargetDir)CaptionPanels\client" &amp; "%SystemRoot%\System32\xcopy.exe" /E /I /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\host" "$(TargetDir)CaptionPanels\host" &amp; copy /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\speakers.json" "$(TargetDir)CaptionPanels"</Command>
+      <Command>if not exist "$(TargetDir)CaptionPanels" mkdir "$(TargetDir)CaptionPanels" &amp; copy /Y "$(TargetPath)" "$(TargetDir)CaptionPanels" &amp; "%SystemRoot%\System32\xcopy.exe" /E /I /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\client" "$(TargetDir)CaptionPanels\client" &amp; "%SystemRoot%\System32\xcopy.exe" /E /I /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\host" "$(TargetDir)CaptionPanels\host" &amp; copy /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\speakers.json" "$(TargetDir)CaptionPanels" &amp; copy /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\config.json" "$(TargetDir)CaptionPanels"</Command>
     </PostBuildEvent>
     <Bscmake>
       <OutputFile>$(IntDir)$(TargetName).bsc</OutputFile>
@@ -166,7 +166,7 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>if not exist "$(TargetDir)CaptionPanels" mkdir "$(TargetDir)CaptionPanels" &amp; copy /Y "$(TargetPath)" "$(TargetDir)CaptionPanels" &amp; "%SystemRoot%\System32\xcopy.exe" /E /I /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\client" "$(TargetDir)CaptionPanels\client" &amp; "%SystemRoot%\System32\xcopy.exe" /E /I /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\host" "$(TargetDir)CaptionPanels\host" &amp; copy /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\speakers.json" "$(TargetDir)CaptionPanels"</Command>
+      <Command>if not exist "$(TargetDir)CaptionPanels" mkdir "$(TargetDir)CaptionPanels" &amp; copy /Y "$(TargetPath)" "$(TargetDir)CaptionPanels" &amp; "%SystemRoot%\System32\xcopy.exe" /E /I /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\client" "$(TargetDir)CaptionPanels\client" &amp; "%SystemRoot%\System32\xcopy.exe" /E /I /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\host" "$(TargetDir)CaptionPanels\host" &amp; copy /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\speakers.json" "$(TargetDir)CaptionPanels" &amp; copy /Y "$(ProjectDir)..\..\..\cep_src\ContentPanels\config.json" "$(TargetDir)CaptionPanels"</Command>
     </PostBuildEvent>
     <Bscmake>
       <OutputFile>$(IntDir)$(TargetName).bsc</OutputFile>

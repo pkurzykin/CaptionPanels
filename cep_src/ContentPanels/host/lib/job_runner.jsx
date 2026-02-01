@@ -61,6 +61,18 @@
 
     function _getWritableRoot() {
         try {
+            if (typeof getLogsRoot === "function") {
+                var custom = getLogsRoot();
+                if (custom) {
+                    var customDir = new Folder(_normalizePath(custom));
+                    if (!customDir.exists) {
+                        try { customDir.create(); } catch (e) {}
+                    }
+                    return customDir.exists ? customDir.fsName : "";
+                }
+            }
+        } catch (e) {}
+        try {
             var base = Folder.userData;
             if (!base) return "";
             var dir = new Folder(base.fsName + "/CaptionPanels");
