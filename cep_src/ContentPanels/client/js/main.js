@@ -5,21 +5,15 @@ window.onload = function() {
     var extensionPath = getExtensionRootPath();
 
     // ЦЕПОЧКА ЗАГРУЗКИ JSX
-    csInterface.evalScript('initPath("' + extensionPath + '")', function() {
-    csInterface.evalScript('loadModule("config.jsx")', function() {
-    csInterface.evalScript('loadModule("utils.jsx")', function() {
-        csInterface.evalScript('loadModule("cleanup.jsx")', function() {
-            csInterface.evalScript('loadModule("subtitles.jsx")', function() {
-                csInterface.evalScript('loadModule("branding.jsx")', function() {
-                    csInterface.evalScript('loadModule("speakers.jsx")', function(res) {
-                        console.log("Все системы AE готовы: " + res);
-                    });
-                });
-            });
-        });
-    });
-    });
-    });
+    loadHostModules([
+        "config.jsx",
+        "utils.jsx",
+        "cleanup.jsx",
+        "subtitles.jsx",
+        "branding.jsx",
+        "speakers.jsx"
+    ], function () {
+        console.log("Все системы AE готовы");
     });
 
     initTabs();
