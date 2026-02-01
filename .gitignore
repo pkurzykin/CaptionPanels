@@ -1,17 +1,29 @@
 # macOS
 .DS_Store
+._.DS_Store
 
 # Node / tooling
 node_modules/
 
 # Logs
-*.log
 logs/
 
 # Build/dist (будем генерировать)
 dist/
 
 # Visual Studio / C++ build artifacts (когда появятся)
+aegp_src/**/.vs/
+aegp_src/**/x64/
+aegp_src/**/Debug/
+aegp_src/**/Release/
+aegp_src/**/obj/
+*.VC.db
+*.VC.opendb
+*.suo
+*.user
+*.pdb
+*.ilk
+*.log
 aex_bridge/**/.vs/
 aex_bridge/**/x64/
 aex_bridge/**/Debug/
