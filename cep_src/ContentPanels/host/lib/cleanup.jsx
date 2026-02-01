@@ -7,7 +7,7 @@ deepCleanProject = function() {
 
         if (!activeComp || !(activeComp instanceof CompItem)) {
             alert("Пожалуйста, выберите композицию!");
-            return;
+            return respondErr("No active comp");
         }
 
         app.beginUndoGroup("Deep Text Cleanup");
@@ -43,8 +43,9 @@ deepCleanProject = function() {
         cleanComposition(activeComp);
         app.endUndoGroup();
         alert("Очистка завершена! Исправлено слоев: " + editCount);
-        
+        return respondOk("OK");
     } catch (err) {
         alert("Ошибка в скрипте: " + err.message);
+        return respondErr(err.message);
     }
 };

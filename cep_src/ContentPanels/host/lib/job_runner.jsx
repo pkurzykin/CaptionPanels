@@ -28,8 +28,9 @@
         var s = String(p || "");
         if (s.indexOf("file://") === 0) s = s.slice("file://".length);
         s = s.replace(/\\/g, "/");
-        var winMatch = s.match(/^\/([A-Za-z]:\/.*)/);
-        if (winMatch) s = winMatch[1];
+        if (s.length > 2 && s.charAt(0) === "/" && s.charAt(2) === ":") {
+            s = s.slice(1);
+        }
         return s;
     }
 
@@ -88,8 +89,12 @@
     function _jobLogPath(jobPath) {
         var p = _normalizePath(jobPath);
         if (p) {
-            p = p.replace(/\.json$/i, ".log");
-            if (!/\.log$/i.test(p)) p += ".log";
+            var lower = p.toLowerCase();
+            if (lower.lastIndexOf(".json") === lower.length - 5) {
+                p = p.substring(0, p.length - 5) + ".log";
+            } else if (lower.lastIndexOf(".log") !== lower.length - 4) {
+                p += ".log";
+            }
             return p;
         }
 
@@ -103,7 +108,10 @@
     function _jobJsonPath(jobPath) {
         var p = _normalizePath(jobPath);
         if (p) {
-            if (!/\.json$/i.test(p)) p += ".json";
+            var lower = p.toLowerCase();
+            if (lower.lastIndexOf(".json") !== lower.length - 5) {
+                p += ".json";
+            }
             return p;
         }
 
@@ -116,7 +124,8 @@
 
     function _writeLog(jobPath, lines) {
         var logPath = _jobLogPath(jobPath);
-        var dir = logPath.replace(/\/[^/]*$/, "");
+        var slash = logPath.lastIndexOf("/");
+        var dir = (slash >= 0) ? logPath.substring(0, slash) : "";
         if (dir) _ensureFolder(dir);
         _writeFile(logPath, lines.join("\n"));
         return logPath;
@@ -130,10 +139,10 @@
 
     validateEnvironment = function () {
         try {
-            if (!app || !app.project) return "Error: No active project";
-            return "OK";
+            if (!app || !app.project) return respondErr("No active project");
+            return respondOk("OK");
         } catch (e) {
-            return "Error: " + e.message;
+            return respondErr(e.message);
         }
     };
 
@@ -169,25 +178,26 @@
             _log("job done: " + job.type);
             _writeLog(jobPath, log);
             try { if (typeof logMessage === "function") logMessage("job:" + job.type + " OK"); } catch (e0) {}
-            return "OK";
+            return respondOk("OK");
         } catch (e) {
             _log("error: " + e.message);
             try { _writeLog(jobPath, log); } catch (e2) {}
             try { if (typeof logError === "function") logError("job_runner", e.message); } catch (e3) {}
-            return "Error: " + e.message;
+            return respondErr(e.message);
         }
     };
 
     runJobFromJson = function (jobJsonText, jobPath) {
         try {
-            if (!jobJsonText) return "Error: jobJsonText is required";
+            if (!jobJsonText) return respondErr("jobJsonText is required");
             var p = _jobJsonPath(jobPath);
-            var dir = p.replace(/\/[^/]*$/, "");
+            var slash = p.lastIndexOf("/");
+            var dir = (slash >= 0) ? p.substring(0, slash) : "";
             if (dir) _ensureFolder(dir);
             _writeFile(p, jobJsonText);
             return runJob(p);
         } catch (e) {
-            return "Error: " + e.message;
+            return respondErr(e.message);
         }
     };
 })();

@@ -24,18 +24,20 @@ legacy_cep/       архив CEP версии
 Скопируй папку `CaptionPanels` в:
 `C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\`
 
-## Данные
-База спикеров берётся из сетевого пути, заданного в `config.json`:
-`H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json`
-Путь настраивается в `cep_src/ContentPanels/config.json` (ключ `speakersDbPath`).
-Логи пишутся в:
-`C:\Users\<you>\AppData\Roaming\CaptionPanels\`
+## Конфиг (runtime)
+Файл `config.json` читается при старте AE. Приоритет поиска:
+1) `%APPDATA%\CaptionPanels\config.json` (рекомендуется для смены пути без админ‑прав)
+2) `<plugin_root>/config.json`
 
-## Конфиг
-`cep_src/ContentPanels/config.json`:
+Ключи:
 - `speakersDbPath` — путь к общей базе спикеров
 - `enableLogs` — включить диагностические логи (true/false)
 - `logsRoot` — кастомная папка для логов (если пусто — AppData)
+
+## Логи
+При `enableLogs: true` логи пишутся в:
+`C:\Users\<you>\AppData\Roaming\CaptionPanels\logs\captionpanels_YYYYMMDD.log`
+Если задан `logsRoot`, то логи пишутся в `<logsRoot>\logs\`.
 
 ## Документация
 Подробности и мост: `aex_bridge/README.md`.

@@ -64,20 +64,26 @@
     }
 
     logMessage = function (msg) {
-        if (!_isEnabled()) return "OFF";
-        _append("[" + _stamp(new Date()) + "] " + String(msg || ""));
-        return "OK";
+        if (!_isEnabled()) return respondOk("OFF");
+        if (!_append("[" + _stamp(new Date()) + "] " + String(msg || ""))) {
+            return respondErr("Log write failed");
+        }
+        return respondOk("OK");
     };
 
     logError = function (context, msg) {
-        if (!_isEnabled()) return "OFF";
-        _append("[" + _stamp(new Date()) + "] ERROR [" + String(context || "") + "] " + String(msg || ""));
-        return "OK";
+        if (!_isEnabled()) return respondOk("OFF");
+        if (!_append("[" + _stamp(new Date()) + "] ERROR [" + String(context || "") + "] " + String(msg || ""))) {
+            return respondErr("Log write failed");
+        }
+        return respondOk("OK");
     };
 
     logJson = function (label, jsonText) {
-        if (!_isEnabled()) return "OFF";
-        _append("[" + _stamp(new Date()) + "] " + String(label || "JSON") + ": " + String(jsonText || ""));
-        return "OK";
+        if (!_isEnabled()) return respondOk("OFF");
+        if (!_append("[" + _stamp(new Date()) + "] " + String(label || "JSON") + ": " + String(jsonText || ""))) {
+            return respondErr("Log write failed");
+        }
+        return respondOk("OK");
     };
 })();

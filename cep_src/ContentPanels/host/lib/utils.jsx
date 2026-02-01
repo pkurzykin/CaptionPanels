@@ -13,7 +13,7 @@ trimLayersInsideSelectedPrecomp = function () {
         // Проверяем активную композицию и выбор ровно одного слоя
         if (!(activeComp instanceof CompItem) || activeComp.selectedLayers.length !== 1) {
             alert("Выберите один слой-прекомпозицию в активной композиции.");
-            return "No/Bad selection";
+            return respondErr("No/Bad selection");
         }
 
         var targetLayer = activeComp.selectedLayers[0];
@@ -22,7 +22,7 @@ trimLayersInsideSelectedPrecomp = function () {
         // Проверяем, что выбранный слой — прекомп
         if (!(sourceComp instanceof CompItem)) {
             alert("Выбранный слой не является прекомпозицией.");
-            return "Not a precomp";
+            return respondErr("Not a precomp");
         }
 
         app.beginUndoGroup("Trim Layers Inside Precomp");
@@ -41,12 +41,12 @@ trimLayersInsideSelectedPrecomp = function () {
         }
 
         app.endUndoGroup();
-        return "OK";
+        return respondOk("OK");
 
     } catch (err) {
         alert("Ошибка TRIM: " + err.message);
         try { app.endUndoGroup(); } catch (e) {}
-        return "Error";
+        return respondErr(err.message);
     }
 };
 
@@ -149,26 +149,26 @@ ensureProjectFolder = function (path) {
 
 moveItemToFolder = function (item, folderPath) {
     try {
-        if (!app.project) return "No project";
-        if (!item) return "No item";
+        if (!app.project) return respondErr("No project");
+        if (!item) return respondErr("No item");
 
         var dest = ensureProjectFolder(folderPath);
-        if (!dest) return "No destination";
+        if (!dest) return respondErr("No destination");
 
         // Не перемещаем папку саму в себя/внутрь себя
         if (item instanceof FolderItem) {
             // запрет на перенос папки в свою же ветку
             var f = dest;
             while (f) {
-                if (f === item) return "Blocked: recursive folder move";
+                if (f === item) return respondErr("Blocked: recursive folder move");
                 if (f === app.project.rootFolder) break;
                 f = f.parentFolder;
             }
         }
 
         item.parentFolder = dest;
-        return "OK";
+        return respondOk("OK");
     } catch (e) {
-        return "Error: " + e.message;
+        return respondErr(e.message);
     }
 };

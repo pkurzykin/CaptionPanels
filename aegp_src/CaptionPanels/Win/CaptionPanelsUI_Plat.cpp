@@ -9,6 +9,7 @@
 
 #include <cwchar>
 #include <cwctype>
+#include <cstring>
 #include <string>
 
 using Microsoft::WRL::Callback;
@@ -48,6 +49,38 @@ std::string Utf8FromWide(const std::wstring& text)
 	std::string out(len, '\0');
 	WideCharToMultiByte(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), &out[0], len, nullptr, nullptr);
 	return out;
+}
+
+std::string DecodeAeString(const std::string& bytes)
+{
+	if (bytes.empty()) return bytes;
+
+	// Strip trailing nulls (AE often returns a null-terminated buffer).
+	std::string trimmed = bytes;
+	while (!trimmed.empty() && trimmed.back() == '\0') trimmed.pop_back();
+	if (trimmed.empty()) return trimmed;
+
+	// If we still have embedded nulls, treat as UTF-16LE.
+	if (trimmed.find('\0') != std::string::npos) {
+		size_t len = trimmed.size() / 2;
+		std::wstring w(len, L'\0');
+		memcpy(&w[0], trimmed.data(), len * sizeof(wchar_t));
+		return Utf8FromWide(w);
+	}
+
+	// Handle UTF-16LE BOM without embedded nulls (rare but safe).
+	if (trimmed.size() >= 2) {
+		unsigned char b0 = static_cast<unsigned char>(trimmed[0]);
+		unsigned char b1 = static_cast<unsigned char>(trimmed[1]);
+		if (b0 == 0xFF && b1 == 0xFE) {
+			size_t len = (trimmed.size() - 2) / 2;
+			std::wstring w(len, L'\0');
+			memcpy(&w[0], trimmed.data() + 2, len * sizeof(wchar_t));
+			return Utf8FromWide(w);
+		}
+	}
+
+	return trimmed;
 }
 
 std::wstring GetModuleDir()
@@ -375,6 +408,9 @@ bool ExecuteScriptUtf8(const std::string& script, std::string* out_result, std::
 		suites.MemorySuite1()->AEGP_UnlockMemHandle(errorH);
 		suites.MemorySuite1()->AEGP_FreeMemHandle(errorH);
 	}
+
+	result = DecodeAeString(result);
+	error = DecodeAeString(error);
 
 	if (out_result) *out_result = result;
 	if (out_error) *out_error = error;

@@ -6,7 +6,7 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
         var comp = app.project.activeItem;
         if (!comp || !(comp instanceof CompItem)) {
             alert("Ошибка: Кликните на таймлайн!");
-            return;
+            return respondErr("No active comp");
         }
 
         var type = isItalic ? "synch" : "voiceover";
@@ -15,7 +15,7 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
 
         if (!sourceLayer) {
             alert("Не найден слой-шаблон: " + layerName);
-            return;
+            return respondErr("Missing template: " + layerName);
         }
 
         app.beginUndoGroup("Generate Smart Subs");
@@ -67,8 +67,11 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
         // Update subtitle_BG to cover all subtitle layers
         _updateSubtitleBg(comp);
         app.endUndoGroup();
+        return respondOk("OK");
     } catch (err) {
         alert("Ошибка в субтитрах: " + err.message);
+        try { app.endUndoGroup(); } catch (e) {}
+        return respondErr(err.message);
     }
 };
 

@@ -218,21 +218,6 @@
         return _findCompByName("name_job_title_LR");
     }
 
-    function _json(obj) {
-        // ExtendScript JSON is usually available; fallback to simple manual
-        try { return JSON.stringify(obj); } catch (e) {}
-        var s = "{";
-        var first = true;
-        for (var k in obj) {
-            if (!obj.hasOwnProperty(k)) continue;
-            if (!first) s += ",";
-            first = false;
-            s += "\"" + k + "\":\"" + String(obj[k]).replace(/\\/g, "\\\\").replace(/"/g, "\\\"") + "\"";
-        }
-        s += "}";
-        return s;
-    }
-
     function _normalizeSpeakerText(txt) {
         return String(txt || "").replace(/\r\n|\r/g, "\n").replace(/^\s+|\s+$/g, "");
     }
@@ -242,7 +227,11 @@
         // strip UTF-8 BOM if present
         if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
         if (typeof JSON !== "undefined" && JSON.parse) {
-            return JSON.parse(s);
+            try {
+                return JSON.parse(s);
+            } catch (e) {
+                try { return eval("(" + s + ")"); } catch (e2) { throw e; }
+            }
         }
         return eval("(" + s + ")");
     }
@@ -290,18 +279,20 @@
 
     getSpeakersDbJson = function () {
         var f = _getSpeakersDbFile();
-        if (!f) return "Error: No data folder";
-        if (!f.exists) return "[]";
+        if (!f) return respondErr("No data folder");
+        if (!f.exists) return "{\"ok\":true,\"result\":[],\"error\":\"\"}";
         try {
             f.encoding = "UTF-8";
-            f.open("r");
+            if (!f.open("r")) return respondErr("Cannot open for read: " + f.fsName);
             var content = f.read();
             f.close();
-            return content || "[]";
+            var arr = _parseJsonSafe(content || "[]") || [];
+            // Always build JSON manually to avoid JSON.stringify issues in ExtendScript.
+            return "{\"ok\":true,\"result\":" + _stringifyJsonSafe(arr) + ",\"error\":\"\"}";
         } catch (e) {
             try { if (f && f.opened) f.close(); } catch (e2) {}
             try { if (typeof logError === "function") logError("speakers.getJson", e.message); } catch (e3) {}
-            return "Error: " + e.message;
+            return respondErr(e.message);
         }
     };
 
@@ -314,15 +305,15 @@
         var f = null;
         try {
             f = _getSpeakersDbFile();
-            if (!f) return "Error";
+            if (!f) return respondErr("No data folder");
 
             var arr = [];
             if (f.exists) {
                 f.encoding = "UTF-8";
-                f.open("r");
+                if (!f.open("r")) return respondErr("Cannot open for read: " + f.fsName);
                 var content = f.read();
                 f.close();
-                try { arr = _parseJsonSafe(content) || []; } catch (e) { return "Error: JSON parse"; }
+                try { arr = _parseJsonSafe(content) || []; } catch (e) { return respondErr("JSON parse"); }
             }
 
             var n = _normalizeSpeakerText(name);
@@ -330,7 +321,7 @@
             for (var i = 0; i < arr.length; i++) {
                 var s = arr[i] || {};
                 if (_normalizeSpeakerText(s.name) === n && _normalizeSpeakerText(s.job) === j) {
-                    return "DUPLICATE";
+                    return respondOk("DUPLICATE");
                 }
             }
 
@@ -338,14 +329,14 @@
 
             f.encoding = "UTF-8";
             f.lineFeed = "Unix";
-            f.open("w");
+            if (!f.open("w")) return respondErr("Cannot open for write: " + f.fsName);
             f.write(_stringifyJsonSafe(arr));
             f.close();
-            return "OK";
+            return respondOk("OK");
         } catch (e) {
             try { if (f && f.opened) f.close(); } catch (e2) {}
             try { if (typeof logError === "function") logError("speakers.add", e.message); } catch (e3) {}
-            return "Error: " + e.message;
+            return respondErr(e.message);
         }
     };
 
@@ -353,11 +344,11 @@
         var f = null;
         try {
             f = _getSpeakersDbFile();
-            if (!f) return "Error";
-            if (!f.exists) return "NOT_FOUND";
+            if (!f) return respondErr("No data folder");
+            if (!f.exists) return respondErr("Speakers DB not found: " + f.fsName);
 
             f.encoding = "UTF-8";
-            f.open("r");
+            if (!f.open("r")) return respondErr("Cannot open for read: " + f.fsName);
             var content = f.read();
             f.close();
 
@@ -372,41 +363,41 @@
                     break;
                 }
             }
-            if (idx === -1) return "NOT_FOUND";
+            if (idx === -1) return respondOk("NOT_FOUND");
 
             arr.splice(idx, 1);
             f.encoding = "UTF-8";
             f.lineFeed = "Unix";
-            f.open("w");
+            if (!f.open("w")) return respondErr("Cannot open for write: " + f.fsName);
             f.write(_stringifyJsonSafe(arr));
             f.close();
-            return "OK";
+            return respondOk("OK");
         } catch (e) {
             try { if (f && f.opened) f.close(); } catch (e2) {}
             try { if (typeof logError === "function") logError("speakers.remove", e.message); } catch (e3) {}
-            return "Error: " + e.message;
+            return respondErr(e.message);
         }
     };
 
     // Remove preview (called from "Clear fields" too)
     removePreview = function () {
         var comp = _ensureActiveComp();
-        if (!comp) return "No active comp";
+        if (!comp) return respondErr("No active comp");
         app.beginUndoGroup("Remove Speaker Preview");
         _removePreviewInternal(comp);
         app.endUndoGroup();
-        return "OK";
+        return respondOk("OK");
     };
 
     // Update preview (called on input/radio/slider changes)
     updateSpeakerPreview = function (name, job, side, size, bgOffset) {
         var comp = _ensureActiveComp();
-        if (!comp) return "No active comp";
+        if (!comp) return respondErr("No active comp");
 
         _initIfNeeded(comp);
 
         var tpl = _ensureTemplate();
-        if (!tpl) return "Template not found";
+        if (!tpl) return respondErr("Template not found");
 
         app.beginUndoGroup("Update Speaker Preview");
 
@@ -431,19 +422,19 @@
         try { pLayer.collapseTransformation = true; } catch (e) {}
 
         app.endUndoGroup();
-        return "OK";
+        return respondOk("OK");
     };
 
     // Create title on current marker and jump to next marker
     // Returns JSON with next marker data (optional for UI updates later)
     createSpeakerTitle = function (name, job, side, size, bgOffset) {
         var comp = _ensureActiveComp();
-        if (!comp) return "No active comp";
+        if (!comp) return respondErr("No active comp");
 
         _initIfNeeded(comp);
 
         var tpl = _ensureTemplate();
-        if (!tpl) return "Template not found";
+        if (!tpl) return respondErr("Template not found");
 
         app.beginUndoGroup("Create Speaker Title");
 
@@ -498,7 +489,7 @@
         app.endUndoGroup();
 
         // Return next marker data (for future JS callback usage)
-        return _json(nextData);
+        return respondOk(nextData);
     };
 
 })();

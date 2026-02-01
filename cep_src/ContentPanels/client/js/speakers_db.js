@@ -162,23 +162,35 @@ function loadSpeakersDbThenOpen() {
 function ensureSpeakersDbLoaded(cb) {
     if (SPEAKERS_DB_LOADED) return cb(true);
     aeCall("getSpeakersDbJson()", function (out) {
-        var txt = String(out.result || "");
         if (!out.ok) {
-            console.log("DB load error:", out.error || txt);
-            uiAlert("Не удалось загрузить базу спикеров.");
-            logUiError("speakers.load", out.error || txt);
+            var msg = out.error || out.result || "Unknown error";
+            console.log("DB load error:", msg);
+            uiAlert("Не удалось загрузить базу спикеров.\n" + msg);
+            logUiError("speakers.load", msg);
             cb(false);
             return;
         }
         try {
-            if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1); // strip BOM
-            SPEAKERS_DB = JSON.parse(txt) || [];
+            var data = out.result;
+            if (typeof data === "string") {
+                var txt = data;
+                if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1); // strip BOM
+                if (txt.replace(/\s+/g, "").length === 0) {
+                    data = [];
+                } else {
+                    data = JSON.parse(txt);
+                }
+            }
+            SPEAKERS_DB = (data && data.length) ? data : (Array.isArray(data) ? data : []);
             SPEAKERS_DB_LOADED = true;
             cb(true);
         } catch (e) {
-            console.log("DB JSON parse error:", e);
+            var raw = "";
+            try { raw = String(out.result); } catch (e2) { raw = "<non-string>"; }
+            if (raw.length > 200) raw = raw.slice(0, 200) + "...";
+            console.log("DB JSON parse error:", e, "raw:", raw);
             uiAlert("Ошибка чтения базы спикеров (JSON parse).");
-            logUiError("speakers.parse", e.message);
+            logUiError("speakers.parse", e.message + " | raw=" + raw);
             cb(false);
         }
     });

@@ -6,13 +6,15 @@ window.onload = function() {
 
     // ЦЕПОЧКА ЗАГРУЗКИ JSX
     loadHostModules([
+        "response.jsx",
         "config.jsx",
         "logger.jsx",
         "utils.jsx",
         "cleanup.jsx",
         "subtitles.jsx",
         "branding.jsx",
-        "speakers.jsx"
+        "speakers.jsx",
+        "job_runner.jsx"
     ], function () {
         console.log("Все системы AE готовы");
     });

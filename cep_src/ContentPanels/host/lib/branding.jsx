@@ -165,10 +165,10 @@
     // GEOTAG: template comp "geotag", text layer "TXT", place at playhead
     createGeotag = function (text) {
         var comp = _ensureActiveComp();
-        if (!comp) return "No active comp";
+        if (!comp) return respondErr("No active comp");
 
         var tpl = _findCompByName("geotag");
-        if (!tpl) { alert("Композиция 'geotag' не найдена"); return "No geotag"; }
+        if (!tpl) { alert("Композиция 'geotag' не найдена"); return respondErr("No geotag"); }
 
         app.beginUndoGroup("Create Geotag");
 
@@ -193,7 +193,7 @@
         }
 
         app.endUndoGroup();
-        return "OK";
+        return respondOk("OK");
     };
 
     // HEAD_TOPIC:
@@ -202,10 +202,10 @@
     // 3) creates layers over groups of consecutive Sub_VOICEOVER_* blocks
     applyHeadTopicToRegular = function (headText, topicText) {
         var comp = _ensureActiveComp();
-        if (!comp) return "No active comp";
+        if (!comp) return respondErr("No active comp");
 
         var tpl = _findCompByName("head_topic");
-        if (!tpl) { alert("Композиция 'head_topic' не найдена"); return "No head_topic"; }
+        if (!tpl) { alert("Композиция 'head_topic' не найдена"); return respondErr("No head_topic"); }
 
         app.beginUndoGroup("Apply Head Topic To Regular");
 
@@ -232,7 +232,7 @@
     var groups = _collectRegularGroups(comp);
 
     // FALLBACK: если нет regular-субтитров — создаём один head_topic по плейхеду
-    if (groups.length === 0) {
+        if (groups.length === 0) {
 
         var one = comp.layers.add(work);
         one.name = HEAD_LAYER_PREFIX + "_PLAYHEAD";
@@ -243,7 +243,7 @@
         // длительность НЕ трогаем — остаётся "как в шаблоне head_topic_WORK"
 
         app.endUndoGroup();
-        return "OK";
+        return respondOk("OK");
     }
 
 
@@ -281,7 +281,7 @@
         }
 
         app.endUndoGroup();
-        return "OK";
+        return respondOk("OK");
     };
 
 })();

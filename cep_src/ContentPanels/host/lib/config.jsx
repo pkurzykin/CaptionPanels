@@ -5,6 +5,7 @@
 
 (function () {
     var _configCache = null;
+    var _configPathCache = "";
 
     function _resolveRootPath() {
         if (typeof rootPath !== "undefined" && rootPath) return rootPath;
@@ -17,33 +18,117 @@
         return "";
     }
 
+    function _normalizePath(p) {
+        var s = String(p || "").replace(/\\/g, "/");
+        var winMatch = s.match(/^\/([A-Za-z]:\/.*)/);
+        if (winMatch) s = winMatch[1];
+        return s;
+    }
+
+    function _dirName(p) {
+        var s = _normalizePath(p);
+        var idx = s.lastIndexOf("/");
+        if (idx <= 0) return "";
+        return s.slice(0, idx);
+    }
+
+    function _isAbsolutePath(p) {
+        var s = _normalizePath(p);
+        return (/^[A-Za-z]:\//).test(s) || s.indexOf("//") === 0 || s.indexOf("/") === 0;
+    }
+
+    function _configCandidates() {
+        var list = [];
+        try {
+            if (Folder.appData) {
+                var ad = Folder.appData;
+                if (ad) list.push(_normalizePath(ad.fsName) + "/CaptionPanels/config.json");
+            }
+        } catch (e) {}
+
+        try {
+            var ud = Folder.userData;
+            if (ud) list.push(_normalizePath(ud.fsName) + "/CaptionPanels/config.json");
+        } catch (e) {}
+
+        var base = _normalizePath(_resolveRootPath());
+        if (!base) return list;
+
+        list.push(base + "/config.json");
+
+        // If base points to /client or /host, try parent.
+        var trimmed = base.replace(/\/(client|host)$/, "");
+        if (trimmed !== base) list.unshift(trimmed + "/config.json");
+
+        // If config is one level above, try parent too.
+        var parent = _dirName(base);
+        if (parent) list.push(parent + "/config.json");
+
+        return list;
+    }
+
     function _configPath() {
-        var base = _resolveRootPath();
-        if (!base) return "";
-        return base + "/config.json";
+        if (_configPathCache) return _configPathCache;
+        var list = _configCandidates();
+        for (var i = 0; i < list.length; i++) {
+            var f = new File(list[i]);
+            if (f.exists) {
+                _configPathCache = list[i];
+                return _configPathCache;
+            }
+        }
+        _configPathCache = list.length ? list[0] : "";
+        return _configPathCache;
+    }
+
+    function _tryReadConfig(p, encoding) {
+        var f = new File(p);
+        if (!f.exists) return null;
+        try {
+            f.encoding = encoding;
+            if (!f.open("r")) return null;
+            var txt = f.read();
+            f.close();
+            if (txt && txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+            return _parseJsonSafe(txt) || {};
+        } catch (e) {
+            try { if (f && f.opened) f.close(); } catch (e2) {}
+            return null;
+        }
+    }
+
+    function _parseJsonSafe(text) {
+        var s = String(text || "");
+        if (s && s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
+        if (typeof JSON !== "undefined" && JSON.parse) {
+            try { return JSON.parse(s); } catch (e) {}
+        }
+        try { return eval("(" + s + ")"); } catch (e2) {}
+        return null;
     }
 
     function _readConfigFile() {
         var p = _configPath();
         if (!p) return {};
-        var f = new File(p);
-        if (!f.exists) return {};
-        try {
-            f.encoding = "UTF-8";
-            f.open("r");
-            var txt = f.read();
-            f.close();
-            if (txt && txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
-            return JSON.parse(txt) || {};
-        } catch (e) {
-            try { if (f && f.opened) f.close(); } catch (e2) {}
-            return {};
-        }
+        var cfg = _tryReadConfig(p, "UTF-8");
+        if (cfg) return cfg;
+        cfg = _tryReadConfig(p, "UTF-16");
+        if (cfg) return cfg;
+        return {};
     }
 
     getConfig = function () {
         if (!_configCache) _configCache = _readConfigFile();
         return _configCache;
+    };
+
+    reloadConfig = function () {
+        _configCache = _readConfigFile();
+        return _configCache;
+    };
+
+    getConfigPath = function () {
+        return _configPath();
     };
 
     getConfigValue = function (key, def) {
@@ -53,8 +138,40 @@
     };
 
     getSpeakersDbPath = function () {
-        return getConfigValue("speakersDbPath",
-            "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json");
+        reloadConfig();
+        var v = getConfigValue("speakersDbPath", "");
+        var p = _normalizePath(v);
+        if (p && !_isAbsolutePath(p)) {
+            var base = _dirName(_configPath());
+            if (base) p = base + "/" + p;
+        }
+        if (p) return p;
+
+        var root = _normalizePath(_resolveRootPath());
+        if (root) {
+            var local = root + "/speakers.json";
+            if (new File(local).exists) return local;
+        }
+
+        return "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json";
+    };
+
+    getConfigDebugString = function () {
+        try {
+            var cfg = reloadConfig();
+            var path = _configPath();
+            var exists = path ? (new File(path)).exists : false;
+            var root = _resolveRootPath();
+            var rawVal = (cfg && cfg.hasOwnProperty("speakersDbPath")) ? cfg["speakersDbPath"] : "";
+            var resolved = getSpeakersDbPath();
+            return "configPath=" + path +
+                " | exists=" + exists +
+                " | root=" + root +
+                " | speakersDbPath(raw)=" + rawVal +
+                " | speakersDbPath(resolved)=" + resolved;
+        } catch (e) {
+            return "configDebug error: " + e.message;
+        }
     };
 
     getLogsRoot = function () {
