@@ -103,8 +103,9 @@ function renderDbList(filterText) {
                 ensureSpeakersDbLoaded(function (ok) {
                     if (!ok) return;
                     var cmd = "removeSpeakerFromDb(" + JSON.stringify(sp.name || "") + "," + JSON.stringify(sp.job || "") + ")";
-                    csInterface.evalScript(cmd, function (res) {
-                        if (res === "OK") {
+                    aeCall(cmd, function (out) {
+                        var res = out.result || "";
+                        if (out.ok && res === "OK") {
                             // удаляем из локального массива
                             for (var i = 0; i < SPEAKERS_DB.length; i++) {
                                 if (normalizeSpeakerText(SPEAKERS_DB[i].name) === normalizeSpeakerText(sp.name) &&
@@ -116,8 +117,8 @@ function renderDbList(filterText) {
                             renderDbList(document.getElementById("db-search") ? document.getElementById("db-search").value : "");
                         } else if (res === "NOT_FOUND") {
                             uiAlert("Спикер не найден в базе.");
-                        } else if (typeof res === "string" && res.indexOf("Error:") === 0) {
-                            uiAlert("Не удалось удалить спикера. " + res);
+                        } else if (!out.ok) {
+                            uiAlert("Не удалось удалить спикера. " + (out.error || res));
                         } else {
                             uiAlert("Не удалось удалить спикера.");
                         }
@@ -159,10 +160,10 @@ function loadSpeakersDbThenOpen() {
 
 function ensureSpeakersDbLoaded(cb) {
     if (SPEAKERS_DB_LOADED) return cb(true);
-    csInterface.evalScript("getSpeakersDbJson()", function (res) {
-        var txt = String(res || "");
-        if (txt.indexOf("Error:") === 0) {
-            console.log("DB load error:", txt);
+    aeCall("getSpeakersDbJson()", function (out) {
+        var txt = String(out.result || "");
+        if (!out.ok) {
+            console.log("DB load error:", out.error || txt);
             uiAlert("Не удалось загрузить базу спикеров.");
             cb(false);
             return;

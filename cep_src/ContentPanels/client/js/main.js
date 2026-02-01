@@ -206,8 +206,9 @@ if (dbSearch) {
             }
 
             var cmd = "addSpeakerToDb(" + JSON.stringify(name) + "," + JSON.stringify(job) + ")";
-            csInterface.evalScript(cmd, function (res) {
-                if (res === "OK") {
+            aeCall(cmd, function (out) {
+                var res = out.result || "";
+                if (out.ok && res === "OK") {
                     SPEAKERS_DB.push({ name: name, job: job });
                     var dbSearch = document.getElementById("db-search");
                     var overlay = document.getElementById("db-overlay");
@@ -217,8 +218,8 @@ if (dbSearch) {
                     uiAlert("Спикер добавлен в базу.");
                 } else if (res === "DUPLICATE") {
                     uiAlert("Такой спикер уже есть в базе.");
-                } else if (typeof res === "string" && res.indexOf("Error:") === 0) {
-                    uiAlert("Не удалось добавить спикера в базу. " + res);
+                } else if (!out.ok) {
+                    uiAlert("Не удалось добавить спикера в базу. " + (out.error || res));
                 } else {
                     uiAlert("Не удалось добавить спикера в базу.");
                 }

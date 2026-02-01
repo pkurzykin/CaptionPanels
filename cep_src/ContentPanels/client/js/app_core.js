@@ -93,3 +93,31 @@ function uiConfirm(msg, cb) {
 function normalizeSpeakerText(txt) {
     return String(txt || "").replace(/\r\n|\r/g, "\n").trim();
 }
+
+function parseAeResult(res) {
+    var s = String(res || "");
+    var t = s.trim();
+    if (t && t[0] === "{") {
+        try {
+            var obj = JSON.parse(t);
+            if (obj && typeof obj.ok !== "undefined") return obj;
+        } catch (e) {}
+    }
+    if (t.indexOf("Error:") === 0 || t === "Error") {
+        return { ok: false, error: t, result: "" };
+    }
+    if (t === "OK") {
+        return { ok: true, error: "", result: t };
+    }
+    return { ok: true, error: "", result: s };
+}
+
+function aeCall(cmd, cb) {
+    return new Promise(function (resolve) {
+        csInterface.evalScript(cmd, function (res) {
+            var out = parseAeResult(res);
+            if (typeof cb === "function") cb(out);
+            resolve(out);
+        });
+    });
+}
