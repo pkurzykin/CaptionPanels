@@ -13,6 +13,7 @@ function generateSubtitles(isItalic) {
 
     var cmd = "generateSubs(" + JSON.stringify(safeTxt) + ", " + isItalic + ", " + jump + ")";
     csInterface.evalScript(cmd);
+    logUi("generateSubs" + (isItalic ? ":italic" : ":regular"));
 }
 
 function initSubtitlesUI() {
@@ -26,5 +27,5 @@ function initSubtitlesUI() {
     attachClick("btn-gen-italic", function () { generateSubtitles(true); });
 
     // Глубокая чистка
-    attachClick("btn-deep-clean", function () { csInterface.evalScript("deepCleanProject()"); });
+    attachClick("btn-deep-clean", function () { csInterface.evalScript("deepCleanProject()"); logUi("deepCleanProject"); });
 }

@@ -31,5 +31,11 @@ legacy_cep/       архив CEP версии
 Логи пишутся в:
 `C:\Users\<you>\AppData\Roaming\CaptionPanels\`
 
+## Конфиг
+`cep_src/ContentPanels/config.json`:
+- `speakersDbPath` — путь к общей базе спикеров
+- `enableLogs` — включить диагностические логи (true/false)
+- `logsRoot` — кастомная папка для логов (если пусто — AppData)
+
 ## Документация
 Подробности и мост: `aex_bridge/README.md`.

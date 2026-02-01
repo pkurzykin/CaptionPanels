@@ -126,3 +126,15 @@ function attachClick(id, fn) {
     var el = document.getElementById(id);
     if (el) el.onclick = fn;
 }
+
+function logUi(msg) {
+    try {
+        csInterface.evalScript("logMessage(" + JSON.stringify(String(msg || "")) + ")");
+    } catch (e) {}
+}
+
+function logUiError(ctx, msg) {
+    try {
+        csInterface.evalScript("logError(" + JSON.stringify(String(ctx || "")) + "," + JSON.stringify(String(msg || "")) + ")");
+    } catch (e) {}
+}

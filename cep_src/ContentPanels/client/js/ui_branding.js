@@ -15,12 +15,14 @@ function initBrandingUI() {
         if (geo) {
             var cmdGeo = "createGeotag(" + JSON.stringify(geo) + ")";
             csInterface.evalScript(cmdGeo);
+            logUi("createGeotag");
         }
 
         // 2) HEAD_TOPIC
         if (head || topic) {
             var cmdHead = "applyHeadTopicToRegular(" + JSON.stringify(head) + "," + JSON.stringify(topic) + ")";
             csInterface.evalScript(cmdHead);
+            logUi("applyHeadTopicToRegular");
         }
     });
 }

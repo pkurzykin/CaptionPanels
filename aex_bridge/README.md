@@ -47,4 +47,5 @@ Host -> UI:
 - База спикеров берётся из сетевого пути, указанного в `config.json`:
   `H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json`
   Меняется в `cep_src/ContentPanels/config.json` (ключ `speakersDbPath`).
-- Логи пишутся в `C:\Users\<you>\AppData\Roaming\CaptionPanels\`.
+- Логи пишутся в `C:\Users\<you>\AppData\Roaming\CaptionPanels\` (или в `logsRoot`, если задан).
+- Включение логов: `enableLogs: true` в `config.json`.

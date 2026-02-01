@@ -7,6 +7,7 @@ window.onload = function() {
     // ЦЕПОЧКА ЗАГРУЗКИ JSX
     loadHostModules([
         "config.jsx",
+        "logger.jsx",
         "utils.jsx",
         "cleanup.jsx",
         "subtitles.jsx",

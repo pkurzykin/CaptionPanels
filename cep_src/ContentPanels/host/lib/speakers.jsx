@@ -300,6 +300,7 @@
             return content || "[]";
         } catch (e) {
             try { if (f && f.opened) f.close(); } catch (e2) {}
+            try { if (typeof logError === "function") logError("speakers.getJson", e.message); } catch (e3) {}
             return "Error: " + e.message;
         }
     };
@@ -343,6 +344,7 @@
             return "OK";
         } catch (e) {
             try { if (f && f.opened) f.close(); } catch (e2) {}
+            try { if (typeof logError === "function") logError("speakers.add", e.message); } catch (e3) {}
             return "Error: " + e.message;
         }
     };
@@ -381,6 +383,7 @@
             return "OK";
         } catch (e) {
             try { if (f && f.opened) f.close(); } catch (e2) {}
+            try { if (typeof logError === "function") logError("speakers.remove", e.message); } catch (e3) {}
             return "Error: " + e.message;
         }
     };

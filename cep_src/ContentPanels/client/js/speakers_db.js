@@ -119,6 +119,7 @@ function renderDbList(filterText) {
                             uiAlert("Спикер не найден в базе.");
                         } else if (!out.ok) {
                             uiAlert("Не удалось удалить спикера. " + (out.error || res));
+                            logUiError("speakers.remove", out.error || res);
                         } else {
                             uiAlert("Не удалось удалить спикера.");
                         }
@@ -165,6 +166,7 @@ function ensureSpeakersDbLoaded(cb) {
         if (!out.ok) {
             console.log("DB load error:", out.error || txt);
             uiAlert("Не удалось загрузить базу спикеров.");
+            logUiError("speakers.load", out.error || txt);
             cb(false);
             return;
         }
@@ -176,6 +178,7 @@ function ensureSpeakersDbLoaded(cb) {
         } catch (e) {
             console.log("DB JSON parse error:", e);
             uiAlert("Ошибка чтения базы спикеров (JSON parse).");
+            logUiError("speakers.parse", e.message);
             cb(false);
         }
     });

@@ -168,10 +168,12 @@
 
             _log("job done: " + job.type);
             _writeLog(jobPath, log);
+            try { if (typeof logMessage === "function") logMessage("job:" + job.type + " OK"); } catch (e0) {}
             return "OK";
         } catch (e) {
             _log("error: " + e.message);
             try { _writeLog(jobPath, log); } catch (e2) {}
+            try { if (typeof logError === "function") logError("job_runner", e.message); } catch (e3) {}
             return "Error: " + e.message;
         }
     };

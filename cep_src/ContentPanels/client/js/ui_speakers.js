@@ -98,6 +98,7 @@ function initSpeakersUI() {
                     uiAlert("Такой спикер уже есть в базе.");
                 } else if (!out.ok) {
                     uiAlert("Не удалось добавить спикера в базу. " + (out.error || res));
+                    logUiError("speakers.add", out.error || res);
                 } else {
                     uiAlert("Не удалось добавить спикера в базу.");
                 }
@@ -111,6 +112,7 @@ function initSpeakersUI() {
         var cmd =
             "createSpeakerTitle(" + JSON.stringify(d.name) + "," + JSON.stringify(d.job) + "," + JSON.stringify(d.side) + "," + JSON.stringify(d.size) + "," + Number(d.bgOffset || 0) + ")";
         csInterface.evalScript(cmd);
+        logUi("createSpeakerTitle");
 
         // Сброс UI
         var nameEl = document.getElementById("input-name");
@@ -136,6 +138,7 @@ function initSpeakersUI() {
         if (nameInput) nameInput.value = "";
         if (jobInput) jobInput.value = "";
         csInterface.evalScript("removePreview()");
+        logUi("removePreview");
         updateAddSpeakerBtnState();
     });
 
