@@ -43,4 +43,9 @@ window.onload = function() {
             el && el.focus();
         });
     });
+
+    var vEl = document.getElementById("ui-version");
+    if (vEl && typeof UI_VERSION !== "undefined") {
+        vEl.textContent = UI_VERSION;
+    }
 };
