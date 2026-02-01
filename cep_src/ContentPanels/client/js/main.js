@@ -1,4 +1,59 @@
-var csInterface = new CSInterface();
+function bridgeEval(script, cb) {
+    if (!window.Bridge || typeof Bridge.eval !== "function") {
+        console.warn("Bridge.eval not available");
+        var res = "NO_BRIDGE";
+        if (typeof cb === "function") cb(res);
+        return Promise.resolve(res);
+    }
+    var p = Bridge.eval(script);
+    if (typeof cb === "function") {
+        p.then(cb);
+    }
+    return p;
+}
+
+var csInterface = null;
+if (typeof CSInterface !== "undefined" && (window.__adobe_cep__ || window.cep)) {
+    csInterface = new CSInterface();
+}
+if (!csInterface) {
+    csInterface = {
+        evalScript: function (script, cb) {
+            return bridgeEval(script, cb);
+        },
+        getSystemPath: function () {
+            if (window.Bridge && typeof Bridge.getExtensionRootPath === "function") {
+                return Bridge.getExtensionRootPath();
+            }
+            return "";
+        }
+    };
+}
+
+var UI_VERSION = "1.0";
+
+function buildJob(type, payload) {
+    return {
+        schemaVersion: 1,
+        type: type,
+        payload: payload || {},
+        meta: {
+            createdAt: new Date().toISOString(),
+            uiVersion: UI_VERSION
+        }
+    };
+}
+
+function runJobFromUI(job) {
+    var json;
+    try {
+        json = JSON.stringify(job || {});
+    } catch (e) {
+        uiAlert("Job JSON error: " + e.message);
+        return Promise.resolve("Error");
+    }
+    return bridgeEval("runJobFromJson(" + JSON.stringify(json) + ")");
+}
 
 // ===== Speakers Database (speakers.json) =====
 var SPEAKERS_DB = [];
@@ -19,8 +74,13 @@ var TOPIC_OPTIONS = [
 ];
 
 function getExtensionRootPath() {
-    // extensionPath обычно уже считается в window.onload, но держим и здесь
-    return csInterface.getSystemPath(SystemPath.EXTENSION).replace(/\\/g, '/');
+    if (csInterface && typeof csInterface.getSystemPath === "function" && typeof SystemPath !== "undefined") {
+        return csInterface.getSystemPath(SystemPath.EXTENSION).replace(/\\/g, '/');
+    }
+    if (window.Bridge && typeof Bridge.getExtensionRootPath === "function") {
+        return Bridge.getExtensionRootPath();
+    }
+    return "";
 }
 
 function normalizeNameToOneLine(name) {
@@ -201,36 +261,25 @@ function loadSpeakersDbThenOpen() {
 
 function ensureSpeakersDbLoaded(cb) {
     if (SPEAKERS_DB_LOADED) return cb(true);
-
-    var root = getExtensionRootPath();
-    var url = "file://" + root + "/speakers.json";
-
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
-
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState !== 4) return;
-
-        if (xhr.status === 200 || xhr.status === 0) {
-            try {
-                var txt = xhr.responseText || "";
-                if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1); // strip BOM
-                SPEAKERS_DB = JSON.parse(txt) || [];
-                SPEAKERS_DB_LOADED = true;
-                cb(true);
-            } catch (e) {
-                console.log("DB JSON parse error:", e);
-                uiAlert("Ошибка чтения speakers.json (JSON parse).");
-                cb(false);
-            }
-        } else {
-            console.log("DB load failed:", xhr.status, xhr.responseText);
-            uiAlert("Не удалось загрузить speakers.json. Проверь, что файл лежит в корне расширения.");
+    csInterface.evalScript("getSpeakersDbJson()", function (res) {
+        var txt = String(res || "");
+        if (txt.indexOf("Error:") === 0) {
+            console.log("DB load error:", txt);
+            uiAlert("Не удалось загрузить базу спикеров.");
+            cb(false);
+            return;
+        }
+        try {
+            if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1); // strip BOM
+            SPEAKERS_DB = JSON.parse(txt) || [];
+            SPEAKERS_DB_LOADED = true;
+            cb(true);
+        } catch (e) {
+            console.log("DB JSON parse error:", e);
+            uiAlert("Ошибка чтения базы спикеров (JSON parse).");
             cb(false);
         }
-    };
-
-    xhr.send();
+    });
 }
 // ===== /Speakers Database =====
 
@@ -261,7 +310,7 @@ window.openTab = function(evt, tabName) {
 };
 
 window.onload = function() {
-    var extensionPath = csInterface.getSystemPath(SystemPath.EXTENSION).replace(/\\/g, '/');
+    var extensionPath = getExtensionRootPath();
 
     // ЦЕПОЧКА ЗАГРУЗКИ JSX
     csInterface.evalScript('initPath("' + extensionPath + '")', function() {

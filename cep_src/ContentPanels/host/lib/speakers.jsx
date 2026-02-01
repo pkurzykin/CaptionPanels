@@ -11,6 +11,10 @@
 
 (function () {
 
+    // ===== Speakers DB location (shared network path) =====
+    // Change this path if you move the shared DB.
+    var SPEAKERS_DB_PATH = "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json";
+
     // --------- Internal state (persist while AE session is alive) ---------
     var _inited = false;
     var _markerLayer = null;
@@ -269,9 +273,25 @@
     }
 
     function _getSpeakersDbFile() {
-        if (typeof rootPath === "undefined" || !rootPath) return null;
-        return new File(rootPath + "/speakers.json");
+        if (!SPEAKERS_DB_PATH) return null;
+        return new File(SPEAKERS_DB_PATH);
     }
+
+    getSpeakersDbJson = function () {
+        var f = _getSpeakersDbFile();
+        if (!f) return "Error: No data folder";
+        if (!f.exists) return "[]";
+        try {
+            f.encoding = "UTF-8";
+            f.open("r");
+            var content = f.read();
+            f.close();
+            return content || "[]";
+        } catch (e) {
+            try { if (f && f.opened) f.close(); } catch (e2) {}
+            return "Error: " + e.message;
+        }
+    };
 
     // =====================================================
     // PUBLIC GLOBALS (called from CEP via evalScript)

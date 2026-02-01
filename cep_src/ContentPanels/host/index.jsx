@@ -1,8 +1,20 @@
 // host/index.jsx
 var rootPath = "";
 
+function resolveRootPath() {
+    if (rootPath) return rootPath;
+    try {
+        var f = new File($.fileName);
+        if (f && f.parent && f.parent.parent) {
+            rootPath = f.parent.parent.fsName;
+        }
+    } catch (e) {}
+    return rootPath;
+}
+
 function loadModule(fileName) {
-    var file = new File(rootPath + "/host/lib/" + fileName);
+    var basePath = resolveRootPath();
+    var file = new File(basePath + "/host/lib/" + fileName);
     
     if (file.exists) {
         try {
