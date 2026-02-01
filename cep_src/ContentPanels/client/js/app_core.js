@@ -121,3 +121,8 @@ function aeCall(cmd, cb) {
         });
     });
 }
+
+function attachClick(id, fn) {
+    var el = document.getElementById(id);
+    if (el) el.onclick = fn;
+}

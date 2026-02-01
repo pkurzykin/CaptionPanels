@@ -181,3 +181,44 @@ function ensureSpeakersDbLoaded(cb) {
     });
 }
 // ===== /Speakers Database =====
+
+function initSpeakersDbUI() {
+    // Добавить выбранного спикера
+    attachClick("btn-db-add", function () {
+        if (!SPEAKERS_DB_SELECTED_OBJ) return;
+
+        var sp = SPEAKERS_DB_SELECTED_OBJ;
+
+        var nameEl = document.getElementById("input-name");
+        var jobEl  = document.getElementById("input-job");
+
+        if (nameEl) nameEl.value = sp.name || "";
+        if (jobEl)  jobEl.value  = sp.job || "";
+
+        closeDbModal();
+
+        if (typeof safeTriggerSpeakerPreview === "function") {
+            safeTriggerSpeakerPreview();
+        }
+        updateAddSpeakerBtnState();
+    });
+
+    // Закрытие модалки базы
+    attachClick("btn-db-close", function () { closeDbModal(); });
+
+    // Закрытие по клику на затемнение (только если клик именно по overlay)
+    var overlay = document.getElementById("db-overlay");
+    if (overlay) {
+        overlay.addEventListener("click", function (e) {
+            if (e.target === overlay) closeDbModal();
+        });
+    }
+
+    // Поиск
+    var dbSearch = document.getElementById("db-search");
+    if (dbSearch) {
+        dbSearch.addEventListener("input", function () {
+            renderDbList(dbSearch.value);
+        });
+    }
+}
