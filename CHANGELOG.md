@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- subtitle_BG теперь нумеруется как `subtitle_BG_2` и далее (без слова auto).
+- В shy отправляются только шаблоны `text_regular` и `text_italic`.
+
 ## v2.1.0 — 2026-02-02
 
 ### Added
