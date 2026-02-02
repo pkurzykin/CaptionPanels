@@ -28,6 +28,64 @@ function safeTriggerSpeakerPreview() {
     }
 }
 
+var _AUTO_DB_FILL_LOCK = false;
+
+function _normalizeNameKey(s) {
+    return normalizeNameToOneLine(s || "").toLowerCase();
+}
+
+function _normalizeJobKey(s) {
+    return normalizeSpeakerText(s || "").toLowerCase();
+}
+
+function _findSpeakerMatch(name, job) {
+    var nKey = _normalizeNameKey(name);
+    if (!nKey) return null;
+
+    var jKey = _normalizeJobKey(job);
+    var byName = [];
+    var exact = null;
+
+    for (var i = 0; i < SPEAKERS_DB.length; i++) {
+        var sp = SPEAKERS_DB[i] || {};
+        if (_normalizeNameKey(sp.name) !== nKey) continue;
+        byName.push(sp);
+        if (jKey && _normalizeJobKey(sp.job) === jKey) {
+            exact = sp;
+            break;
+        }
+    }
+
+    if (exact) return exact;
+    if (byName.length === 1) return byName[0];
+    return null;
+}
+
+function tryAutoFillSpeakerFromDb() {
+    if (_AUTO_DB_FILL_LOCK) return;
+    var nameEl = document.getElementById("input-name");
+    var jobEl = document.getElementById("input-job");
+    if (!nameEl || !jobEl) return;
+
+    var name = nameEl.value || "";
+    var job = jobEl.value || "";
+    if (!normalizeSpeakerText(name)) return;
+
+    ensureSpeakersDbLoaded(function (ok) {
+        if (!ok) return;
+        var match = _findSpeakerMatch(name, job);
+        if (!match) return;
+
+        _AUTO_DB_FILL_LOCK = true;
+        nameEl.value = match.name || "";
+        jobEl.value = match.job || "";
+        _AUTO_DB_FILL_LOCK = false;
+
+        safeTriggerSpeakerPreview();
+        updateAddSpeakerBtnState();
+    });
+}
+
 function initSpeakersUI() {
     // Назначаем события для полей (Превью)
     var inputs = ["input-name", "input-job"];
@@ -36,6 +94,7 @@ function initSpeakersUI() {
         if (el) {
             el.addEventListener("input", triggerSpeakerPreview);
             el.addEventListener("input", updateAddSpeakerBtnState);
+            el.addEventListener("blur", tryAutoFillSpeakerFromDb);
         }
     });
     updateAddSpeakerBtnState();

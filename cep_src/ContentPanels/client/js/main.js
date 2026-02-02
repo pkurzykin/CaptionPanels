@@ -28,6 +28,13 @@ window.onload = function() {
     initBrandingUI();
     initJsonImportUI();
 
+    var reloadBtn = document.getElementById("btn-reload");
+    if (reloadBtn) {
+        reloadBtn.addEventListener("click", function () {
+            window.location.reload();
+        });
+    }
+
     // Крестики очистки для инпутов (по data-clear)
     var clearBtns = document.querySelectorAll(".clear-btn");
     clearBtns.forEach(function (btn) {

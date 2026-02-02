@@ -16,6 +16,9 @@ function _setSpeakerFields(name, job, opts) {
     if (typeof updateAddSpeakerBtnState === "function") {
         updateAddSpeakerBtnState();
     }
+    if (typeof tryAutoFillSpeakerFromDb === "function") {
+        tryAutoFillSpeakerFromDb();
+    }
     if (!opts || !opts.noPreview) {
         if (typeof safeTriggerSpeakerPreview === "function") {
             safeTriggerSpeakerPreview();

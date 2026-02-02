@@ -66,6 +66,7 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
 
         // Update subtitle_BG to cover all subtitle layers
         _updateSubtitleBg(comp);
+        _hideSubtitleTemplates(comp);
         app.endUndoGroup();
         return respondOk("OK");
     } catch (err) {
@@ -179,23 +180,106 @@ function _isSubtitleLayer(layer) {
     return (name.indexOf("Sub_VOICEOVER_") === 0 || name.indexOf("Sub_SYNCH_") === 0);
 }
 
-function _updateSubtitleBg(comp) {
-    if (!comp) return;
-    var bg = comp.layer("subtitle_BG");
-    if (!bg) return;
+function _collectSubtitleLayers(comp) {
+    var arr = [];
+    for (var i = 1; i <= comp.numLayers; i++) {
+        var l = comp.layer(i);
+        if (_isSubtitleLayer(l)) {
+            arr.push({ layer: l, start: l.inPoint, end: l.outPoint });
+        }
+    }
+    arr.sort(function (a, b) {
+        return (a.start === b.start) ? (a.end - b.end) : (a.start - b.start);
+    });
+    return arr;
+}
 
-    var minIn = null;
-    var maxOut = null;
+function _collectSubtitleGroups(comp, gapSec) {
+    var layers = _collectSubtitleLayers(comp);
+    if (layers.length === 0) return [];
+
+    var groups = [];
+    var curStart = layers[0].start;
+    var curEnd = layers[0].end;
+
+    for (var i = 1; i < layers.length; i++) {
+        var s = layers[i].start;
+        var e = layers[i].end;
+        if (s - curEnd > gapSec) {
+            groups.push({ start: curStart, end: curEnd });
+            curStart = s;
+            curEnd = e;
+        } else {
+            if (e > curEnd) curEnd = e;
+        }
+    }
+    groups.push({ start: curStart, end: curEnd });
+    return groups;
+}
+
+function _removeAutoBgLayers(comp, prefix) {
+    for (var i = comp.numLayers; i >= 1; i--) {
+        var l = comp.layer(i);
+        if (l && l.name && l.name.indexOf(prefix) === 0) {
+            try { l.remove(); } catch (e) {}
+        }
+    }
+}
+
+function _findLastSubtitleLayerInRange(comp, startTime, endTime) {
+    var last = null;
     for (var i = 1; i <= comp.numLayers; i++) {
         var l = comp.layer(i);
         if (!_isSubtitleLayer(l)) continue;
-        if (minIn === null || l.inPoint < minIn) minIn = l.inPoint;
-        if (maxOut === null || l.outPoint > maxOut) maxOut = l.outPoint;
+        if (l.inPoint < startTime || l.inPoint > endTime) continue;
+        if (!last || l.index > last.index) last = l;
+    }
+    return last;
+}
+
+function _updateSubtitleBg(comp) {
+    if (!comp) return;
+    var BG_NAME = "subtitle_BG";
+    var BG_PREFIX = "subtitle_BG__AUTO__";
+    var GAP_SEC = 2.0;
+
+    var bg = comp.layer(BG_NAME);
+    if (!bg) return;
+
+    _removeAutoBgLayers(comp, BG_PREFIX);
+
+    var groups = _collectSubtitleGroups(comp, GAP_SEC);
+    if (groups.length === 0) {
+        bg.inPoint = comp.time;
+        bg.outPoint = comp.time;
+        bg.startTime = comp.time;
+        return;
     }
 
-    if (minIn !== null && maxOut !== null) {
-        bg.inPoint = minIn;
-        bg.outPoint = maxOut;
-        bg.startTime = minIn;
+    for (var g = 0; g < groups.length; g++) {
+        var grp = groups[g];
+        var layer = bg;
+        if (g > 0) {
+            layer = bg.duplicate();
+            layer.name = BG_PREFIX + (g + 1);
+        }
+
+        layer.startTime = grp.start;
+        layer.inPoint = grp.start;
+        layer.outPoint = grp.end;
+
+        var anchor = _findLastSubtitleLayerInRange(comp, grp.start, grp.end);
+        if (anchor) {
+            try { layer.moveAfter(anchor); } catch (e) {}
+        }
     }
+}
+
+function _hideSubtitleTemplates(comp) {
+    if (!comp) return;
+    var reg = comp.layer("text_regular");
+    var ita = comp.layer("text_italic");
+    if (reg) reg.shy = true;
+    if (ita) ita.shy = true;
+    try { comp.hideShyLayers = true; } catch (e) {}
 }
