@@ -1,0 +1,46 @@
+name: Package Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  package:
+    runs-on: [self-hosted, windows]
+    steps:
+      - name: Checkout dev repo
+        uses: actions/checkout@v4
+
+      - name: Package plugin
+        shell: pwsh
+        run: .\\scripts\\package_release.ps1 -Version $env:GITHUB_REF_NAME
+
+      - name: Checkout release repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.RELEASE_REPO }}
+          token: ${{ secrets.RELEASE_REPO_TOKEN }}
+          path: release-repo
+
+      - name: Publish to release repo
+        shell: pwsh
+        run: |
+          $ver = $env:GITHUB_REF_NAME
+          if ($ver.StartsWith("v")) { $ver = $ver.Substring(1) }
+          $src = "dist\\CaptionPanels_${ver}_win.zip"
+          if (!(Test-Path $src)) { throw "Missing artifact: $src" }
+
+          $destDir = "release-repo\\releases\\v$ver"
+          New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+          Copy-Item $src $destDir -Force
+          (Get-FileHash $src -Algorithm SHA256).Hash | Out-File (Join-Path $destDir "sha256.txt") -Encoding ascii
+
+          Push-Location release-repo
+          git config user.name "release-bot"
+          git config user.email "release-bot@users.noreply.github.com"
+          git add .
+          git commit -m "Release v$ver"
+          if ($LASTEXITCODE -ne 0) { Write-Host "Nothing to commit"; exit 0 }
+          git push
+          Pop-Location
