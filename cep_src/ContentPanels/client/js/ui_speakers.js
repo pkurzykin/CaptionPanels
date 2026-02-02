@@ -111,24 +111,36 @@ function initSpeakersUI() {
         var d = getSpeakerData();
         var cmd =
             "createSpeakerTitle(" + JSON.stringify(d.name) + "," + JSON.stringify(d.job) + "," + JSON.stringify(d.side) + "," + JSON.stringify(d.size) + "," + Number(d.bgOffset || 0) + ")";
-        csInterface.evalScript(cmd);
-        logUi("createSpeakerTitle");
+        aeCall(cmd, function (out) {
+            if (!out || !out.ok) {
+                var err = out && (out.error || out.result) ? (out.error || out.result) : "Unknown error";
+                uiAlert("Не удалось создать титр.\n" + err);
+                logUiError("speakers.create", err);
+                return;
+            }
 
-        // Сброс UI
-        var nameEl = document.getElementById("input-name");
-        var jobEl  = document.getElementById("input-job");
-        if (nameEl) nameEl.value = "";
-        if (jobEl) jobEl.value = "";
+            logUi("createSpeakerTitle");
 
-        var sideLeft = document.getElementById("side-left");
-        if (sideLeft) sideLeft.checked = true;
+            if (typeof jsonImportAdvanceAfterCreate === "function" && jsonImportAdvanceAfterCreate()) {
+                return;
+            }
 
-        var sizeDef = document.getElementById("size-def");
-        if (sizeDef) sizeDef.checked = true;
+            // Сброс UI
+            var nameEl = document.getElementById("input-name");
+            var jobEl  = document.getElementById("input-job");
+            if (nameEl) nameEl.value = "";
+            if (jobEl) jobEl.value = "";
 
-        if (bgSliderEl) bgSliderEl.value = 0;
-        if (bgValEl) bgValEl.textContent = "0";
-        updateAddSpeakerBtnState();
+            var sideLeft = document.getElementById("side-left");
+            if (sideLeft) sideLeft.checked = true;
+
+            var sizeDef = document.getElementById("size-def");
+            if (sizeDef) sizeDef.checked = true;
+
+            if (bgSliderEl) bgSliderEl.value = 0;
+            if (bgValEl) bgValEl.textContent = "0";
+            updateAddSpeakerBtnState();
+        });
     });
 
     // Кнопка очистки

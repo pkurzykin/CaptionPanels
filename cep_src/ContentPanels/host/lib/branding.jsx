@@ -11,6 +11,7 @@
     var HEAD_WORK_COMP_NAME = "head_topic_WORK";
     var HEAD_LAYER_PREFIX   = "HEAD_TOPIC"; // метка для удаления/пересоздания
     var HEAD_LAYER_PREFIX_OLD = "__NH_HEADTOPIC__";
+    var HEAD_LABEL = 10; // Purple (default label index)
 
     // --------- helpers ---------
     function _ensureActiveComp() {
@@ -51,6 +52,19 @@
             return true;
         }
         return false;
+    }
+
+    function _parseJsonSafe(str) {
+        var s = String(str || "");
+        if (s && s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
+        if (typeof JSON !== "undefined" && JSON.parse) {
+            try {
+                return JSON.parse(s);
+            } catch (e) {
+                try { return eval("(" + s + ")"); } catch (e2) { throw e; }
+            }
+        }
+        return eval("(" + s + ")");
     }
 
     function _removeGeneratedHeadLayers(comp) {
@@ -196,6 +210,28 @@
         return respondOk("OK");
     };
 
+    // GEOTAG LIST: [{text, time}, ...] - place each at provided time
+    createGeotagsAtTimes = function (list) {
+        var comp = _ensureActiveComp();
+        if (!comp) return respondErr("No active comp");
+
+        var arr = list;
+        if (typeof list === "string") {
+            arr = _parseJsonSafe(list);
+        }
+        if (!(arr instanceof Array)) return respondErr("Invalid geotags list");
+
+        var t0 = comp.time;
+        for (var i = 0; i < arr.length; i++) {
+            var g = arr[i] || {};
+            var tt = Number(g.time);
+            if (!isNaN(tt)) comp.time = tt;
+            createGeotag(g.text || "");
+        }
+        comp.time = t0;
+        return respondOk("OK");
+    };
+
     // HEAD_TOPIC:
     // 1) ensures one WORK comp (head_topic_WORK), updates HEAD/TOPIC text
     // 2) removes previously generated head_topic layers in active comp
@@ -215,6 +251,7 @@
             work = tpl.duplicate();
             work.name = HEAD_WORK_COMP_NAME;
         }
+        try { work.label = HEAD_LABEL; } catch (e) {}
 
         // авто-сортировка: рабочий head_topic в папку _GENERATED/HeadTopic
         if (typeof moveItemToFolder === "function") {
@@ -236,6 +273,7 @@
 
         var one = comp.layers.add(work);
         one.name = HEAD_LAYER_PREFIX + "_PLAYHEAD";
+        try { one.label = HEAD_LABEL; } catch (e) {}
 
         // строго по плейхеду
         one.startTime = comp.time;
@@ -259,6 +297,7 @@
 
             var l = comp.layers.add(work);
             l.name = HEAD_LAYER_PREFIX + "_" + (g + 1);
+            try { l.label = HEAD_LABEL; } catch (e) {}
 
             if (g === 0) {
                 var s = firstStart;
@@ -276,7 +315,7 @@
             // Размещаем head_topic выше последнего слоя в блоке субтитров
             var anchor = _findLastRegularLayerInRange(comp, st, en);
             if (anchor) {
-                try { l.moveBefore(anchor); } catch (e) {}
+                try { l.moveAfter(anchor); } catch (e) {}
             }
         }
 

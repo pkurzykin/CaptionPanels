@@ -7,6 +7,7 @@
 //   addSpeakerToDb(name, job)
 //   removeSpeakerFromDb(name, job)
 //   removePreview()
+//   resetSpeakerMarkers()
 // =====================================================
 
 (function () {
@@ -490,6 +491,15 @@
 
         // Return next marker data (for future JS callback usage)
         return respondOk(nextData);
+    };
+
+    // Reset marker cache and re-init from current playhead
+    resetSpeakerMarkers = function () {
+        var comp = _ensureActiveComp();
+        if (!comp) return respondErr("No active comp");
+        _inited = false;
+        _initIfNeeded(comp);
+        return respondOk("OK");
     };
 
 })();

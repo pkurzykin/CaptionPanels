@@ -13,6 +13,7 @@ window.onload = function() {
         "cleanup.jsx",
         "subtitles.jsx",
         "branding.jsx",
+        "json_import.jsx",
         "speakers.jsx",
         "job_runner.jsx"
     ], function () {
@@ -25,6 +26,7 @@ window.onload = function() {
     initSpeakersUI();
     initSubtitlesUI();
     initBrandingUI();
+    initJsonImportUI();
 
     // Крестики очистки для инпутов (по data-clear)
     var clearBtns = document.querySelectorAll(".clear-btn");
