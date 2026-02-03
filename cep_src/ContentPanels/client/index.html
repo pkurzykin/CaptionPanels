@@ -142,6 +142,26 @@
 </div>
 <!-- ===== /Speakers Database Modal ===== -->
 
+<!-- ===== FixTypography Modal ===== -->
+<div id="typo-overlay" class="modal-overlay" style="display:none;">
+    <div class="modal-window typo-window">
+        <div class="modal-header">
+            <div class="modal-title">FixTypography — найдено: <span id="typo-count">0</span></div>
+            <button id="btn-typo-close" class="modal-close">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="modal-footer" style="display:flex; gap:8px; justify-content:space-between;">
+                <button id="btn-typo-fix-all" class="main-action" style="margin:0; flex:1;">Исправить всё</button>
+                <button id="btn-typo-fix-except" class="secondary-btn" style="margin:0; flex:1;">Исправить кроме отмеченного</button>
+            </div>
+            <div class="typo-hint">Отметьте строки, которые не нужно исправлять.</div>
+            <div id="typo-list" class="typo-list"></div>
+        </div>
+    </div>
+</div>
+<!-- ===== /FixTypography Modal ===== -->
+
     <div class="ui-version">v<span id="ui-version">2.1.0</span></div>
 
     <script src="js/CSInterface.js"></script>
@@ -153,6 +173,7 @@
     <script src="js/ui_import.js"></script>
     <script src="js/ui_speakers.js"></script>
     <script src="js/ui_subtitles.js"></script>
+    <script src="js/ui_typography.js"></script>
     <script src="js/ui_branding.js"></script>
     <script src="js/host_loader.js"></script>
     <script src="js/main.js"></script>

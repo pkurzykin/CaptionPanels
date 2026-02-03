@@ -25,6 +25,7 @@ window.onload = function() {
     initSpeakersDbUI();
     initSpeakersUI();
     initSubtitlesUI();
+    initTypographyUI();
     initBrandingUI();
     initJsonImportUI();
 

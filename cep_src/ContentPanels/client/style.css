@@ -365,6 +365,87 @@ input[type="range"] { width: 100%; cursor: pointer; margin-top: 5px; }
     border-color: #555;
     color: #999;
 }
+
+/* ===== FixTypography Modal ===== */
+.typo-window {
+    max-width: 820px;
+}
+
+.typo-hint {
+    margin: 8px 0 10px 0;
+    font-size: 11px;
+    color: #bdbdbd;
+}
+
+.typo-list {
+    max-height: 65vh;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    background: #242424;
+    border-radius: 4px;
+}
+
+.typo-row {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    align-items: flex-start;
+}
+
+.typo-row:last-child {
+    border-bottom: none;
+}
+
+.typo-skip {
+    margin-top: 3px;
+    flex: 0 0 auto;
+}
+
+.typo-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.typo-path {
+    font-size: 12px;
+    color: #eaeaea;
+    margin-bottom: 6px;
+    line-height: 1.2;
+}
+
+.typo-diff {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.typo-lbl {
+    font-size: 11px;
+    color: #bdbdbd;
+    margin-bottom: 4px;
+}
+
+.typo-txt {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 11px;
+    color: #fff;
+    background: #1f1f1f;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 8px;
+    max-height: 140px;
+    overflow: auto;
+}
+
+.typo-empty {
+    padding: 12px;
+    font-size: 12px;
+    color: #aaa;
+}
+/* ===== /FixTypography Modal ===== */
 /* ===== Clear (X) buttons for inputs ===== */
 .clearable {
     position: relative;
