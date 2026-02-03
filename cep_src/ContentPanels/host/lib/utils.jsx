@@ -95,6 +95,9 @@ fixTypographyText = function (txt) {
 
     // Защита фразы в кавычках: «Транснефть ...»
     t = t.replace(/«Транснефть[^»\r\n]*»/g, function (m) {
+        // Also handle "Транснефть - Север" (hyphen-minus with any spacing) so it doesn't wrap.
+        // Convert hyphen-minus between letters to an en dash with spaces, then make spaces non-breaking.
+        m = m.replace(/([A-Za-zА-Яа-яЁё])\s*-\s*([A-Za-zА-Яа-яЁё])/g, "$1 – $2");
         return m.replace(/ /g, "\u00A0");
     });
 
