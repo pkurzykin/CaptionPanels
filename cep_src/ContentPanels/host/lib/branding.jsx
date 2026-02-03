@@ -156,6 +156,19 @@
         return last;
     }
 
+    function _findLowestRegularLayerInRange(comp, startTime, endTime) {
+        // Нижний в стеке слой среди регулярных субтитров в интервале
+        var lowest = null;
+        var EPS = 1.0 / 60.0;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!_isRegularSubLayer(l)) continue;
+            if (l.inPoint + EPS < startTime || l.inPoint - EPS > endTime) continue;
+            if (!lowest || l.index > lowest.index) lowest = l;
+        }
+        return lowest;
+    }
+
     function _findGeotagLayerAtPlayhead(comp) {
         var t = comp.time;
         var EPS = 1.0 / 60.0; // ~1 frame
@@ -312,8 +325,8 @@
                 l.outPoint = en;
             }
 
-            // Размещаем head_topic выше последнего слоя в блоке субтитров
-            var anchor = _findLastRegularLayerInRange(comp, st, en);
+            // Размещаем head_topic под всем блоком субтитров
+            var anchor = _findLowestRegularLayerInRange(comp, st, en);
             if (anchor) {
                 try { l.moveAfter(anchor); } catch (e) {}
             }

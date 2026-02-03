@@ -20,6 +20,9 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
 
         app.beginUndoGroup("Generate Smart Subs");
 
+        // Базовые шаблоны всегда shy = true
+        sourceLayer.shy = true;
+
         var currentTime = comp.time;
         // Используем логику нарезки из твоего скрипта
         var chunks = splitTextToChunksCore(rawText);
@@ -42,6 +45,8 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
             newL.moveToBeginning();
             newL.name = "Sub_" + type.toUpperCase() + "_" + (n + 1);
             newL.property("Source Text").setValue(chunks[n]);
+            // Готовые субтитры не должны быть shy
+            newL.shy = false;
 
             var targetIn = currentTime;
             newL.startTime = targetIn - (sourceLayer.inPoint - sourceLayer.startTime);
@@ -240,7 +245,7 @@ function _findLastSubtitleLayerInRange(comp, startTime, endTime) {
 function _updateSubtitleBg(comp) {
     if (!comp) return;
     var BG_NAME = "subtitle_BG";
-    var BG_PREFIX = "subtitle_BG__AUTO__";
+    var BG_PREFIX = "subtitle_BG_";
     var GAP_SEC = 2.0;
 
     var bg = comp.layer(BG_NAME);
