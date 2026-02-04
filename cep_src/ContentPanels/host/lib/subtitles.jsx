@@ -128,23 +128,112 @@ function splitTextToChunksCore(text) {
     var allLines = [];
     var currentLineWords = [];
 
+    function _isMoveableShortWord(w) {
+        if (!w) return false;
+        if (w.length <= 2) return true;
+        if (w.length === 3 && w === w.toUpperCase()) return true;
+        return false;
+    }
+
+    function _endsSentenceToken(w) {
+        var s = String(w || "");
+        // strip closing quotes/brackets
+        s = s.replace(/[»"\)\]\}]+$/g, "");
+        if (!s) return false;
+
+        // ellipsis "..."
+        if (s.length >= 3 && s.substr(s.length - 3) === "...") return true;
+
+        if (/[!?…]$/.test(s)) return true;
+
+        if (/\.$/.test(s)) {
+            // avoid short abbreviations like "г." / and dotted abbreviations like "т.д."
+            if (s.length <= 3) return false;
+            var dots = s.match(/\./g);
+            if (dots && dots.length > 1) return false;
+            return true;
+        }
+
+        return false;
+    }
+
+    function _looksLikeSentenceStart(w) {
+        var s = String(w || "");
+        if (!s) return false;
+
+        // leading quotes/brackets
+        s = s.replace(/^[«"\(\[\{]+/g, "");
+        // leading dashes
+        s = s.replace(/^[–—-]+/g, "");
+
+        if (!s) return false;
+        return /^[A-ZА-ЯЁ]/.test(s);
+    }
+
+    function _fitWordsFrom(startIndex, baseLen) {
+        var len = baseLen;
+        var count = 0;
+        var lastIndex = -1;
+
+        for (var j = startIndex; j < words.length; j++) {
+            var ww = words[j];
+            if (!ww) continue;
+
+            var nextLen = len + (len > 0 ? 1 : 0) + ww.length;
+            if (nextLen <= charPerLine) {
+                len = nextLen;
+                count++;
+                lastIndex = j;
+            } else {
+                break;
+            }
+        }
+
+        return { count: count, lastIndex: lastIndex };
+    }
+
+    function _countEffectiveFitWords(startIndex, fitInfo) {
+        var effective = fitInfo.count;
+        var j = fitInfo.lastIndex;
+        while (j >= startIndex && effective > 0) {
+            var ww = words[j];
+            if (ww && _isMoveableShortWord(ww)) {
+                effective--;
+                j--;
+                continue;
+            }
+            break;
+        }
+        return effective;
+    }
+
     for (var i = 0; i < words.length; i++) {
-        currentLineWords.push(words[i]);
+        var w = words[i];
+        if (!w) continue;
+
+        // Sentence boundary: don't start a new sentence with only 1-2 words at the end of a line.
+        if (currentLineWords.length > 0) {
+            var prev = currentLineWords[currentLineWords.length - 1];
+            if (_endsSentenceToken(prev) && _looksLikeSentenceStart(w)) {
+                var baseLen = currentLineWords.join(" ").length;
+                var fitInfo = _fitWordsFrom(i, baseLen);
+                if (fitInfo.count > 0) {
+                    var effective = _countEffectiveFitWords(i, fitInfo);
+                    if (effective <= 2) {
+                        allLines.push(currentLineWords.join(" "));
+                        currentLineWords = [];
+                    }
+                }
+            }
+        }
+
+        currentLineWords.push(w);
         if (currentLineWords.join(" ").length > charPerLine) {
             if (currentLineWords.length > 1) {
                 var poppedWords = [currentLineWords.pop()];
                 while (currentLineWords.length > 0) {
                     var lastWord = currentLineWords[currentLineWords.length - 1];
-                    
-                    // Условие переноса коротких слов (ПРАВКА №3)
-                    var shouldMove = false;
-                    if (lastWord.length <= 2) { 
-                        shouldMove = true; 
-                    } else if (lastWord.length === 3 && lastWord === lastWord.toUpperCase()) {
-                        shouldMove = true;
-                    }
-
-                    if (shouldMove) {
+                    if (_isMoveableShortWord(lastWord)) {
                         poppedWords.unshift(currentLineWords.pop());
                     } else {
                         break;
@@ -158,6 +247,7 @@ function splitTextToChunksCore(text) {
             }
         }
     }
+
     if (currentLineWords.length > 0) allLines.push(currentLineWords.join(" "));
     
     function _isShortLine(line) {
