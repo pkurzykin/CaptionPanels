@@ -120,10 +120,11 @@ function splitTextToChunksCore(text) {
     var linesPerLayer = 3;
     
     // Чистим типографику перед нарезкой (общая функция из utils.jsx)
-var fixedText = (typeof fixTypographyText === "function") ? fixTypographyText(text) : text.toString();
+    var fixedText = (typeof fixTypographyText === "function") ? fixTypographyText(text) : text.toString();
 
-
-    var words = fixedText.replace(/\r/g, " ").split(/\s+/);
+    // IMPORTANT: don't split on NBSP (\u00A0). It's used by fixTypographyText to prevent unwanted wraps
+    // (e.g. "Транснефть\u00A0–\u00A0медиа"). Splitting by \\s would destroy that protection.
+    var words = fixedText.replace(/[\r\n]/g, " ").split(/[ \t]+/);
     var allLines = [];
     var currentLineWords = [];
 
