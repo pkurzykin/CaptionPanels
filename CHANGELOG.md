@@ -5,6 +5,7 @@
 ### Changed
 - subtitle_BG теперь нумеруется как `subtitle_BG_2` и далее (без слова auto).
 - В shy отправляются только шаблоны `text_regular` и `text_italic`.
+- Нумерация слоёв субтитров теперь двухуровневая: `Sub_VOICEOVER_<block>_<n>` / `Sub_SYNCH_<block>_<n>` (где `<block>` — номер генерации для типа).
 
 ## v2.1.0 — 2026-02-02
 

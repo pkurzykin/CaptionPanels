@@ -1,5 +1,36 @@
 // host/lib/subtitles.jsx
 
+function _nextSubtitleBatchIndex(comp, typeUpper) {
+    if (!comp) return 1;
+    var prefix = "Sub_" + String(typeUpper || "").toUpperCase() + "_";
+    var maxBatch = 0;
+    var sawLegacy = false;
+
+    for (var i = 1; i <= comp.numLayers; i++) {
+        var l = comp.layer(i);
+        var name = (l && l.name) ? String(l.name) : "";
+        if (name.indexOf(prefix) !== 0) continue;
+
+        // New format: Sub_VOICEOVER_<batch>_<index>
+        // Legacy format: Sub_VOICEOVER_<index>
+        var rest = name.substring(prefix.length);
+        var m = rest.match(/^(\d+)(?:_(\d+))?/);
+        if (!m) continue;
+
+        if (m[2] !== undefined && m[2] !== null) {
+            var batch = parseInt(m[1], 10);
+            if (!isNaN(batch) && batch > maxBatch) maxBatch = batch;
+        } else {
+            // We can't recover the original "batch" count from legacy names, so treat legacy as batch=1.
+            sawLegacy = true;
+            if (maxBatch < 1) maxBatch = 1;
+        }
+    }
+
+    if (maxBatch === 0 && sawLegacy) maxBatch = 1;
+    return maxBatch + 1;
+}
+
 // Глобальная функция генерации
 generateSubs = function(rawText, isItalic, jumpPlayhead) {
     try {
@@ -23,6 +54,8 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
         // Базовые шаблоны всегда shy = true
         sourceLayer.shy = true;
 
+        var batchIndex = _nextSubtitleBatchIndex(comp, type.toUpperCase());
+
         var currentTime = comp.time;
         // Используем логику нарезки из твоего скрипта
         var chunks = splitTextToChunksCore(rawText);
@@ -43,7 +76,7 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
         for (var n = 0; n < chunks.length; n++) {
             var newL = sourceLayer.duplicate();
             newL.moveToBeginning();
-            newL.name = "Sub_" + type.toUpperCase() + "_" + (n + 1);
+            newL.name = "Sub_" + type.toUpperCase() + "_" + batchIndex + "_" + (n + 1);
             newL.property("Source Text").setValue(chunks[n]);
             // Готовые субтитры не должны быть shy
             newL.shy = false;
