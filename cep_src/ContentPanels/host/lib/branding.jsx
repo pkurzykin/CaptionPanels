@@ -27,6 +27,23 @@
         return null;
     }
 
+    function _applyFadeOutOpacityExpr(layer, durSeconds) {
+        // Adds a simple fade-out at the end of the layer (based on outPoint).
+        // Safe to call multiple times; it will overwrite previous expression.
+        try {
+            if (!layer) return;
+            var d = Number(durSeconds);
+            if (isNaN(d) || d <= 0) d = 0.5;
+            var tr = layer.property("ADBE Transform Group");
+            if (!tr) return;
+            var op = tr.property("ADBE Opacity");
+            if (!op || !op.canSetExpression) return;
+            op.expression =
+                "dur = " + d + ";\n" +
+                "linear(time, outPoint - dur, outPoint, 100, 0);";
+        } catch (e) {}
+    }
+
     function _getNextNumber(prefix) {
     var maxN = 0;
     var re = new RegExp("^" + prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "_(\\d+)$");
@@ -213,6 +230,7 @@
 
         var layer = comp.layers.add(copy);
         layer.startTime = comp.time;
+        _applyFadeOutOpacityExpr(layer, 0.5);
         // Геотег должен быть ниже первого блока субтитров (вниз перед первым)
         var firstSub = _findFirstRegularLayer(comp);
         if (firstSub) {
@@ -290,6 +308,7 @@
 
         // строго по плейхеду
         one.startTime = comp.time;
+        _applyFadeOutOpacityExpr(one, 0.5);
 
         // длительность НЕ трогаем — остаётся "как в шаблоне head_topic_WORK"
 
@@ -324,6 +343,8 @@
                 l.inPoint = st;
                 l.outPoint = en;
             }
+
+            _applyFadeOutOpacityExpr(l, 0.5);
 
             // Размещаем head_topic под всем блоком субтитров
             var anchor = _findLowestRegularLayerInRange(comp, st, en);

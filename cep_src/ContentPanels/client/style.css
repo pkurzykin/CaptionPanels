@@ -440,6 +440,20 @@ input[type="range"] { width: 100%; cursor: pointer; margin-top: 5px; }
     overflow: auto;
 }
 
+.typo-hl-old {
+    background: rgba(220, 85, 85, 0.28);
+    outline: 1px solid rgba(220, 85, 85, 0.45);
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+.typo-hl-new {
+    background: rgba(85, 190, 120, 0.22);
+    outline: 1px solid rgba(85, 190, 120, 0.40);
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
 .typo-empty {
     padding: 12px;
     font-size: 12px;

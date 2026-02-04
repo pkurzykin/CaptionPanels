@@ -173,6 +173,9 @@
 
             var startTime = comp.time;
             var speakersQueue = [];
+            // De-dupe speakers suggested for title creation. In real projects the same speaker
+            // can appear in multiple SYNCH segments, but usually we need the title once.
+            var seenSpeakerKeys = {};
             var counts = { blocks: 0, voiceover: 0, synch: 0, speakers: 0 };
 
             var segments = root.segments || [];
@@ -204,11 +207,15 @@
 
                     if (italic && seg.speakerId && spMap[String(seg.speakerId)]) {
                         var sObj = spMap[String(seg.speakerId)];
-                        speakersQueue.push({
-                            name: sObj.name || "",
-                            job: sObj.role || sObj.job || ""
-                        });
-                        counts.speakers++;
+                        var key = "id:" + String(seg.speakerId);
+                        if (!seenSpeakerKeys[key]) {
+                            seenSpeakerKeys[key] = true;
+                            speakersQueue.push({
+                                name: sObj.name || "",
+                                job: sObj.role || sObj.job || ""
+                            });
+                            counts.speakers++;
+                        }
                     }
                 }
             }

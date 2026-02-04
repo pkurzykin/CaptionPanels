@@ -3,6 +3,53 @@
 
 var TYPO_ISSUES = [];
 
+function _escapeHtml(s) {
+    return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function _diffHighlightHtml(oldText, newText) {
+    var a = String(oldText || "");
+    var b = String(newText || "");
+    if (a === b) {
+        return { oldHtml: _escapeHtml(a), newHtml: _escapeHtml(b) };
+    }
+
+    // Cheap & readable diff: common prefix + common suffix.
+    // Works well for our typography changes (spaces/dashes/quotes) and is fast.
+    var i = 0;
+    var max = Math.min(a.length, b.length);
+    while (i < max && a.charAt(i) === b.charAt(i)) i++;
+
+    var aEnd = a.length - 1;
+    var bEnd = b.length - 1;
+    while (aEnd >= i && bEnd >= i && a.charAt(aEnd) === b.charAt(bEnd)) {
+        aEnd--;
+        bEnd--;
+    }
+
+    var aMid = a.substring(i, aEnd + 1);
+    var bMid = b.substring(i, bEnd + 1);
+
+    // If the change is a pure insertion/deletion, the mid part could be empty.
+    // In practice our typography fixes almost always replace characters, so we keep this simple.
+    var oldHtml =
+        _escapeHtml(a.substring(0, i)) +
+        "<span class=\"typo-hl-old\">" + _escapeHtml(aMid) + "</span>" +
+        _escapeHtml(a.substring(aEnd + 1));
+
+    var newHtml =
+        _escapeHtml(b.substring(0, i)) +
+        "<span class=\"typo-hl-new\">" + _escapeHtml(bMid) + "</span>" +
+        _escapeHtml(b.substring(bEnd + 1));
+
+    return { oldHtml: oldHtml, newHtml: newHtml };
+}
+
 function _typoOpen() {
     var overlay = document.getElementById("typo-overlay");
     if (overlay) overlay.style.display = "block";
@@ -51,6 +98,8 @@ function _typoRender() {
         var diff = document.createElement("div");
         diff.className = "typo-diff";
 
+        var h = _diffHighlightHtml(it.oldText || "", it.newText || "");
+
         var oldBox = document.createElement("div");
         oldBox.className = "typo-old";
         var oldLbl = document.createElement("div");
@@ -58,7 +107,7 @@ function _typoRender() {
         oldLbl.textContent = "Было";
         var oldTxt = document.createElement("pre");
         oldTxt.className = "typo-txt";
-        oldTxt.textContent = String(it.oldText || "");
+        oldTxt.innerHTML = h.oldHtml;
         oldBox.appendChild(oldLbl);
         oldBox.appendChild(oldTxt);
 
@@ -69,7 +118,7 @@ function _typoRender() {
         newLbl.textContent = "Станет";
         var newTxt = document.createElement("pre");
         newTxt.className = "typo-txt";
-        newTxt.textContent = String(it.newText || "");
+        newTxt.innerHTML = h.newHtml;
         newBox.appendChild(newLbl);
         newBox.appendChild(newTxt);
 
@@ -148,4 +197,3 @@ function initTypographyUI() {
         });
     });
 }
-
