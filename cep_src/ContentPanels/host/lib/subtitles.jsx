@@ -212,7 +212,9 @@ function splitTextToChunksCore(text) {
         if (!w) continue;
 
         // Sentence boundary: don't start a new sentence with only 1-2 words at the end of a line.
-        if (currentLineWords.length > 0) {
+        // Apply ONLY to the 3rd line of a 3-line subtitle block.
+        var lineIndexInBlock = allLines.length % linesPerLayer; // 0,1,2
+        if (lineIndexInBlock == (linesPerLayer - 1) && currentLineWords.length > 0) {
             var prev = currentLineWords[currentLineWords.length - 1];
             if (_endsSentenceToken(prev) && _looksLikeSentenceStart(w)) {
                 var baseLen = currentLineWords.join(" ").length;
