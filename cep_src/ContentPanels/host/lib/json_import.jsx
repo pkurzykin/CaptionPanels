@@ -195,7 +195,7 @@
                 if (!t) continue;
 
                 if (t === "geotag") {
-                    geotags.push({ text: _cleanGeotagText(seg.text || ""), time: comp.time });
+                    geotags.push({ text: _cleanGeotagText(seg.text || ""), time: comp.time, pin: seg.pin || "" });
                     continue;
                 }
 

@@ -255,8 +255,17 @@
         var t0 = comp.time;
         for (var i = 0; i < arr.length; i++) {
             var g = arr[i] || {};
-            var tt = Number(g.time);
-            if (!isNaN(tt)) comp.time = tt;
+
+            // If geotag is pinned to "start" (from JSON), place the FIRST geotag at current playhead.
+            // This matches the workflow: subtitles are created first, then branding is applied later.
+            var pin = String(g.pin || "").toLowerCase();
+            if (i === 0 && (pin === "start" || pin === "playhead")) {
+                comp.time = t0;
+            } else {
+                var tt = Number(g.time);
+                if (!isNaN(tt)) comp.time = tt;
+            }
+
             createGeotag(g.text || "");
         }
         comp.time = t0;
