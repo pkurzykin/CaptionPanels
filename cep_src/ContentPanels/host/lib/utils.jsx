@@ -40,6 +40,17 @@ trimLayersInsideSelectedPrecomp = function () {
             }
         }
 
+        // Также подрезаем выбранный прекомп-слой в активной композиции,
+        // чтобы на таймлайне было видно место "среза".
+        var compTime = activeComp.time;
+        if (compTime <= targetLayer.inPoint) {
+            alert("TRIM: плейхед до начала выбранного слоя. Нечего подрезать.");
+        } else if (compTime >= targetLayer.outPoint) {
+            alert("TRIM: плейхед после конца выбранного слоя. Нечего подрезать.");
+        } else {
+            targetLayer.outPoint = compTime;
+        }
+
         app.endUndoGroup();
         return respondOk("OK");
 
