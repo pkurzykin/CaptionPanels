@@ -11,6 +11,7 @@
         <button id="btn-load-json">📂 ЗАГРУЗИТЬ JSON</button>
         <button id="btn-deep-clean">🧹 FixTypography</button>
         <button id="btn-reload">⟳ Reload</button>
+        <button id="btn-settings">⚙ Настройки</button>
     </div>
 
     <div class="tabs">
@@ -162,6 +163,31 @@
 </div>
 <!-- ===== /FixTypography Modal ===== -->
 
+<!-- ===== Settings Modal ===== -->
+<div id="settings-overlay" class="modal-overlay" style="display:none;">
+    <div class="modal-window settings-window">
+        <div class="modal-header">
+            <div class="modal-title">Настройки</div>
+            <button id="btn-settings-close" class="modal-close">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="settings-row">
+                <label for="settings-chars">Символов в строке (субтитры)</label>
+                <input id="settings-chars" type="text" inputmode="numeric" placeholder="60" />
+                <div class="settings-note">По умолчанию: 60. Применяется при создании новых субтитров.</div>
+            </div>
+
+            <div class="modal-footer" style="display:flex; gap:8px; justify-content:space-between;">
+                <button id="btn-settings-save" class="main-action" style="margin:0; flex:1;">Сохранить</button>
+                <button id="btn-settings-cancel" class="secondary-btn" style="margin:0; flex:1;">Отмена</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ===== /Settings Modal ===== -->
+
+
     <div class="ui-version">v<span id="ui-version">2.1.0</span></div>
 
     <script src="js/CSInterface.js"></script>
@@ -175,6 +201,7 @@
     <script src="js/ui_subtitles.js"></script>
     <script src="js/ui_typography.js"></script>
     <script src="js/ui_branding.js"></script>
+    <script src="js/ui_settings.js"></script>
     <script src="js/host_loader.js"></script>
     <script src="js/main.js"></script>
 </body>

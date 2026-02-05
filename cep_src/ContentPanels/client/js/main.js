@@ -28,6 +28,7 @@ window.onload = function() {
     initTypographyUI();
     initBrandingUI();
     initJsonImportUI();
+    initSettingsUI();
 
     var reloadBtn = document.getElementById("btn-reload");
     if (reloadBtn) {

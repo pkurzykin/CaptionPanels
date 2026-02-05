@@ -117,6 +117,12 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
 // Внутренняя логика нарезки из твоего Ultra v7
 function splitTextToChunksCore(text) {
     var charPerLine = 60;
+    try {
+        if (typeof getConfigValue === "function") {
+            var v = Number(getConfigValue("subtitleCharsPerLine", 60));
+            if (!isNaN(v) && v >= 20 && v <= 200) charPerLine = v;
+        }
+    } catch (e) {}
     var linesPerLayer = 3;
     
     // Чистим типографику перед нарезкой (общая функция из utils.jsx)

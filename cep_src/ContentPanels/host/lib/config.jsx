@@ -174,6 +174,82 @@
         }
     };
 
+
+
+    function _stringifyPretty(obj) {
+        try {
+            if (typeof JSON !== "undefined" && JSON.stringify) {
+                return JSON.stringify(obj, null, 2);
+            }
+        } catch (e) {}
+        try { return obj.toSource(); } catch (e2) {}
+        return String(obj);
+    }
+
+    function _ensureFolderForFile(fileObj) {
+        try {
+            var folder = fileObj.parent;
+            if (folder && !folder.exists) folder.create();
+        } catch (e) {}
+    }
+
+    function _writeConfigFile(cfg) {
+        var p = _configPath();
+        if (!p) return false;
+        var f = new File(p);
+        try {
+            _ensureFolderForFile(f);
+            f.encoding = "UTF-8";
+            if (!f.open("w")) return false;
+            f.write(_stringifyPretty(cfg || {}));
+            f.close();
+            return true;
+        } catch (e) {
+            try { if (f && f.opened) f.close(); } catch (e2) {}
+            return false;
+        }
+    }
+
+    // UI helpers
+    getConfigForUI = function () {
+        try {
+            var cfg = reloadConfig();
+            var v = getConfigValue("subtitleCharsPerLine", 60);
+            var n = Number(v);
+            if (isNaN(n) || n < 20 || n > 200) n = 60;
+            return respondOk({
+                configPath: getConfigPath(),
+                subtitleCharsPerLine: n
+            });
+        } catch (e) {
+            return respondErr(e.message);
+        }
+    };
+
+    setConfigValue = function (key, value) {
+        try {
+            var k = String(key || "");
+            if (!k) return respondErr("Empty key");
+
+            var cfg = reloadConfig() || {};
+            cfg[k] = value;
+
+            if (!_writeConfigFile(cfg)) {
+                return respondErr("Cannot write config: " + _configPath());
+            }
+
+            // keep cache in sync
+            _configCache = cfg;
+
+            return respondOk({
+                configPath: getConfigPath(),
+                key: k,
+                value: value
+            });
+        } catch (e) {
+            return respondErr(e.message);
+        }
+    };
     getLogsRoot = function () {
         var v = getConfigValue("logsRoot", "");
         if (v) return v;
