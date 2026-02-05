@@ -1,7 +1,7 @@
 # CaptionPanels AEGP (Windows)
 
 Цель: AEGP‑плагин для After Effects 2024+, который открывает панель с WebView2 и выполняет JSX через AEGP_ExecuteScript.
-Текущая версия: 2.2.0-dev.
+Текущая версия: 2.2.0.
 
 ## Структура плагина (финальная установка)
 ```
