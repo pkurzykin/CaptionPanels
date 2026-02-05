@@ -1,7 +1,7 @@
 # CaptionPanels AEGP (Windows)
 
 Цель: AEGP‑плагин для After Effects 2024+, который открывает панель с WebView2 и выполняет JSX через AEGP_ExecuteScript.
-Текущая версия: 2.1.0.
+Текущая версия: 2.2.0-dev.
 
 ## Структура плагина (финальная установка)
 ```
@@ -50,6 +50,7 @@ Host -> UI:
 - `speakersDbPath` — путь к общей базе спикеров
 - `enableLogs` — включить диагностические логи (true/false)
 - `logsRoot` — кастомная папка для логов (если пусто — AppData)
+- `subtitleCharsPerLine` — лимит символов в строке (субтитры), по умолчанию 60
 
 ## Логи
 При `enableLogs: true` логи пишутся в:
