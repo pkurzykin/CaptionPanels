@@ -11,7 +11,7 @@ This tool is designed to work **quietly** (no Word UI, no COM automation). It re
 
 ## Build (Windows)
 
-Requires .NET SDK (recommended: 6.0+).
+Requires .NET SDK (recommended: 8.0+).
 
 ```bat
 cd tools\word2json\src\Word2Json

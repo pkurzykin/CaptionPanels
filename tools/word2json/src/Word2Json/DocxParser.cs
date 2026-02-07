@@ -341,7 +341,6 @@ internal static class DocxParser
             or STYLE_TECH_FILE or STYLE_TECH_TC
             or STYLE_IGNORE;
     }
-
     private static string GetParagraphTextWithoutStrikethrough(Paragraph p)
     {
         var sb = new System.Text.StringBuilder();
@@ -362,8 +361,7 @@ internal static class DocxParser
             }
             foreach (var _ in run.Elements<Break>())
             {
-                sb.Append('
-');
+                sb.Append('\n');
             }
         }
 
@@ -373,12 +371,12 @@ internal static class DocxParser
     private static string CleanEndMarks(string s)
     {
         if (string.IsNullOrEmpty(s)) return "";
-        return s.Replace("
-", " ")
-                .Replace("", " ")
-                .Replace("
-", " ")
-                .Replace("	", " ");
+
+        // Match VBA macro intent: remove CR/LF and tabs.
+        return s.Replace("\r\n", " ")
+                .Replace("\r", " ")
+                .Replace("\n", " ")
+                .Replace("\t", " ");
     }
 
     private static bool IsGlueMarker(string s)
@@ -399,7 +397,7 @@ internal static class DocxParser
     {
         if (string.IsNullOrEmpty(s)) return "";
 
-        var t = System.Text.RegularExpressions.Regex.Replace(s, "\s+", " ").Trim();
+        var t = System.Text.RegularExpressions.Regex.Replace(s, @"\s+", " ").Trim();
 
         // Remove spaces before punctuation (as in VBA)
         t = t.Replace(" ,", ",")
@@ -432,7 +430,7 @@ internal static class DocxParser
     {
         var t = s.Trim();
         var pos1 = t.LastIndexOf('/');
-        var pos2 = t.LastIndexOf('\');
+        var pos2 = t.LastIndexOf('\\');
         var pos = Math.Max(pos1, pos2);
 
         return pos >= 0 ? t[(pos + 1)..] : t;
