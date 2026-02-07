@@ -21,9 +21,7 @@ function _settingsParseInt(val, def) {
 
 function _settingsParseLinesToList(txt) {
     var raw = String(txt || "");
-    var lines = raw.split(/
-||
-/);
+    var lines = raw.split(/\r\n|\r|\n/);
     var out = [];
     var seen = {};
 
@@ -41,8 +39,7 @@ function _settingsParseLinesToList(txt) {
 function _settingsLoad() {
     aeCall("getConfigForUI()", function (out) {
         if (!out || !out.ok) {
-            uiAlert("Settings: failed to read config.json
-" + (out ? (out.error || out.result) : "Unknown"));
+            uiAlert("Settings: failed to read config.json\n" + (out ? (out.error || out.result) : "Unknown"));
             return;
         }
 
@@ -72,8 +69,7 @@ function _settingsLoad() {
 
         var topicsEl = document.getElementById("settings-topics");
         if (topicsEl) {
-            topicsEl.value = topics.join("
-");
+            topicsEl.value = topics.join("\n");
         }
     });
 }
@@ -82,9 +78,8 @@ function _settingsBrowseSpeakersDb() {
     aeCall("pickSpeakersDbPath()", function (out) {
         if (!out || !out.ok) {
             var err = out && out.error ? String(out.error) : "Unknown error";
-            if (err === "CANCELLED") return;
-            uiAlert("Settings: failed to pick speakers DB
-" + err);
+            if (err == "CANCELLED") return;
+            uiAlert("Settings: failed to pick speakers DB\n" + err);
             return;
         }
 
@@ -97,7 +92,7 @@ function _settingsBrowseSpeakersDb() {
         }
 
         if (!p) return;
-        p = String(p).replace(/\/g, "/");
+        p = String(p).replace(/\\/g, "/");
 
         var spEl = document.getElementById("settings-speakers-path");
         if (spEl) spEl.value = p;
@@ -114,7 +109,7 @@ function _settingsSave() {
 
     var spEl = document.getElementById("settings-speakers-path");
     var sp = spEl ? String(spEl.value || "") : "";
-    sp = sp.replace(/\/g, "/").replace(/^\s+|\s+$/g, "");
+    sp = sp.replace(/\\/g, "/").replace(/^\s+|\s+$/g, "");
 
     var topicsEl = document.getElementById("settings-topics");
     var topics = _settingsParseLinesToList(topicsEl ? topicsEl.value : "");
@@ -140,8 +135,7 @@ function _settingsSave() {
         var cmd = "setConfigValue(" + JSON.stringify(String(it.key)) + "," + JSON.stringify(it.value) + ")";
         aeCall(cmd, function (out) {
             if (!out || !out.ok) {
-                uiAlert("Settings: failed to save.
-" + (out ? (out.error || out.result) : "Unknown"));
+                uiAlert("Settings: failed to save.\n" + (out ? (out.error || out.result) : "Unknown"));
                 return;
             }
             saveNext(i + 1);
@@ -169,3 +163,4 @@ function initSettingsUI() {
         });
     }
 }
+
