@@ -46,8 +46,11 @@ Host -> UI:
 1) `%APPDATA%\CaptionPanels\config.json` (рекомендуется для смены пути без админ‑прав)
 2) `<plugin_root>/config.json`
 
+Примечание: окно Settings сохраняет изменения в `%APPDATA%\CaptionPanels\config.json` (создаёт файл автоматически).
+
 Ключи:
 - `speakersDbPath` — путь к общей базе спикеров
+- `topicOptions` — список рубрик для TOPIC (выпадающий список), массив строк
 - `enableLogs` — включить диагностические логи (true/false)
 - `logsRoot` — кастомная папка для логов (если пусто — AppData)
 - `subtitleCharsPerLine` — лимит символов в строке (субтитры), по умолчанию 60

@@ -4,7 +4,13 @@
 
 ### Added
 - Word Import: кнопка «ЗАГРУЗИТЬ WORD» (.docx) + конвертер `tools/word2json` (OpenXML) + импорт через существующий пайплайн JSON.
-- Config: `word2jsonExePath`, `word2jsonOutDir`.
+- Config: `word2jsonExePath`, `word2jsonOutDir`, `topicOptions`.
+- Settings: редактирование `speakersDbPath` (путь к базе спикеров) и `topicOptions` (список рубрик) прямо из панели.
+
+### Changed
+- UI: убрана кнопка импорта JSON (оставлен Word импорт).
+- UI: все подписи кнопок переведены на английский.
+- Branding: при «Create Branding» первый geotag ставится по плейхеду, а head_topic — по началу первого блока субтитров.
 
 ## v2.2.0 — 2026-02-05
 

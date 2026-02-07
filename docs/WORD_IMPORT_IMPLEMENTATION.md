@@ -42,7 +42,7 @@ Build & publish:
 ### 2) Plugin integration (AE side)
 
 UI:
-- `cep_src/ContentPanels/client/index.html`: new button `btn-load-word` ("📄 ЗАГРУЗИТЬ WORD").
+- `cep_src/ContentPanels/client/index.html`: new button `btn-load-word` ("📄 Load Word").
 - `cep_src/ContentPanels/client/js/ui_import.js`: click handler calls host function `importWordFromDialog()`.
 
 Host (JSX):
@@ -91,7 +91,7 @@ Common enterprise restrictions to consider:
 Mitigations:
 - Use self-contained portable folder.
 - Place `word2json.exe` locally.
-- Keep a manual fallback: run `word2json.exe` by hand to produce JSON, then use “Load JSON” in the plugin.
+- Keep a manual fallback: run `word2json.exe` by hand to produce JSON. (UI-кнопка импорта JSON сейчас намеренно убрана; при необходимости импорт можно выполнить через внутреннюю функцию `importJsonFromFile(path)`.)
 
 ---
 

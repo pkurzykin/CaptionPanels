@@ -8,23 +8,22 @@
 <body>
 
     <div class="header">
-        <button id="btn-load-json">📂 ЗАГРУЗИТЬ JSON</button>
-        <button id="btn-load-word">📄 ЗАГРУЗИТЬ WORD</button>
+        <button id="btn-load-word">📄 Load Word</button>
         <button id="btn-deep-clean">🧹 FixTypography</button>
         <button id="btn-reload">⟳ Reload</button>
-        <button id="btn-settings">⚙ Настройки</button>
+        <button id="btn-settings">⚙ Settings</button>
     </div>
 
     <div class="tabs">
-        <button class="tab-link active" onclick="openTab(event, 'subtitles')">СУБТИТРЫ / ИНФО</button>
-        <button class="tab-link" onclick="openTab(event, 'titles')">ТИТРЫ СПИКЕРОВ</button>
+        <button class="tab-link active" onclick="openTab(event, 'subtitles')">Subtitles / Info</button>
+        <button class="tab-link" onclick="openTab(event, 'titles')">Speaker Titles</button>
     </div>
 
     <div id="subtitles" class="tab-content active">
     
         <textarea id="sub-text" placeholder="Вставьте текст для субтитров..."></textarea>
         <div class="sub-controls-row">
-            <button id="btn-clear-sub" class="secondary-btn">Очистить поле</button>
+            <button id="btn-clear-sub" class="secondary-btn">Clear</button>
 
             <div class="inline-toggle">
                 <input type="checkbox" id="chk-playhead-jump">
@@ -66,13 +65,13 @@
         </div>
     </div>
 
-    <button id="btn-create-branding" class="full-width">Создать плашки</button>
+    <button id="btn-create-branding" class="full-width">Create Branding</button>
     </div>
 
 </div>
 
     <div id="titles" class="tab-content">
-        <button id="btn-open-database" class="full-width">База (Эталон)</button>
+        <button id="btn-open-database" class="full-width">Speakers DB</button>
         
         <div class="input-block">
             <label>ФИО:</label>
@@ -84,7 +83,7 @@
             <textarea id="input-job" class="high-input"></textarea>
         </div>
 
-        <button id="btn-clear-spk" class="secondary-btn right">Очистить поля</button>
+        <button id="btn-clear-spk" class="secondary-btn right">Clear</button>
         <div style="clear: both;"></div>
 
         <div class="settings-grid">
@@ -115,11 +114,11 @@
             <input type="range" id="bg-slider" min="-1500" max="1500" value="0">
         </div>
 
-        <button id="btn-add-speaker" class="secondary-btn full-width" disabled>Добавить в базу</button>
-        <button id="btn-create-title" class="main-action">СОЗДАТЬ ТИТР</button>
+        <button id="btn-add-speaker" class="secondary-btn full-width" disabled>Add to DB</button>
+        <button id="btn-create-title" class="main-action">Create Title</button>
         
         <div class="footer-actions">
-            <button id="btn-trim">TRIM</button>
+            <button id="btn-trim">Trim</button>
         </div>
     </div>
 
@@ -127,13 +126,13 @@
 <div id="db-overlay" class="modal-overlay" style="display:none;">
     <div class="modal-window">
         <div class="modal-header">
-            <div class="modal-title">База спикеров (Эталон)</div>
+            <div class="modal-title">Speakers DB</div>
             <button id="btn-db-close" class="modal-close">✕</button>
         </div>
 
         <div class="modal-body">
             <div class="modal-footer">
-            <button id="btn-db-add" class="main-action" style="margin:0;">Добавить</button>
+            <button id="btn-db-add" class="main-action" style="margin:0;">Add</button>
             </div>
             <input id="db-search" type="text" placeholder="Поиск по ФИО..." />
             <div id="db-list" class="db-list">
@@ -154,8 +153,8 @@
 
         <div class="modal-body">
             <div class="modal-footer" style="display:flex; gap:8px; justify-content:space-between;">
-                <button id="btn-typo-fix-all" class="main-action" style="margin:0; flex:1;">Исправить всё</button>
-                <button id="btn-typo-fix-except" class="secondary-btn" style="margin:0; flex:1;">Исправить кроме отмеченного</button>
+                <button id="btn-typo-fix-all" class="main-action" style="margin:0; flex:1;">Fix all</button>
+                <button id="btn-typo-fix-except" class="secondary-btn" style="margin:0; flex:1;">Fix except selected</button>
             </div>
             <div class="typo-hint">Отметьте строки, которые не нужно исправлять.</div>
             <div id="typo-list" class="typo-list"></div>
@@ -168,7 +167,7 @@
 <div id="settings-overlay" class="modal-overlay" style="display:none;">
     <div class="modal-window settings-window">
         <div class="modal-header">
-            <div class="modal-title">Настройки</div>
+            <div class="modal-title">Settings</div>
             <button id="btn-settings-close" class="modal-close">✕</button>
         </div>
 
@@ -179,9 +178,24 @@
                 <div class="settings-note">По умолчанию: 60. Применяется при создании новых субтитров.</div>
             </div>
 
+            <div class="settings-row">
+                <label for="settings-speakers-path">Путь к базе спикеров (speakersDbPath)</label>
+                <div class="settings-path-row">
+                    <input id="settings-speakers-path" type="text" placeholder="H:/.../speakers.json" />
+                    <button id="btn-settings-browse-speakers" type="button" class="secondary-btn">Browse...</button>
+                </div>
+                <div class="settings-note">Можно выбрать файл через Browse... или вставить путь вручную. Используется для чтения/записи базы спикеров.</div>
+            </div>
+
+            <div class="settings-row">
+                <label for="settings-topics">Рубрики (topicOptions) — по одной на строку</label>
+                <textarea id="settings-topics" rows="6" placeholder="One rubric per line"></textarea>
+                <div class="settings-note">Используется в выпадающем списке TOPIC.</div>
+            </div>
+
             <div class="modal-footer" style="display:flex; gap:8px; justify-content:space-between;">
-                <button id="btn-settings-save" class="main-action" style="margin:0; flex:1;">Сохранить</button>
-                <button id="btn-settings-cancel" class="secondary-btn" style="margin:0; flex:1;">Отмена</button>
+                <button id="btn-settings-save" class="main-action" style="margin:0; flex:1;">Save</button>
+                <button id="btn-settings-cancel" class="secondary-btn" style="margin:0; flex:1;">Cancel</button>
             </div>
         </div>
     </div>

@@ -1,21 +1,68 @@
 // ui_topics.js
-// Topic dropdown handling
+// Topic dropdown handling (rubrics)
+//
+// - Uses TOPIC_OPTIONS as the current list.
+// - Default list is TOPIC_OPTIONS_DEFAULT.
+// - Settings modal can update the list at runtime via setTopicOptions(list).
 
-var TOPIC_OPTIONS = [
+var TOPIC_OPTIONS_DEFAULT = [
     "Новости",
     "Специальный репортаж",
     "Транснефть помогает",
     "Волонтеры Транснефти",
     "Люди компании",
     "Новость дня",
-    "Оптимум"
+    "Оптимум",
+    "Спорт"
 ];
+
+var TOPIC_OPTIONS = TOPIC_OPTIONS_DEFAULT.slice();
+
+function getTopicOptions() {
+    return TOPIC_OPTIONS.slice();
+}
+
+function setTopicOptions(list) {
+    if (!(list instanceof Array)) return;
+    TOPIC_OPTIONS = list.slice();
+    renderTopicDropdown();
+}
+
+function renderTopicDropdown() {
+    var topicDropdown = document.getElementById("topic-dropdown");
+    var topicInput = document.getElementById("input-head-topic");
+    if (!topicDropdown) return;
+
+    topicDropdown.innerHTML = "";
+    TOPIC_OPTIONS.forEach(function (name) {
+        var item = document.createElement("div");
+        item.className = "topic-item";
+        item.textContent = name;
+        item.addEventListener("click", function () {
+            if (topicInput) topicInput.value = name;
+            topicDropdown.classList.remove("open");
+        });
+        topicDropdown.appendChild(item);
+    });
+}
+
+function loadTopicOptionsFromConfig() {
+    // Optional: overrides TOPIC_OPTIONS from config.json if present.
+    // Safe to call multiple times.
+    aeCall("getConfigForUI()", function (out) {
+        if (!out || !out.ok) return;
+        var res = out.result || {};
+        if (res.topicOptions && res.topicOptions.length) {
+            TOPIC_OPTIONS = res.topicOptions.slice();
+            renderTopicDropdown();
+        }
+    });
+}
 
 function initTopicDropdown() {
     var topicField = document.getElementById("topic-field");
     var topicDropdown = document.getElementById("topic-dropdown");
     var topicToggle = document.getElementById("btn-topic-dropdown");
-    var topicInput = document.getElementById("input-head-topic");
 
     function closeTopicDropdown() {
         if (topicDropdown) topicDropdown.classList.remove("open");
@@ -26,19 +73,7 @@ function initTopicDropdown() {
         topicDropdown.classList.toggle("open");
     }
 
-    if (topicDropdown) {
-        topicDropdown.innerHTML = "";
-        TOPIC_OPTIONS.forEach(function (name) {
-            var item = document.createElement("div");
-            item.className = "topic-item";
-            item.textContent = name;
-            item.addEventListener("click", function () {
-                if (topicInput) topicInput.value = name;
-                closeTopicDropdown();
-            });
-            topicDropdown.appendChild(item);
-        });
-    }
+    renderTopicDropdown();
 
     if (topicToggle) {
         topicToggle.addEventListener("click", function (e) {

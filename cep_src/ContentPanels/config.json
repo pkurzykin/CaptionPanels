@@ -1,5 +1,15 @@
 {
   "speakersDbPath": "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json",
+  "topicOptions": [
+    "Новости",
+    "Специальный репортаж",
+    "Транснефть помогает",
+    "Волонтеры Транснефти",
+    "Люди компании",
+    "Новость дня",
+    "Оптимум",
+    "Спорт"
+  ],
   "enableLogs": false,
   "logsRoot": "",
   "subtitleCharsPerLine": 60,

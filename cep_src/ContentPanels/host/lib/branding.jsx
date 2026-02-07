@@ -256,10 +256,9 @@
         for (var i = 0; i < arr.length; i++) {
             var g = arr[i] || {};
 
-            // If geotag is pinned to "start" (from JSON), place the FIRST geotag at current playhead.
-            // This matches the workflow: subtitles are created first, then branding is applied later.
-            var pin = String(g.pin || "").toLowerCase();
-            if (i === 0 && (pin === "start" || pin === "playhead")) {
+            // First geotag is always placed at current playhead (t0).
+            // Additional geotags are placed by their saved times.
+            if (i === 0) {
                 comp.time = t0;
             } else {
                 var tt = Number(g.time);
@@ -324,12 +323,7 @@
         app.endUndoGroup();
         return respondOk("OK");
     }
-
-
-        // determine first head_topic start:
-        // if geotag exists at playhead -> start right after it, else at playhead
-        var geoLayer = _findGeotagLayerAtPlayhead(comp);
-        var firstStart = geoLayer ? geoLayer.outPoint : comp.time;
+        // HEAD_TOPIC: first layer starts at the first subtitle block start (not playhead).
 
         // create layers for each group
         for (var g = 0; g < groups.length; g++) {
@@ -339,19 +333,10 @@
             var l = comp.layers.add(work);
             l.name = HEAD_LAYER_PREFIX + "_" + (g + 1);
             try { l.label = HEAD_LABEL; } catch (e) {}
-
-            if (g === 0) {
-                var s = firstStart;
-                if (s >= en) s = st;
-                l.startTime = s;
-                l.inPoint = s;
-                l.outPoint = en;
-            } else {
-                // start and duration match group
-                l.startTime = st;
-                l.inPoint = st;
-                l.outPoint = en;
-            }
+            // start and duration match group
+            l.startTime = st;
+            l.inPoint = st;
+            l.outPoint = en;
 
             _applyFadeOutOpacityExpr(l, 0.5);
 

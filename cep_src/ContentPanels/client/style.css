@@ -473,6 +473,22 @@ input[type="range"] { width: 100%; cursor: pointer; margin-top: 5px; }
     margin-bottom: 10px;
 }
 
+.settings-path-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.settings-path-row input[type="text"] {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.settings-path-row button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 .settings-row label {
     display: block;
     color: #bdbdbd;

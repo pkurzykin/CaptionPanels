@@ -193,8 +193,14 @@
         } catch (e) {}
     }
 
-    function _writeConfigFile(cfg) {
-        var p = _configPath();
+    function _preferredWriteConfigPath() {
+        // Always prefer the user-writable config location (AppData) for writes.
+        // This avoids trying to write into Program Files when the plugin ships with a default config.json.
+        var list = _configCandidates();
+        return (list && list.length) ? list[0] : _configPath();
+    }
+
+    function _writeConfigFileAt(p, cfg) {
         if (!p) return false;
         var f = new File(p);
         try {
@@ -210,16 +216,49 @@
         }
     }
 
+    function _writeConfigFile(cfg) {
+        var p = _configPath();
+        return _writeConfigFileAt(p, cfg);
+    }
+
     // UI helpers
     getConfigForUI = function () {
         try {
             var cfg = reloadConfig();
+
             var v = getConfigValue("subtitleCharsPerLine", 60);
             var n = Number(v);
             if (isNaN(n) || n < 20 || n > 200) n = 60;
+
+            var rawSp = (cfg && cfg.hasOwnProperty("speakersDbPath")) ? String(cfg["speakersDbPath"] || "") : "";
+            var resolvedSp = "";
+            try { resolvedSp = String(getSpeakersDbPath() || ""); } catch (eSp) {}
+
+            var rawTopics = getConfigValue("topicOptions", []);
+            var topics = [];
+            var seen = {};
+
+            function addTopic(s) {
+                var t = String(s || "").replace(/^\s+|\s+$/g, "");
+                if (!t) return;
+                if (seen[t]) return;
+                seen[t] = true;
+                topics.push(t);
+            }
+
+            if (rawTopics instanceof Array) {
+                for (var i = 0; i < rawTopics.length; i++) addTopic(rawTopics[i]);
+            } else if (typeof rawTopics === "string") {
+                var lines = String(rawTopics).split(/\r\n|\r|\n/);
+                for (var j = 0; j < lines.length; j++) addTopic(lines[j]);
+            }
+
             return respondOk({
                 configPath: getConfigPath(),
-                subtitleCharsPerLine: n
+                subtitleCharsPerLine: n,
+                speakersDbPath: rawSp,
+                speakersDbPathResolved: resolvedSp,
+                topicOptions: topics
             });
         } catch (e) {
             return respondErr(e.message);
@@ -234,12 +273,17 @@
             var cfg = reloadConfig() || {};
             cfg[k] = value;
 
-            if (!_writeConfigFile(cfg)) {
-                return respondErr("Cannot write config: " + _configPath());
+            var writePath = _preferredWriteConfigPath();
+            if (!_writeConfigFileAt(writePath, cfg)) {
+                return respondErr("Cannot write config: " + writePath);
             }
 
+            // Clear caches so reads switch to the user config (AppData) once it exists.
+            _configPathCache = "";
+            _configCache = null;
+
             // keep cache in sync
-            _configCache = cfg;
+            _configCache = reloadConfig();
 
             return respondOk({
                 configPath: getConfigPath(),
@@ -250,6 +294,17 @@
             return respondErr(e.message);
         }
     };
+
+    pickSpeakersDbPath = function () {
+        try {
+            var file = File.openDialog("Выберите speakers.json", "*.json");
+            if (!file) return respondErr("CANCELLED");
+            return respondOk({ path: _normalizePath(file.fsName) });
+        } catch (e) {
+            return respondErr(e.message);
+        }
+    };
+
     getLogsRoot = function () {
         var v = getConfigValue("logsRoot", "");
         if (v) return v;

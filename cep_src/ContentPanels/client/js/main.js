@@ -19,6 +19,9 @@ window.onload = function() {
         "job_runner.jsx"
     ], function () {
         console.log("Все системы AE готовы");
+        if (typeof loadTopicOptionsFromConfig === "function") {
+            loadTopicOptionsFromConfig();
+        }
     });
 
     initTabs();
