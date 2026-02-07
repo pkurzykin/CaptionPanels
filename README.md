@@ -35,6 +35,8 @@ legacy_cep/       архив CEP версии
 - `enableLogs` — включить диагностические логи (true/false)
 - `logsRoot` — кастомная папка для логов (если пусто — AppData)
 - `subtitleCharsPerLine` — лимит символов в строке (субтитры), по умолчанию 60
+- `word2jsonExePath` — путь к `word2json.exe` (утилита конвертации Word .docx -> .json)
+- `word2jsonOutDir` — куда сохранять временный JSON (если пусто — `%TEMP%\CaptionPanels\word2json`)
 
 ## Логи
 При `enableLogs: true` логи пишутся в:

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+- Word Import: кнопка «ЗАГРУЗИТЬ WORD» (.docx) + конвертер `tools/word2json` (OpenXML) + импорт через существующий пайплайн JSON.
+- Config: `word2jsonExePath`, `word2jsonOutDir`.
+
 ## v2.2.0 — 2026-02-05
 
 ### Added

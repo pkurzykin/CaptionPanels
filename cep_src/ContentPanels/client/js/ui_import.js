@@ -144,6 +144,29 @@ function initJsonImportUI() {
         });
     });
 
+
+    attachClick("btn-load-word", function () {
+        aeCall("importWordFromDialog()", function (out) {
+            if (!out || !out.ok) {
+                var err = out && out.error ? out.error : "Unknown error";
+                if (String(err) === "CANCELLED") return;
+                uiAlert("Ошибка импорта Word (.docx).
+" + err);
+                logUiError("word.import", err);
+                return;
+            }
+
+            var res = out.result || {};
+            var list = (res && res.speakers && res.speakers.length) ? res.speakers : [];
+            jsonImportSetQueue(list, res.source || "");
+            if (res.branding) {
+                jsonImportSetBranding(res.branding);
+            }
+            uiAlert(_formatImportSummary(res));
+            logUi("word.import ok");
+        });
+    });
+
     var geoEl = document.getElementById("input-geotag");
     if (geoEl) {
         geoEl.addEventListener("input", function () {

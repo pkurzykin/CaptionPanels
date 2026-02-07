@@ -21,15 +21,22 @@ dotnet restore
 dotnet build -c Release
 ```
 
-Publish (portable folder):
+Publish
+
+Recommended for colleagues (no .NET installation needed): **self-contained**
+
+```bat
+dotnet publish -c Release -r win-x64 --self-contained true
+```
+
+Output will be under:
+`bin\Release\net8.0\win-x64\publish\`
+
+Dev-only alternative (requires .NET 8 Runtime x64 installed on the machine): framework-dependent
 
 ```bat
 dotnet publish -c Release -r win-x64 --self-contained false
 ```
-
-Output will be under:
-`bin\Release
-et6.0\win-x64\publish\`
 
 ## Usage
 

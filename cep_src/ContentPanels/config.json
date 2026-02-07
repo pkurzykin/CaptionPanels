@@ -1,5 +1,8 @@
 {
   "speakersDbPath": "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json",
   "enableLogs": false,
-  "logsRoot": ""
+  "logsRoot": "",
+  "subtitleCharsPerLine": 60,
+  "word2jsonExePath": "",
+  "word2jsonOutDir": ""
 }

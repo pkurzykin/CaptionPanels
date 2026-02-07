@@ -14,6 +14,7 @@ window.onload = function() {
         "subtitles.jsx",
         "branding.jsx",
         "json_import.jsx",
+        "word_import.jsx",
         "speakers.jsx",
         "job_runner.jsx"
     ], function () {
