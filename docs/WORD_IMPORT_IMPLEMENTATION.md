@@ -97,6 +97,21 @@ Mitigations:
 
 ## Troubleshooting
 
+- AE setting required (once per machine):
+  - `Edit > Preferences > Scripting & Expressions > Allow Scripts to Write Files and Access Network`
+  - Without it, `system.callSystem()` can fail with `Permission denied`.
+
+- Word import creates/overwrites a debug log file (helps when AE shows an empty error):
+  - `word2jsonOutDir/word2json_last.log`
+  - If `word2jsonOutDir` is empty, default is `%TEMP%\CaptionPanels\word2json\word2json_last.log`.
+
+
+- Output JSON file:
+  - Written into `word2jsonOutDir/`.
+  - File name is based on the `.docx` file name: `<docxBase>_YYYYMMDD_HHMMSS.json`.
+  - If the `.docx` file name was URI-encoded (e.g. `%D0%A5...`), it is decoded for readability.
+
+
 - Error: `word2jsonExePath is not set in config.json`
   - Set `word2jsonExePath` in `%APPDATA%\CaptionPanels\config.json`.
 

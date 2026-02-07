@@ -58,15 +58,79 @@
         } catch (e) {}
     }
 
-    function _runWord2Json(exePath, docxPath, outJsonPath) {
-        // Use cmd.exe so we can capture errors (2>&1).
-        // Pattern: cmd.exe /c ""<exe>" "<docx>" --out "<json>" 2>&1"
-        var cmd = 'cmd.exe /c ""' + exePath + '" "' + docxPath + '" --out "' + outJsonPath + '" 2>&1"';
+    function _writeTextFile(filePath, content) {
+        var f = null;
         try {
-            return system.callSystem(cmd);
+            f = new File(filePath);
+            f.encoding = "UTF-8";
+            if (!f.open("w")) return false;
+            f.write(String(content || ""));
+            f.close();
+            return true;
         } catch (e) {
-            return "callSystem error: " + e.message;
+            try { if (f && f.opened) f.close(); } catch (e2) {}
+            return false;
         }
+    }
+
+    function _appendTextFile(filePath, content) {
+        var f = null;
+        try {
+            f = new File(filePath);
+            f.encoding = "UTF-8";
+            // Some ExtendScript builds don't support "a" reliably; fallback to read+write.
+            if (f.exists) {
+                if (!f.open("r")) return false;
+                var prev = f.read();
+                f.close();
+                if (!f.open("w")) return false;
+                f.write(String(prev || "") + String(content || ""));
+                f.close();
+                return true;
+            }
+            return _writeTextFile(filePath, content);
+        } catch (e) {
+            try { if (f && f.opened) f.close(); } catch (e2) {}
+            return false;
+        }
+    }
+
+    function _parseJsonSafe(text) {
+        var s = String(text || "");
+        try {
+            if (typeof JSON !== "undefined" && JSON.parse) {
+                return JSON.parse(s);
+            }
+        } catch (e) {}
+        try { return eval("(" + s + ")"); } catch (e2) {}
+        return null;
+    }
+
+    function _decodeURIComponentSafe(s) {
+        var v = String(s || "");
+        // File.name can be URI-encoded for non-ASCII (e.g. %D0%A5...), so try to decode it.
+        try { return decodeURIComponent(v); } catch (e) { return v; }
+    }
+
+    function _runWord2Json(exePath, docxPath, outJsonPath) {
+        // Use cmd.exe so we can capture stderr (2>&1) and always get an exit code marker.
+        // Pattern: cmd.exe /c ""<exe>" "<docx>" --out "<json>" 2>&1 & echo __EXIT_CODE__:%errorlevel%__""
+        var cmd = 'cmd.exe /c ""' + exePath + '" "' + docxPath + '" --out "' + outJsonPath + '" 2>&1 & echo __EXIT_CODE__:%errorlevel%__"';
+
+        var output = "";
+        try {
+            output = system.callSystem(cmd);
+        } catch (e) {
+            var msg = "";
+            try {
+                msg = (e && (e.message || e.description)) ? (e.message || e.description) : String(e);
+            } catch (e2) {
+                msg = "Permission denied";
+            }
+            output = "callSystem error: " + msg + " (is Preferences > Scripting & Expressions > Allow Scripts to Write Files and Access Network enabled?)";
+        }
+
+        return { cmd: cmd, output: output };
     }
 
     importWordFromDialog = function () {
@@ -115,26 +179,116 @@
             var baseName = String(inFile.name || "script");
             baseName = baseName.replace(/\.docx$/i, "");
 
-            var outJsonPath = outDir + "/" + baseName + "_" + _timestamp() + ".json";
+            // File.name can be URI-encoded for non-ASCII (e.g. %D0%A5...).
+            // Decode it for readability, but also ensure the output name is safe for Windows + cmd.exe.
+            baseName = _decodeURIComponentSafe(baseName);
+
+            // Create a safe file name for the generated JSON.
+            // - remove reserved characters for Windows file names
+            // - avoid '%' because cmd.exe expands %VAR% even inside quotes
+            // - collapse whitespace to underscores (stable + readable)
+            var safeBase = String(baseName || "");
+            safeBase = safeBase.replace(/%/g, "_");
+            safeBase = safeBase.replace(/[<>:"\/\\|?*\x00-\x1F]+/g, "_");
+            safeBase = safeBase.replace(/\s+/g, "_");
+            safeBase = safeBase.replace(/_+/g, "_");
+            safeBase = safeBase.replace(/^_+|_+$/g, "");
+            if (!safeBase) safeBase = "script";
+
+            var outJsonPath = outDir + "/" + safeBase + "_" + _timestamp() + ".json";
+            var logPath = outDir + "/word2json_last.log";
 
             // Normalize to forward slashes for cmd quoting stability.
             var exeCmd = _normalizePath(exePath);
             var docCmd = _normalizePath(docxPath);
             var outCmd = _normalizePath(outJsonPath);
 
-            var output = _runWord2Json(exeCmd, docCmd, outCmd);
+            var run = _runWord2Json(exeCmd, docCmd, outCmd);
+            var output = run && run.output ? String(run.output) : "";
+
+            // Save command/output to a log file for troubleshooting.
+            try {
+                var logText = "";
+                logText += "time=" + _timestamp() + "\n";
+                logText += "config=" + String(getConfigPath ? getConfigPath() : "") + "\n";
+                logText += "exe=" + String(exePath || "") + "\n";
+                logText += "docx=" + String(docxPath || "") + "\n";
+                logText += "outDir=" + String(outDir || "") + "\n";
+                logText += "outJson=" + String(outJsonPath || "") + "\n";
+                logText += "\ncmd:\n" + String(run && run.cmd ? run.cmd : "") + "\n";
+                logText += "\noutput:\n" + String(output || "") + "\n";
+                _writeTextFile(logPath, logText);
+            } catch (eLog) {}
 
             var outFile = new File(outJsonPath);
             if (!outFile.exists) {
-                // Include converter output to help debugging and IБ approval.
-                return respondErr("word2json failed. Output:\n" + String(output || ""));
+                // Include converter output + log path to help debugging.
+                var msg = "word2json did not produce JSON.";
+                msg += "\nlog=" + logPath;
+                msg += "\nOutput:\n" + String(output || "");
+                return respondErr(msg);
             }
 
             // Reuse existing JSON import pipeline.
-            return importJsonFromFile(outJsonPath);
+            var res = "";
+            try {
+                res = importJsonFromFile(outJsonPath);
+            } catch (eImp) {
+                var impMsg = "";
+                try {
+                    impMsg = (eImp && (eImp.message || eImp.description)) ? (eImp.message || eImp.description) : String(eImp);
+                } catch (eImp2) {
+                    impMsg = "Unknown error";
+                }
+                if (!impMsg) impMsg = "Unknown error";
+
+                try {
+                    _appendTextFile(logPath, "\nimportJsonFromFile threw:\n" + impMsg + "\n");
+                } catch (eLogImp) {}
+
+                var msg = "importJsonFromFile threw.\n" + impMsg;
+                msg += "\nlog=" + logPath;
+                msg += "\nconfig=" + String(getConfigPath ? getConfigPath() : "");
+                msg += "\noutJson=" + String(outJsonPath || "");
+                msg += "\nexe=" + String(exePath || "");
+                return respondErr(msg);
+            }
+
+            // Append import result to log (even on success).
+            try {
+                _appendTextFile(logPath, "\nimportJsonFromFile:\n" + String(res || "") + "\n");
+            } catch (eLog2) {}
+
+            // If JSON import fails, annotate error with paths to speed up debugging.
+            try {
+                var obj = _parseJsonSafe(res);
+                if (obj && obj.ok === false) {
+                    var errMsg = String(obj.error || "");
+                    if (!errMsg) errMsg = "Unknown error";
+                    errMsg += "\nconfig=" + String(getConfigPath ? getConfigPath() : "");
+                    errMsg += "\noutJson=" + String(outJsonPath || "");
+                    errMsg += "\nexe=" + String(exePath || "");
+                    errMsg += "\nlog=" + String(logPath || "");
+                    obj.error = errMsg;
+
+                    if (typeof JSON !== "undefined" && JSON.stringify) {
+                        return JSON.stringify(obj);
+                    }
+                    return respondErr(obj.error);
+                }
+            } catch (eAnn) {}
+
+            return res;
 
         } catch (e) {
-            return respondErr(e.message);
+            var msg = "";
+            try {
+                msg = (e && (e.message || e.description)) ? (e.message || e.description) : String(e);
+            } catch (e2) {
+                msg = "Unknown error";
+            }
+            if (!msg) msg = "Unknown error";
+            return respondErr(msg);
         }
     };
 })();

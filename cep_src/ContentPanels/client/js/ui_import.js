@@ -148,10 +148,19 @@ function initJsonImportUI() {
     attachClick("btn-load-word", function () {
         aeCall("importWordFromDialog()", function (out) {
             if (!out || !out.ok) {
-                var err = out && out.error ? out.error : "Unknown error";
-                if (String(err) === "CANCELLED") return;
-                uiAlert("Ошибка импорта Word (.docx).
-" + err);
+                var err = (out && typeof out.error !== 'undefined') ? String(out.error) : '';
+                if (String(err) === 'CANCELLED') return;
+
+                // If AE returned an empty/whitespace error, show debug payload so we can diagnose.
+                if (!err || !err.replace(/\s+/g, '')) {
+                    try {
+                        err = 'Unknown error\n\nDEBUG(out): ' + JSON.stringify(out);
+                    } catch (eDbg) {
+                        err = 'Unknown error';
+                    }
+                }
+
+                uiAlert("Ошибка импорта Word (.docx).\n" + err);
                 logUiError("word.import", err);
                 return;
             }

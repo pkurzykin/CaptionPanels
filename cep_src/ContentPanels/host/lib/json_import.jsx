@@ -13,7 +13,9 @@
     }
 
     function _jsonErr(msg) {
-        return "{\"ok\":false,\"result\":\"\",\"error\":\"" + _escapeString(msg) + "\"}";
+        var m = String(msg || "");
+        if (!m) m = "Unknown error";
+        return "{\"ok\":false,\"result\":\"\",\"error\":\"" + _escapeString(m) + "\"}";
     }
 
     function _jsonSpeakersArray(arr) {
@@ -240,7 +242,16 @@
 
             return _jsonOk(path, counts, speakersQueue, branding);
         } catch (e) {
-            return _jsonErr(e.message);
+            // Some ExtendScript/AE exceptions don"t populate .message (or can even be strings).
+            // Make sure we always return something useful to the UI.
+            var msg = "";
+            try {
+                msg = (e && (e.message || e.description)) ? (e.message || e.description) : String(e);
+            } catch (e2) {
+                msg = "Unknown error";
+            }
+            if (!msg) msg = "Unknown error";
+            return _jsonErr(msg);
         }
     };
 })();

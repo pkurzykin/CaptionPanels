@@ -68,6 +68,10 @@ internal static class Program
             };
 
             var json = JsonSerializer.Serialize(model, jsonOptions);
+            var outDir2 = Path.GetDirectoryName(Path.GetFullPath(outPath));
+            if (!string.IsNullOrWhiteSpace(outDir2))
+                Directory.CreateDirectory(outDir2);
+
             File.WriteAllText(outPath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
             // Print resulting path (so the caller can pick it up).

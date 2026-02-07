@@ -46,6 +46,7 @@ word2json.exe "C:\path\script.docx" --out "C:\path\script.json"
 
 Options:
 - `--out <path>`: output `.json` path (optional). If omitted, JSON is written next to the `.docx`.
+  - Output directory is created automatically if needed.
 - `--pretty`: pretty-print JSON (optional).
 
 Exit codes:
