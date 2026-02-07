@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Word2Json;
 
@@ -60,6 +61,8 @@ internal static class Program
 
             var jsonOptions = new JsonSerializerOptions
             {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
                 WriteIndented = pretty,
                 Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             };
