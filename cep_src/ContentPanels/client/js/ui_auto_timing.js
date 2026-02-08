@@ -22,11 +22,49 @@ function initAutoTimingUI() {
                 }
 
                 var r = out.result;
+
+                // Some bridges may return a JSON string instead of an object.
+                if (typeof r === "string") {
+                    var rt = String(r || "").trim();
+                    if (rt && rt[0] === "{") {
+                        try {
+                            var robj = JSON.parse(rt);
+                            if (robj && typeof robj === "object") {
+                                r = robj;
+                            }
+                        } catch (eParse) {}
+                    }
+                }
+
                 if (!r || typeof r !== "object" || !r.path) {
                     var dbg = "";
                     try { dbg = JSON.stringify(out); } catch (eDbg) { dbg = String(out); }
-                    uiAlert("Export Blocks: unexpected host response.\n\nDEBUG:\n" + dbg);
-                    logUiError("autoTiming.exportBlocks", "unexpected response: " + dbg);
+
+                    var meta = "";
+                    try {
+                        meta = "resultType=" + (typeof out.result) + ", resultPreview=" + String(out.result).slice(0, 200);
+                    } catch (eMeta) {}
+
+                    var dumpText = "Export Blocks: unexpected host response\n" + meta + "\n\nDEBUG(out):\n" + dbg;
+
+                    // Write a debug file so the user can copy/share it (alert() text is hard to copy).
+                    aeCall("writeAutoTimingDebug(" + JSON.stringify(dumpText) + ")", function (dumpOut) {
+                        var dumpPath = "";
+                        try {
+                            if (dumpOut && dumpOut.ok) {
+                                var dr = dumpOut.result;
+                                if (dr && typeof dr === "object" && dr.path) dumpPath = dr.path;
+                                else if (typeof dr === "string") dumpPath = dr;
+                            }
+                        } catch (eDump) {}
+
+                        var msg = "Export Blocks: unexpected host response.";
+                        if (dumpPath) msg += "\n\nDebug saved to:\n" + dumpPath;
+                        msg += "\n\nDEBUG(out):\n" + dbg;
+                        uiAlert(msg);
+                    });
+
+                    logUiError("autoTiming.exportBlocks", "unexpected response: " + dumpText);
                     return;
                 }
 

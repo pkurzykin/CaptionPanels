@@ -185,6 +185,54 @@
         return _normalizePath(outDir);
     }
 
+    function _writeTextFile(filePath, text) {
+        var f = null;
+        try {
+            f = new File(filePath);
+            f.encoding = "UTF-8";
+            if (!f.open("w")) return false;
+            f.write(String(text || ""));
+            f.close();
+            return true;
+        } catch (e2) {
+            try { if (f && f.opened) f.close(); } catch (e3) {}
+            return false;
+        }
+    }
+
+    // Debug helper: dumps diagnostics to a file in autoTimingOutDir.
+    // This is useful when the bridge returns an unexpected response that is hard to copy from alert().
+    writeAutoTimingDebug = function (text) {
+        try {
+            // Read fresh config (outDir can be changed via config.json).
+            try { if (typeof reloadConfig === "function") reloadConfig(); } catch (eCfg) {}
+
+            var outDir = _getAutoTimingOutDir();
+            if (!outDir) {
+                try { outDir = Folder.userData.fsName + "/CaptionPanels/auto_timing"; } catch (e1) {}
+                try { if (!outDir) outDir = Folder.temp.fsName + "/CaptionPanels/auto_timing"; } catch (e2) {}
+            }
+
+            outDir = _normalizePath(outDir);
+            if (!outDir) return respondErr("autoTimingOutDir is empty");
+            _ensureFolder(outDir);
+
+            var outPath = outDir + "/export_blocks_debug_" + _timestamp() + ".txt";
+            outPath = _normalizePath(outPath);
+
+            if (!_writeTextFile(outPath, String(text || ""))) {
+                return respondErr("Cannot write debug file: " + outPath);
+            }
+
+            return respondOk({ path: outPath });
+        } catch (e0) {
+            var msg = "";
+            try { msg = (e0 && (e0.message || e0.description)) ? (e0.message || e0.description) : String(e0); } catch (e1x) { msg = "Unknown error"; }
+            if (!msg) msg = "Unknown error";
+            return respondErr(msg);
+        }
+    };
+
     exportSubtitleBlocks = function () {
         try {
             if (!app || !app.project) return respondErr("No active project");
@@ -235,4 +283,12 @@
             return respondErr(msg);
         }
     };
+
+    // Ensure globals are visible when scripts are loaded via eval() inside loadModule().
+    try {
+        if ($ && $.global) {
+            $.global.exportSubtitleBlocks = exportSubtitleBlocks;
+            $.global.writeAutoTimingDebug = writeAutoTimingDebug;
+        }
+    } catch (eG) {}
 })();
