@@ -81,6 +81,17 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
             // Готовые субтитры не должны быть shy
             newL.shy = false;
 
+            // Stable ID for auto-timing. Stored in comment so it survives renames.
+            try {
+                var segId = newL.name;
+                var c = String(newL.comment || "");
+                if (c.indexOf("CP_SEGID=") === -1) {
+                    if (c && c.charAt(c.length - 1) !== "\n") c += "\n";
+                    c += "CP_SEGID=" + segId;
+                    newL.comment = c;
+                }
+            } catch (e) {}
+
             var targetIn = currentTime;
             newL.startTime = targetIn - (sourceLayer.inPoint - sourceLayer.startTime);
 
