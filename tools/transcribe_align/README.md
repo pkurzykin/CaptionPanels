@@ -35,3 +35,15 @@ python transcribe_align.py --video D:\work\video.mp4 --blocks D:\work\blocks.jso
   - `unmatched`: array of `{ segId, reason }`
 
 See `schemas/alignment.schema.json` (informal).
+
+
+## Using WhisperX output (recommended for Phase 1)
+
+If you run WhisperX separately and have its JSON output (with `segments[].words[]`), you can build `words.json` + `alignment.json` in one step:
+
+```bat
+cd tools\transcribe_align
+python transcribe_align.py --blocks D:\work\blocks.json --whisperx-json D:\work\whisperx.json --out-dir D:\work\out --video D:\work\video.mp4 --lang ru
+```
+
+This will also write `out\words.json` (our simplified debug format).

@@ -79,6 +79,59 @@ def load_words(path: Path) -> List[Word]:
         out.append(Word(w=_norm_text(w), s=s, e=e))
     return out
 
+def load_words_from_whisperx_json(path: Path) -> List[Word]:
+    """Parse WhisperX JSON output (segments -> words) into our simplified word list."""
+    obj = json.loads(path.read_text(encoding="utf-8"))
+
+    words: List[Word] = []
+
+    def _push(word: str, s: Any, e: Any) -> None:
+        try:
+            if word is None:
+                return
+            w = _norm_text(str(word).strip())
+            if not w:
+                return
+            if s is None or e is None:
+                return
+            ss = float(s)
+            ee = float(e)
+            if ee <= ss:
+                return
+            words.append(Word(w=w, s=ss, e=ee))
+        except Exception:
+            return
+
+    if isinstance(obj, dict):
+        segs = obj.get("segments")
+        if isinstance(segs, list):
+            for seg in segs:
+                if not isinstance(seg, dict):
+                    continue
+                wlist = seg.get("words")
+                if isinstance(wlist, list):
+                    for w in wlist:
+                        if not isinstance(w, dict):
+                            continue
+                        _push(w.get("word") or w.get("w"), w.get("start") or w.get("s"), w.get("end") or w.get("e"))
+
+        # Some WhisperX variants may store words directly.
+        wlist2 = obj.get("words")
+        if isinstance(wlist2, list) and not words:
+            for w in wlist2:
+                if not isinstance(w, dict):
+                    continue
+                _push(w.get("word") or w.get("w"), w.get("start") or w.get("s"), w.get("end") or w.get("e"))
+
+    # Deduplicate tiny overlaps (optional, keep simple)
+    return words
+
+
+def save_words_json(words: List[Word], out_path: Path) -> None:
+    data = [{"w": w.w, "s": round(float(w.s), 3), "e": round(float(w.e), 3)} for w in words]
+    out_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 
 def load_blocks(path: Path) -> List[Dict[str, Any]]:
     obj = json.loads(path.read_text(encoding="utf-8"))
@@ -208,7 +261,10 @@ def match_blocks(blocks: List[Dict[str, Any]], words: List[Word], *, window_word
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(prog="transcribe_align", add_help=True)
     ap.add_argument("--blocks", required=True, help="Path to blocks.json exported from CaptionPanels")
-    ap.add_argument("--words-json", required=True, help="Path to words.json (word timestamps). ASR integration comes later")
+    ap.add_argument("--words-json", help="Path to words.json (word timestamps)")
+    ap.add_argument("--whisperx-json", help="Path to WhisperX JSON output (segments/words)")
+    ap.add_argument("--video", help="Optional: video.mp4 path (for metadata only)")
+    ap.add_argument("--lang", default="ru", help="Language tag for metadata (default: ru)")
     ap.add_argument("--out-dir", required=True, help="Output directory")
 
     ap.add_argument("--pad-start-frames", type=float, default=0)
@@ -222,12 +278,21 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = ap.parse_args(argv)
 
     blocks_path = Path(args.blocks)
-    words_path = Path(args.words_json)
+    words_path = Path(args.words_json) if args.words_json else None
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     blocks = load_blocks(blocks_path)
-    words = load_words(words_path)
+    # Input words can come either from our simplified words.json, or from WhisperX JSON.
+    words = []
+    if words_path:
+        words = load_words(words_path)
+    elif args.whisperx_json:
+        wx_path = Path(args.whisperx_json)
+        words = load_words_from_whisperx_json(wx_path)
+        save_words_json(words, out_dir / "words.json")
+    else:
+        raise SystemExit("You must provide --words-json or --whisperx-json")
 
     matched, unmatched = match_blocks(
         blocks,
@@ -241,8 +306,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         "schemaVersion": 1,
         "source": {
             "engine": "transcribe_align-prototype",
-            "language": "ru",
-            "media": "",
+            "language": str(args.lang or "ru"),
+            "media": str(args.video or ""),
         },
         "settings": {
             "padStartFrames": args.pad_start_frames,
@@ -254,8 +319,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     }
 
     out_path = out_dir / "alignment.json"
-    out_path.write_text(json.dumps(alignment, ensure_ascii=False, indent=2) + "
-", encoding="utf-8")
+    out_path.write_text(json.dumps(alignment, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     summary = f"OK alignment={out_path} matched={len(matched)} unmatched={len(unmatched)}"
     print(summary)
