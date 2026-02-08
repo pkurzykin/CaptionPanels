@@ -95,20 +95,37 @@ function normalizeSpeakerText(txt) {
 }
 
 function parseAeResult(res) {
+    // WebView2 bridge can return a non-string result; normalize it here.
+    if (res && typeof res === "object") {
+        if (typeof res.ok !== "undefined") {
+            if (typeof res.error === "undefined") res.error = "";
+            if (typeof res.result === "undefined") res.result = "";
+            return res;
+        }
+        return { ok: true, error: "", result: res };
+    }
+
     var s = String(res || "");
     var t = s.trim();
+
     if (t && t[0] === "{") {
         try {
             var obj = JSON.parse(t);
             if (obj && typeof obj.ok !== "undefined") return obj;
         } catch (e) {}
     }
-    if (t.indexOf("Error:") === 0 || t === "Error") {
+
+    if (t.indexOf("Error:") === 0) {
+        return { ok: false, error: t.slice("Error:".length).trim(), result: "" };
+    }
+    if (t === "Error") {
         return { ok: false, error: t, result: "" };
     }
+
     if (t === "OK") {
         return { ok: true, error: "", result: t };
     }
+
     return { ok: true, error: "", result: s };
 }
 
