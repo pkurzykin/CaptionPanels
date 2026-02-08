@@ -25,16 +25,42 @@ window.onload = function() {
         }
     });
 
-    initTabs();
-    initTopicDropdown();
-    initSpeakersDbUI();
-    initSpeakersUI();
-    initSubtitlesUI();
-    initAutoTimingUI();
-    initTypographyUI();
-    initBrandingUI();
-    initJsonImportUI();
-    initSettingsUI();
+    function _safeInit(fnName) {
+        try {
+            var fn = window[fnName];
+            if (typeof fn === "function") {
+                fn();
+                return true;
+            }
+            console.warn("Init missing: " + fnName);
+            return false;
+        } catch (e) {
+            console.error("Init failed: " + fnName, e);
+            try {
+                uiAlert("UI init failed: " + fnName + "\n" + (e && e.message ? e.message : e));
+            } catch (e2) {}
+            return false;
+        }
+    }
+
+    _safeInit("initTabs");
+    _safeInit("initTopicDropdown");
+    _safeInit("initSpeakersDbUI");
+    _safeInit("initSpeakersUI");
+    _safeInit("initSubtitlesUI");
+
+    var okAuto = _safeInit("initAutoTimingUI");
+    if (!okAuto && document.getElementById("btn-export-blocks")) {
+        uiAlert("Auto Timing UI is not initialized.\n\n" +
+            "Make sure this file exists in the plugin folder:\n" +
+            "client/js/ui_auto_timing.js\n\n" +
+            "Then press Reload.");
+    }
+
+    _safeInit("initTypographyUI");
+    _safeInit("initBrandingUI");
+    _safeInit("initJsonImportUI");
+    _safeInit("initSettingsUI");
 
     var reloadBtn = document.getElementById("btn-reload");
     if (reloadBtn) {
