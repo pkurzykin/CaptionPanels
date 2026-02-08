@@ -108,13 +108,46 @@
     }
 
     function _readConfigFile() {
-        var p = _configPath();
-        if (!p) return {};
-        var cfg = _tryReadConfig(p, "UTF-8");
-        if (cfg) return cfg;
-        cfg = _tryReadConfig(p, "UTF-16");
-        if (cfg) return cfg;
-        return {};
+        // Merge defaults (shipped config.json under extension root) with the active config path.
+        // This makes new config keys available even if the user already has an older AppData config.
+
+        var primaryPath = _configPath();
+        var primary = null;
+        if (primaryPath) {
+            primary = _tryReadConfig(primaryPath, "UTF-8");
+            if (!primary) primary = _tryReadConfig(primaryPath, "UTF-16");
+        }
+        if (!primary) primary = {};
+
+        var shipped = {};
+        try {
+            var base = _normalizePath(_resolveRootPath());
+            if (base) {
+                var shippedPath = base + "/config.json";
+                if (shippedPath && shippedPath !== primaryPath) {
+                    var s1 = _tryReadConfig(shippedPath, "UTF-8");
+                    if (!s1) s1 = _tryReadConfig(shippedPath, "UTF-16");
+                    if (s1) shipped = s1;
+                }
+            }
+        } catch (e) {
+            shipped = {};
+        }
+
+        function merge(dst, src) {
+            for (var k in src) {
+                var own = true;
+                try { own = src.hasOwnProperty(k); } catch (e2) { own = true; }
+                if (!own) continue;
+                dst[k] = src[k];
+            }
+            return dst;
+        }
+
+        var merged = {};
+        merge(merged, shipped);
+        merge(merged, primary);
+        return merged;
     }
 
     getConfig = function () {
