@@ -226,38 +226,20 @@ function initAutoTimingUI() {
                 return;
             }
 
-            // 2) Preview
-            _evalAe("autoTimingPreviewApply(" + JSON.stringify(p) + ")", function (prevOut) {
-                if (!prevOut || !prevOut.ok) {
-                    var err2 = prevOut && prevOut.error ? String(prevOut.error) : "Unknown error";
-                    uiAlert("Auto Timing preview failed.\n" + err2);
+            // 2) Apply (no preview/confirm)
+            _evalAe("autoTimingApply(" + JSON.stringify(p) + ")", function (applyOut) {
+                if (!applyOut || !applyOut.ok) {
+                    var err3 = applyOut && applyOut.error ? String(applyOut.error) : "Unknown error";
+                    uiAlert("Auto Timing apply failed.\n" + err3);
                     return;
                 }
 
-                var preview = prevOut.result;
-                if (typeof preview === "string") {
-                    try { preview = JSON.parse(preview); } catch (eJ) {}
+                var res = applyOut.result;
+                if (typeof res === "string") {
+                    try { res = JSON.parse(res); } catch (eJ2) {}
                 }
 
-                uiConfirm(_formatTimingsPreview(preview), function (yes) {
-                    if (!yes) return;
-
-                    // 3) Apply
-                    _evalAe("autoTimingApply(" + JSON.stringify(p) + ")", function (applyOut) {
-                        if (!applyOut || !applyOut.ok) {
-                            var err3 = applyOut && applyOut.error ? String(applyOut.error) : "Unknown error";
-                            uiAlert("Auto Timing apply failed.\n" + err3);
-                            return;
-                        }
-
-                        var res = applyOut.result;
-                        if (typeof res === "string") {
-                            try { res = JSON.parse(res); } catch (eJ2) {}
-                        }
-
-                        uiAlert(_formatTimingsApplySummary(res));
-                    });
-                });
+                uiAlert(_formatTimingsApplySummary(res));
             });
         });
     });
