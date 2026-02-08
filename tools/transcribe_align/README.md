@@ -47,3 +47,17 @@ python transcribe_align.py --blocks D:\work\blocks.json --whisperx-json D:\work\
 ```
 
 This will also write `out\words.json` (our simplified debug format).
+
+
+## One-command mode (video -> alignment) using WhisperX CLI
+
+If WhisperX is installed and `whisperx` is available in PATH, you can run everything in one command:
+
+```bat
+cd tools	ranscribe_align
+python transcribe_align.py --video D:\work\video.mp4 --blocks D:\work\blocks.json --out-dir D:\work\out --run-whisperx --whisperx-model small --whisperx-device cuda
+```
+
+Notes:
+- WhisperX JSON will be written to `out\whisperx\`.
+- We always also write `out\words.json` (simplified debug format).

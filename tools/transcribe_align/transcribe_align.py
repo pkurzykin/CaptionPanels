@@ -133,6 +133,44 @@ def save_words_json(words: List[Word], out_path: Path) -> None:
 
 
 
+def run_whisperx_cli(*, whisperx_bin: str, media_path: Path, out_dir: Path, lang: str, model: str, device: str, extra_args: list[str]) -> Path:
+    """Run WhisperX CLI and return the path to its JSON output.
+
+    We call the CLI (not the Python API) to reduce the risk of API drift between versions.
+    """
+    import subprocess
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    cmd = [
+        whisperx_bin,
+        str(media_path),
+        '--output_dir', str(out_dir),
+        '--output_format', 'json',
+        '--language', str(lang),
+        '--model', str(model),
+        '--device', str(device),
+    ]
+    if extra_args:
+        cmd.extend(extra_args)
+
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        msg = (proc.stdout or "") + "\n" + (proc.stderr or "")
+        raise RuntimeError("whisperx failed (exit=%s)\n%s" % (proc.returncode, msg.strip()))
+    expected = out_dir / (media_path.stem + '.json')
+    if expected.exists():
+        return expected
+
+    cands = sorted(out_dir.glob('*.json'), key=lambda p: p.stat().st_mtime, reverse=True)
+    for p in cands:
+        if p.name.lower() in ('alignment.json', 'words.json'):
+            continue
+        return p
+
+    raise RuntimeError('whisperx finished, but no JSON output found in: %s' % out_dir)
+
+
 def load_blocks(path: Path) -> List[Dict[str, Any]]:
     obj = json.loads(path.read_text(encoding="utf-8"))
     blocks = obj.get("blocks", []) if isinstance(obj, dict) else []
@@ -265,6 +303,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--whisperx-json", help="Path to WhisperX JSON output (segments/words)")
     ap.add_argument("--video", help="Optional: video.mp4 path (for metadata only)")
     ap.add_argument("--lang", default="ru", help="Language tag for metadata (default: ru)")
+    ap.add_argument("--run-whisperx", action="store_true", help="Run WhisperX CLI to get word timestamps")
+    ap.add_argument("--whisperx-bin", default="whisperx", help="Path to whisperx executable (default: whisperx)")
+    ap.add_argument("--whisperx-model", default="small", help="Whisper model name (default: small)")
+    ap.add_argument("--whisperx-device", default="cuda", help="Device: cuda or cpu (default: cuda)")
+    ap.add_argument("--whisperx-extra", default="", help="Extra args for whisperx CLI (raw string)")
     ap.add_argument("--out-dir", required=True, help="Output directory")
 
     ap.add_argument("--pad-start-frames", type=float, default=0)
@@ -283,16 +326,39 @@ def main(argv: Optional[List[str]] = None) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     blocks = load_blocks(blocks_path)
-    # Input words can come either from our simplified words.json, or from WhisperX JSON.
-    words = []
-    if words_path:
+    # Input words can come either from our simplified words.json, from WhisperX JSON,
+    # or be generated on-the-fly by running WhisperX CLI.
+    words: List[Word] = []
+
+    if args.run_whisperx:
+        if not args.video:
+            raise SystemExit("--run-whisperx requires --video")
+        media_path = Path(args.video)
+        wx_out_dir = out_dir / "whisperx"
+        extra = str(args.whisperx_extra or "").strip()
+        extra_args = extra.split() if extra else []
+        wx_json = run_whisperx_cli(
+            whisperx_bin=str(args.whisperx_bin),
+            media_path=media_path,
+            out_dir=wx_out_dir,
+            lang=str(args.lang or "ru"),
+            model=str(args.whisperx_model),
+            device=str(args.whisperx_device),
+            extra_args=extra_args,
+        )
+        words = load_words_from_whisperx_json(wx_json)
+        save_words_json(words, out_dir / "words.json")
+
+    elif words_path:
         words = load_words(words_path)
+
     elif args.whisperx_json:
         wx_path = Path(args.whisperx_json)
         words = load_words_from_whisperx_json(wx_path)
         save_words_json(words, out_dir / "words.json")
+
     else:
-        raise SystemExit("You must provide --words-json or --whisperx-json")
+        raise SystemExit("You must provide --words-json or --whisperx-json (or use --run-whisperx)")
 
     matched, unmatched = match_blocks(
         blocks,
