@@ -239,7 +239,327 @@
         }
     };
 
-    exportSubtitleBlocks = function () {
+    
+
+    function _readFileText(filePath) {
+        var p = _normalizePath(filePath);
+        var f = new File(p);
+        if (!f.exists) throw new Error("File not found: " + p);
+
+        var txt = "";
+        try {
+            f.encoding = "UTF-8";
+            if (!f.open("r")) throw new Error("Cannot open file: " + p);
+            txt = f.read();
+            f.close();
+        } catch (e1) {
+            try { if (f && f.opened) f.close(); } catch (e2) {}
+            // UTF-16 fallback (some Windows tools save JSON as UTF-16)
+            f = new File(p);
+            f.encoding = "UTF-16";
+            if (!f.open("r")) throw new Error("Cannot open file (UTF-16): " + p);
+            txt = f.read();
+            f.close();
+        }
+
+        if (txt && txt.length && txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+        return String(txt || "");
+    }
+
+    function _parseJsonSafe(text) {
+        var s = String(text || "");
+        if (s && s.length && s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
+
+        // Prefer JSON.parse when available.
+        if (typeof JSON !== "undefined" && JSON && typeof JSON.parse === "function") {
+            try { return JSON.parse(s); } catch (e) {}
+        }
+
+        // Fallback: ExtendScript eval.
+        try { return eval("(" + s + ")"); } catch (e2) {}
+        return null;
+    }
+
+    function _readJsonFile(filePath) {
+        var txt = _readFileText(filePath);
+        var obj = _parseJsonSafe(txt);
+        if (!obj) throw new Error("Invalid JSON: " + _normalizePath(filePath));
+        return obj;
+    }
+
+    function _asNum(v) {
+        var n = Number(v);
+        return isNaN(n) ? null : n;
+    }
+
+    function _timeFromAlignmentItem(item, compFps) {
+        if (!item) return null;
+
+        var segId = String(item.segId || item.segID || item.id || "");
+        if (!segId) return null;
+
+        // seconds-based keys
+        var s = _asNum(item.start);
+        if (s === null) s = _asNum(item["in"]);
+        if (s === null) s = _asNum(item.startSec);
+        if (s === null) s = _asNum(item.inSec);
+
+        var e = _asNum(item.end);
+        if (e === null) e = _asNum(item["out"]);
+        if (e === null) e = _asNum(item.endSec);
+        if (e === null) e = _asNum(item.outSec);
+
+        // frame-based keys
+        if (s === null) {
+            var sf = _asNum(item.startFrame);
+            if (sf === null) sf = _asNum(item.startFrames);
+            if (sf !== null) s = sf / (compFps || 25);
+        }
+        if (e === null) {
+            var ef = _asNum(item.endFrame);
+            if (ef === null) ef = _asNum(item.endFrames);
+            if (ef !== null) e = ef / (compFps || 25);
+        }
+        if (s === null || e === null) return null;
+
+        return { segId: segId, start: s, end: e, confidence: _asNum(item.confidence) };
+    }
+
+    function _extractAlignmentBlocks(alignmentObj) {
+        if (!alignmentObj) return [];
+        var a = alignmentObj;
+        if (a instanceof Array) return a;
+        if (a.blocks && (a.blocks instanceof Array)) return a.blocks;
+        if (a.timings && (a.timings instanceof Array)) return a.timings;
+        if (a.items && (a.items instanceof Array)) return a.items;
+        return [];
+    }
+
+    function _collectSegIdMap(comp) {
+        var map = {};
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !l.name) continue;
+            if (!_isSubtitleLayerName(l.name)) continue;
+
+            var segId = _getSegId(l);
+            if (segId) map[segId] = l;
+            // Fallback: layer name as ID too.
+            try {
+                var ln = String(l.name || "");
+                if (ln && !map[ln]) map[ln] = l;
+            } catch (e) {}
+        }
+        return map;
+    }
+
+    function _readAlignmentSettings(alignmentObj) {
+        var s = (alignmentObj && alignmentObj.settings) ? alignmentObj.settings : {};
+        function n(key, def) {
+            var v = null;
+            try { v = _asNum(s[key]); } catch (e) { v = null; }
+            return (v === null) ? def : v;
+        }
+        return {
+            padStartFrames: n("padStartFrames", 0),
+            padEndFrames: n("padEndFrames", 0),
+            minDurationFrames: n("minDurationFrames", 1)
+        };
+    }
+
+    function _clamp(v, a, b) {
+        if (v < a) return a;
+        if (v > b) return b;
+        return v;
+    }
+
+    function _buildTimingChanges(comp, alignmentObj) {
+        var fps = Number(comp.frameRate) || 25;
+        var st = _readAlignmentSettings(alignmentObj);
+        var items = _extractAlignmentBlocks(alignmentObj);
+        var map = _collectSegIdMap(comp);
+
+        var changes = [];
+        var missing = [];
+        var invalid = [];
+
+        for (var i = 0; i < items.length; i++) {
+            var t = _timeFromAlignmentItem(items[i], fps);
+            if (!t) {
+                invalid.push({ idx: i, reason: "bad_item" });
+                continue;
+            }
+
+            var layer = map[t.segId];
+            if (!layer) {
+                missing.push({ segId: t.segId });
+                continue;
+            }
+
+            var start = t.start - (st.padStartFrames / fps);
+            var end = t.end + (st.padEndFrames / fps);
+
+            // Minimum duration
+            var minDur = (st.minDurationFrames / fps);
+            if (end - start < minDur) end = start + minDur;
+
+            // Clamp to comp duration
+            start = _clamp(start, 0, comp.duration);
+            end = _clamp(end, 0, comp.duration);
+
+            if (end <= start) {
+                invalid.push({ segId: t.segId, reason: "end<=start" });
+                continue;
+            }
+
+            changes.push({
+                segId: t.segId,
+                layerIndex: layer.index,
+                oldIn: Number(layer.inPoint) || 0,
+                oldOut: Number(layer.outPoint) || 0,
+                newIn: start,
+                newOut: end,
+                confidence: t.confidence
+            });
+        }
+
+        // Sort by newIn to apply left-to-right.
+        changes.sort(function (a, b) {
+            if (a.newIn === b.newIn) return a.layerIndex - b.layerIndex;
+            return a.newIn - b.newIn;
+        });
+
+        return {
+            settings: st,
+            total: items.length,
+            changes: changes,
+            missing: missing,
+            invalid: invalid
+        };
+    }
+
+    autoTimingPickAlignmentFile = function () {
+        try {
+            var f = File.openDialog("Select alignment.json", "*.json");
+            if (!f) return respondErr("CANCELLED");
+            return respondOk({ path: _normalizePath(f.fsName) });
+        } catch (e) {
+            return respondErr(e.message);
+        }
+    };
+
+    autoTimingPreviewApply = function (alignmentPath) {
+        try {
+            if (!app || !app.project) return respondErr("No active project");
+            var comp = app.project.activeItem;
+            if (!comp || !(comp instanceof CompItem)) return respondErr("No active comp");
+
+            var p = _normalizePath(alignmentPath);
+            if (!p) return respondErr("alignmentPath is empty");
+
+            var alignmentObj = _readJsonFile(p);
+            var res = _buildTimingChanges(comp, alignmentObj);
+
+            // Keep preview small (UI can ask for full later)
+            var first = [];
+            for (var i = 0; i < res.changes.length && i < 30; i++) {
+                first.push(res.changes[i]);
+            }
+
+            return respondOk({
+                filePath: p,
+                total: res.total,
+                matched: res.changes.length,
+                missingCount: res.missing.length,
+                invalidCount: res.invalid.length,
+                settings: res.settings,
+                firstChanges: first,
+                firstMissing: res.missing.slice(0, 30)
+            });
+        } catch (e) {
+            return respondErr(e.message);
+        }
+    };
+
+    autoTimingApply = function (alignmentPath) {
+        try {
+            if (!app || !app.project) return respondErr("No active project");
+            var comp = app.project.activeItem;
+            if (!comp || !(comp instanceof CompItem)) return respondErr("No active comp");
+
+            var p = _normalizePath(alignmentPath);
+            if (!p) return respondErr("alignmentPath is empty");
+
+            var alignmentObj = _readJsonFile(p);
+            var res = _buildTimingChanges(comp, alignmentObj);
+
+            app.beginUndoGroup("CaptionPanels: Apply Auto Timing");
+
+            // Rebuild segId map once more (layers can be reordered)
+            var segMap = _collectSegIdMap(comp);
+            var applied = 0;
+            var errors = [];
+
+            for (var i = 0; i < res.changes.length; i++) {
+                var ch = res.changes[i];
+                var layer = segMap[ch.segId];
+                if (!layer) continue;
+
+                try {
+                    var delta = ch.newIn - (Number(layer.inPoint) || 0);
+                    // Move the layer to the new start time.
+                    layer.startTime = (Number(layer.startTime) || 0) + delta;
+
+                    // Force in/out exactly (avoid drift if AE didn't shift them as expected).
+                    try { layer.inPoint = ch.newIn; } catch (eIn) {}
+                    try { layer.outPoint = ch.newOut; } catch (eOut) {}
+
+                    applied++;
+                } catch (eL) {
+                    errors.push({ segId: ch.segId, error: eL.message });
+                }
+            }
+
+            // Recompute BG groups after timings changed.
+            try {
+                if (typeof _updateSubtitleBg === "function") _updateSubtitleBg(comp);
+            } catch (eBg) {}
+
+            app.endUndoGroup();
+
+            return respondOk({
+                filePath: p,
+                total: res.total,
+                matched: res.changes.length,
+                applied: applied,
+                missingCount: res.missing.length,
+                invalidCount: res.invalid.length,
+                errorCount: errors.length,
+                firstErrors: errors.slice(0, 20)
+            });
+        } catch (e) {
+            try { app.endUndoGroup(); } catch (e2) {}
+            return respondErr(e.message);
+        }
+    };
+
+    autoTimingApplyFromDialog = function () {
+        try {
+            var pick = autoTimingPickAlignmentFile();
+            var parsed = null;
+            try { parsed = _parseJsonSafe(String(pick || "")); } catch (e0) { parsed = null; }
+            // If pick returned a JSON response string, parse it. Otherwise, just return it.
+            if (parsed && parsed.ok) {
+                var p = parsed.result && parsed.result.path ? String(parsed.result.path) : "";
+                if (!p) return respondErr("No path returned from picker");
+                return autoTimingApply(p);
+            }
+            return pick;
+        } catch (e) {
+            return respondErr(e.message);
+        }
+    };
+exportSubtitleBlocks = function () {
         try {
             if (!app || !app.project) return respondErr("No active project");
             var comp = app.project.activeItem;
@@ -295,6 +615,10 @@
         if ($ && $.global) {
             $.global.exportSubtitleBlocks = exportSubtitleBlocks;
             $.global.writeAutoTimingDebug = writeAutoTimingDebug;
+            $.global.autoTimingPickAlignmentFile = autoTimingPickAlignmentFile;
+            $.global.autoTimingPreviewApply = autoTimingPreviewApply;
+            $.global.autoTimingApply = autoTimingApply;
+            $.global.autoTimingApplyFromDialog = autoTimingApplyFromDialog;
         }
     } catch (eG) {}
 })();

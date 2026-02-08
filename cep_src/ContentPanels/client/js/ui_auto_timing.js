@@ -9,6 +9,63 @@ function _formatBlocksExportSummary(res) {
     return msg;
 }
 
+
+function _fmtSec(v) {
+    var n = Number(v);
+    if (isNaN(n)) return String(v);
+    return n.toFixed(3);
+}
+
+function _formatTimingsPreview(preview) {
+    var p = (preview && typeof preview === "object") ? preview : {};
+    var s = (p.settings && typeof p.settings === "object") ? p.settings : {};
+
+    var msg = "Auto Timing preview";
+    if (p.filePath) msg += "\nFile: " + p.filePath;
+    msg += "\nTotal blocks in alignment: " + (p.total || 0);
+    msg += "\nMatched in comp: " + (p.matched || 0);
+    msg += "\nMissing segId: " + (p.missingCount || 0);
+    msg += "\nInvalid items: " + (p.invalidCount || 0);
+
+    msg += "\n\nSettings:";
+    msg += "\n  padStartFrames: " + (s.padStartFrames || 0);
+    msg += "\n  padEndFrames: " + (s.padEndFrames || 0);
+    msg += "\n  minDurationFrames: " + (s.minDurationFrames || 0);
+
+    var ch = p.firstChanges || [];
+    if (ch && ch.length) {
+        msg += "\n\nFirst changes:";
+        for (var i = 0; i < ch.length && i < 10; i++) {
+            var it = ch[i] || {};
+            msg += "\n- " + (it.segId || "?") + " : " + _fmtSec(it.oldIn) + "-" + _fmtSec(it.oldOut) + "  ->  " + _fmtSec(it.newIn) + "-" + _fmtSec(it.newOut);
+        }
+        if (ch.length > 10) msg += "\n...";
+    }
+
+    var miss = p.firstMissing || [];
+    if (miss && miss.length) {
+        msg += "\n\nFirst missing segId:";
+        for (var j = 0; j < miss.length && j < 10; j++) {
+            msg += "\n- " + String((miss[j] && miss[j].segId) || "?");
+        }
+        if (miss.length > 10) msg += "\n...";
+    }
+
+    msg += "\n\nApply timings now?";
+    return msg;
+}
+
+function _formatTimingsApplySummary(res) {
+    var r = (res && typeof res === "object") ? res : {};
+    var msg = "Auto Timing applied.";
+    if (r.filePath) msg += "\nFile: " + r.filePath;
+    msg += "\nApplied: " + (r.applied || 0) + " / matched " + (r.matched || 0);
+    if (r.missingCount) msg += "\nMissing: " + r.missingCount;
+    if (r.invalidCount) msg += "\nInvalid: " + r.invalidCount;
+    if (r.errorCount) msg += "\nErrors: " + r.errorCount;
+    return msg;
+}
+
 // Local parser that does NOT depend on app_core.js parseAeResult().
 // This makes the button robust even if the bridge returns objects.
 function _parseHostResponse(res) {
@@ -147,4 +204,62 @@ function initAutoTimingUI() {
             });
         });
     });
+
+    attachClick("btn-apply-timings", function () {
+        // 1) Pick alignment.json
+        _evalAe("autoTimingPickAlignmentFile()", function (pickOut) {
+            if (!pickOut || !pickOut.ok) {
+                var err = pickOut && pickOut.error ? String(pickOut.error) : "Unknown error";
+                if (err === "CANCELLED") return;
+                uiAlert("Apply Timings failed (pick file).\n" + err);
+                return;
+            }
+
+            var p = "";
+            try {
+                if (pickOut.result && typeof pickOut.result === "object" && pickOut.result.path) p = String(pickOut.result.path);
+                else if (typeof pickOut.result === "string") p = String(pickOut.result);
+            } catch (eP) {}
+
+            if (!p) {
+                uiAlert("Apply Timings failed: picker returned empty path");
+                return;
+            }
+
+            // 2) Preview
+            _evalAe("autoTimingPreviewApply(" + JSON.stringify(p) + ")", function (prevOut) {
+                if (!prevOut || !prevOut.ok) {
+                    var err2 = prevOut && prevOut.error ? String(prevOut.error) : "Unknown error";
+                    uiAlert("Auto Timing preview failed.\n" + err2);
+                    return;
+                }
+
+                var preview = prevOut.result;
+                if (typeof preview === "string") {
+                    try { preview = JSON.parse(preview); } catch (eJ) {}
+                }
+
+                uiConfirm(_formatTimingsPreview(preview), function (yes) {
+                    if (!yes) return;
+
+                    // 3) Apply
+                    _evalAe("autoTimingApply(" + JSON.stringify(p) + ")", function (applyOut) {
+                        if (!applyOut || !applyOut.ok) {
+                            var err3 = applyOut && applyOut.error ? String(applyOut.error) : "Unknown error";
+                            uiAlert("Auto Timing apply failed.\n" + err3);
+                            return;
+                        }
+
+                        var res = applyOut.result;
+                        if (typeof res === "string") {
+                            try { res = JSON.parse(res); } catch (eJ2) {}
+                        }
+
+                        uiAlert(_formatTimingsApplySummary(res));
+                    });
+                });
+            });
+        });
+    });
+
 }
