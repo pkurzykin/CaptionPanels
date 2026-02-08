@@ -56,6 +56,7 @@ Host -> UI:
 - `subtitleCharsPerLine` — лимит символов в строке (субтитры), по умолчанию 60
 - `word2jsonExePath` — путь к `word2json.exe` (утилита конвертации Word .docx -> .json)
 - `word2jsonOutDir` — куда сохранять временный JSON (если пусто — `%TEMP%\CaptionPanels\word2json`)
+- `autoTimingOutDir` — куда сохранять `blocks_*.json` при Export Blocks… (если пусто — `%APPDATA%\CaptionPanels\auto_timing`)
 
 ## Логи
 При `enableLogs: true` логи пишутся в:

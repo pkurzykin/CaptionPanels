@@ -14,5 +14,6 @@
   "logsRoot": "",
   "subtitleCharsPerLine": 60,
   "word2jsonExePath": "C:/AE/word2json/word2json.exe",
-  "word2jsonOutDir": "C:/Temp/CaptionPanels/word2json"
+  "word2jsonOutDir": "C:/Temp/CaptionPanels/word2json",
+  "autoTimingOutDir": "C:/Temp/CaptionPanels/auto_timing"
 }

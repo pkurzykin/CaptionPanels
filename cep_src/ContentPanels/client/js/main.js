@@ -12,6 +12,7 @@ window.onload = function() {
         "utils.jsx",
         "cleanup.jsx",
         "subtitles.jsx",
+        "auto_timing.jsx",
         "branding.jsx",
         "json_import.jsx",
         "word_import.jsx",
@@ -29,6 +30,7 @@ window.onload = function() {
     initSpeakersDbUI();
     initSpeakersUI();
     initSubtitlesUI();
+    initAutoTimingUI();
     initTypographyUI();
     initBrandingUI();
     initJsonImportUI();

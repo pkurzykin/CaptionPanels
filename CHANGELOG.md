@@ -6,6 +6,8 @@
 - Word Import: кнопка «ЗАГРУЗИТЬ WORD» (.docx) + конвертер `tools/word2json` (OpenXML) + импорт через существующий пайплайн JSON.
 - Config: `word2jsonExePath`, `word2jsonOutDir`, `topicOptions`.
 - Settings: редактирование `speakersDbPath` (путь к базе спикеров) и `topicOptions` (список рубрик) прямо из панели.
+- Auto Timing (Phase A): кнопка `Export Blocks…` (выгрузка `blocks_*.json` для утилиты выравнивания) + `autoTimingOutDir`.
+
 
 ### Changed
 - UI: убрана кнопка импорта JSON (оставлен Word импорт).
