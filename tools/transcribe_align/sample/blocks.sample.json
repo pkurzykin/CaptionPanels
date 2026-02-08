@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "source": {"engine":"CaptionPanels","compName":"SAMPLE","fps":25},
+  "blocks": [
+    {"segId":"Sub_VOICEOVER_1_1","type":"voiceover","text":"Как устроена система измерений количества","textOneLine":"Как устроена система измерений количества"}
+  ]
+}
