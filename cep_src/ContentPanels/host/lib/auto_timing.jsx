@@ -158,7 +158,13 @@
             if (!f.open("w")) return false;
             var json = "";
             try {
-                json = JSON.stringify(obj, null, 2);
+                if (typeof safeJsonStringify === "function") {
+                    json = safeJsonStringify(obj, 2);
+                } else if (typeof JSON !== "undefined" && JSON && typeof JSON.stringify === "function") {
+                    json = JSON.stringify(obj, null, 2);
+                } else {
+                    json = String(obj);
+                }
             } catch (e) {
                 json = String(obj);
             }
