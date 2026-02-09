@@ -731,6 +731,10 @@
 
             // Recompute BG groups after timings changed.
             try {
+                if (typeof _updateSubtitleBg !== "function" && typeof loadModule === "function") {
+                    // Ensure subtitles.jsx is loaded so _updateSubtitleBg is available.
+                    try { loadModule("subtitles.jsx"); } catch (eLm) {}
+                }
                 if (typeof _updateSubtitleBg === "function") _updateSubtitleBg(comp);
             } catch (eBg) {}
 

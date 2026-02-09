@@ -389,7 +389,13 @@ function _updateSubtitleBg(comp) {
     if (!comp) return;
     var BG_NAME = "subtitle_BG";
     var BG_PREFIX = "subtitle_BG_";
-    var GAP_SEC = 2.0;
+    var GAP_SEC = 1.0;
+    try {
+        if (typeof getConfigValue === "function") {
+            var v = Number(getConfigValue("subtitleBgGapSec", 1.0));
+            if (!isNaN(v) && v >= 0 && v <= 10) GAP_SEC = v;
+        }
+    } catch (eGap) {}
 
     var bg = comp.layer(BG_NAME);
     if (!bg) return;
