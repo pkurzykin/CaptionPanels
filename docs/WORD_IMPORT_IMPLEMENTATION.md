@@ -62,10 +62,15 @@ Config file priority is unchanged:
 2) `<plugin_root>\config.json`
 
 New keys:
+- `captionPanelsDataRoot` — unified data root (recommended: `C:\AE\CaptionPanelsData`).
+- `captionPanelsToolsRoot` — unified tools root (recommended: `C:\AE\CaptionPanelsTools`).
 - `word2jsonExePath` — path to `word2json.exe`.
   - Recommended: **local path** (not UNC) to avoid Windows policy blocks.
+  - Recommended location: `C:\AE\CaptionPanelsTools\word2json\word2json.exe`.
 - `word2jsonOutDir` — where to write the generated JSON.
-  - If empty: defaults to `%TEMP%\CaptionPanels\word2json`.
+  - Recommended: `C:\AE\CaptionPanelsData\word2json`.
+  - If empty: defaults to `captionPanelsDataRoot\word2json` (if `captionPanelsDataRoot` is set), otherwise `%TEMP%\CaptionPanels\word2json`.
+
 
 Sample config is updated:
 - `cep_src/ContentPanels/config.json`
@@ -103,7 +108,7 @@ Mitigations:
 
 - Word import creates/overwrites a debug log file (helps when AE shows an empty error):
   - `word2jsonOutDir/word2json_last.log`
-  - If `word2jsonOutDir` is empty, default is `%TEMP%\CaptionPanels\word2json\word2json_last.log`.
+  - If `word2jsonOutDir` is empty, default is `captionPanelsDataRoot\word2json\word2json_last.log` (if `captionPanelsDataRoot` is set), otherwise `%TEMP%\CaptionPanels\word2json\word2json_last.log`.
 
 
 - Output JSON file:

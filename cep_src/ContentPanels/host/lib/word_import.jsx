@@ -162,6 +162,15 @@
             var outDirRaw = getConfigValue("word2jsonOutDir", "");
             var outDir = _resolvePathRelativeToConfig(outDirRaw);
             if (!outDir) {
+                // Prefer our unified data root if configured.
+                try {
+                    var dataRoot = String(getConfigValue("captionPanelsDataRoot", "") || "");
+                    dataRoot = _normalizePath(dataRoot);
+                    if (dataRoot) outDir = dataRoot + "/word2json";
+                } catch (eRoot) {}
+            }
+
+            if (!outDir) {
                 try {
                     outDir = Folder.temp.fsName + "/CaptionPanels/word2json";
                 } catch (e) {

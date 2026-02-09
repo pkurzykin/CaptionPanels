@@ -60,3 +60,18 @@ Exit codes:
 - The conversion rules are based on the current VBA macro:
   `/Volumes/work/Titles_Template_NEW2025/work/macros_word-to-JSON.txt`
 - Style names must match the document exactly (TTL, RUBRIC, VOICEOVER, SYNC, GEO, SPK_NAME, SPK_ROLE, TECH_FILE, TECH_TC, IGNORE).
+
+## Deploy (recommended)
+
+For the plugin workflow, keep external tools in a single local folder (easier to deploy and approve by IT/security):
+
+- Copy the `publish/` output to: `C:\AE\CaptionPanelsTools\word2json\`
+  - Ensure the main executable is: `C:\AE\CaptionPanelsTools\word2json\word2json.exe`
+
+Then set in the plugin `config.json` (preferably `%APPDATA%\CaptionPanels\config.json`):
+
+- `word2jsonExePath`: `C:/AE/CaptionPanelsTools/word2json/word2json.exe`
+- `word2jsonOutDir`: `C:/AE/CaptionPanelsData/word2json`
+
+The plugin will create the output folder automatically if needed.
+
