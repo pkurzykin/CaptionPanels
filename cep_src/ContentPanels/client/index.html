@@ -45,7 +45,6 @@
         <label>Auto Timing</label>
         <button id="btn-auto-timing-whisperx" class="full-width">Auto Timing (WhisperX)</button>
         <button id="btn-export-blocks" class="full-width secondary-btn">Export Blocks...</button>
-        <button id="btn-apply-timings" class="full-width secondary-btn">Apply Timings...</button>
     </div>
 
     <div class="panel-group">
@@ -180,24 +179,21 @@
 
         <div class="modal-body">
             <div class="settings-row">
-                <label for="settings-chars">Символов в строке (субтитры)</label>
+                <label for="settings-chars">Subtitle chars/line</label>
                 <input id="settings-chars" type="text" inputmode="numeric" placeholder="60" />
-                <div class="settings-note">По умолчанию: 60. Применяется при создании новых субтитров.</div>
             </div>
 
             <div class="settings-row">
-                <label for="settings-speakers-path">Путь к базе спикеров (speakersDbPath)</label>
+                <label for="settings-speakers-path">Speakers DB (speakers.json)</label>
                 <div class="settings-path-row">
-                    <input id="settings-speakers-path" type="text" placeholder="H:/.../speakers.json" />
-                    <button id="btn-settings-browse-speakers" type="button" class="secondary-btn">Browse...</button>
+                    <input id="settings-speakers-path" type="text" placeholder="H:/.../speakers.json or C:/.../speakers.json" />
+                    <button id="btn-settings-browse-speakers" type="button" class="secondary-btn">Browse</button>
                 </div>
-                <div class="settings-note">Можно выбрать файл через Browse... или вставить путь вручную. Используется для чтения/записи базы спикеров.</div>
             </div>
 
             <div class="settings-row">
-                <label for="settings-topics">Рубрики (topicOptions) — по одной на строку</label>
+                <label for="settings-topics">Topics (one per line)</label>
                 <textarea id="settings-topics" rows="6" placeholder="One rubric per line"></textarea>
-                <div class="settings-note">Используется в выпадающем списке TOPIC.</div>
             </div>
 
             <div class="modal-footer" style="display:flex; gap:8px; justify-content:space-between;">

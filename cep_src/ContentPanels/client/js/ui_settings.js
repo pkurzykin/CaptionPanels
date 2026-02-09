@@ -85,13 +85,28 @@ function _settingsBrowseSpeakersDb() {
 
         var res = out.result;
         var p = "";
-        if (res && typeof res.path === "string") {
-            p = res.path;
-        } else if (typeof res === "string") {
+
+        // We prefer a plain string path.
+        if (typeof res === "string") {
             p = res;
+        } else if (res && typeof res === "object") {
+            // Old/new host shapes.
+            if (typeof res.path === "string") p = res.path;
+            else if (res.path && typeof res.path === "object" && typeof res.path.fsName === "string") p = res.path.fsName;
+            else if (typeof res.fsName === "string") p = res.fsName;
         }
 
-        if (!p) return;
+        // As a last resort, try to stringify but avoid '[object Object]'.
+        if (!p && res) {
+            var s = String(res);
+            if (s && s !== "[object Object]") p = s;
+        }
+
+        if (!p) {
+            uiAlert("Settings: picker did not return a path");
+            return;
+        }
+
         p = String(p).replace(/\\/g, "/");
 
         var spEl = document.getElementById("settings-speakers-path");
@@ -126,7 +141,6 @@ function _settingsSave() {
             if (typeof setTopicOptions === "function") {
                 setTopicOptions(topics && topics.length ? topics : (typeof getTopicOptions === "function" ? getTopicOptions() : []));
             }
-            uiAlert("Saved. New subtitle line limit: " + n + ".");
             _settingsClose();
             return;
         }

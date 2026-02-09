@@ -332,7 +332,8 @@
         try {
             var file = File.openDialog("Выберите speakers.json", "*.json");
             if (!file) return respondErr("CANCELLED");
-            return respondOk({ path: _normalizePath(file.fsName) });
+            // Return a plain string so CEP doesn't end up with "[object Object]" in UI fields.
+            return respondOk(_normalizePath(file.fsName));
         } catch (e) {
             return respondErr(e.message);
         }

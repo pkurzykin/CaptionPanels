@@ -266,43 +266,6 @@ function initAutoTimingUI() {
         });
     });
 
-    attachClick("btn-apply-timings", function () {
-        // 1) Pick alignment.json
-        _evalAe("autoTimingPickAlignmentFile()", function (pickOut) {
-            if (!pickOut || !pickOut.ok) {
-                var err = pickOut && pickOut.error ? String(pickOut.error) : "Unknown error";
-                if (err === "CANCELLED") return;
-                uiAlert("Apply Timings failed (pick file).\n" + err);
-                return;
-            }
 
-            var p = "";
-            try {
-                if (pickOut.result && typeof pickOut.result === "object" && pickOut.result.path) p = String(pickOut.result.path);
-                else if (typeof pickOut.result === "string") p = String(pickOut.result);
-            } catch (eP) {}
-
-            if (!p) {
-                uiAlert("Apply Timings failed: picker returned empty path");
-                return;
-            }
-
-            // 2) Apply (no preview/confirm)
-            _evalAe("autoTimingApply(" + JSON.stringify(p) + ")", function (applyOut) {
-                if (!applyOut || !applyOut.ok) {
-                    var err3 = applyOut && applyOut.error ? String(applyOut.error) : "Unknown error";
-                    uiAlert("Auto Timing apply failed.\n" + err3);
-                    return;
-                }
-
-                var res = applyOut.result;
-                if (typeof res === "string") {
-                    try { res = JSON.parse(res); } catch (eJ2) {}
-                }
-
-                uiAlert(_formatTimingsApplySummary(res));
-            });
-        });
-    });
 
 }
