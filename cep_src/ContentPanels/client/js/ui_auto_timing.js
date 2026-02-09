@@ -9,6 +9,28 @@ function _formatBlocksExportSummary(res) {
     return msg;
 }
 
+function _formatWhisperAutoTimingSummary(res) {
+    var r = (res && typeof res === "object") ? res : {};
+    var a = (r.apply && typeof r.apply === "object") ? r.apply : {};
+
+    var msg = "WhisperX Auto Timing done.";
+    if (r.videoPath) msg += "\nVideo: " + r.videoPath;
+    if (r.blocksPath) msg += "\nBlocks: " + r.blocksPath;
+    if (r.whisperxJson) msg += "\nWhisperX JSON: " + r.whisperxJson;
+    if (r.alignmentPath) msg += "\nAlignment: " + r.alignmentPath;
+
+    if (typeof a.applied !== "undefined") msg += "\nApplied: " + (a.applied || 0);
+    if (typeof a.matched !== "undefined") msg += " / matched " + (a.matched || 0);
+    if (a.missingCount) msg += "\nMissing segId: " + a.missingCount;
+    if (a.invalidCount) msg += "\nInvalid: " + a.invalidCount;
+    if (a.errorCount) msg += "\nErrors: " + a.errorCount;
+
+    if (r.whisperxLog) msg += "\nwhisperx log: " + r.whisperxLog;
+    if (r.alignLog) msg += "\nalign log: " + r.alignLog;
+
+    return msg;
+}
+
 
 function _fmtSec(v) {
     var n = Number(v);
@@ -119,6 +141,45 @@ function _evalAe(cmd, cb) {
 }
 
 function initAutoTimingUI() {
+    attachClick("btn-auto-timing-whisperx", function () {
+        var btn = document.getElementById("btn-auto-timing-whisperx");
+        var prevText = btn ? btn.textContent : "";
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "Running WhisperX...";
+        }
+
+        _evalAe("autoTimingRunWhisperXAndApply()", function (out, raw) {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = prevText;
+            }
+
+            if (!out || !out.ok) {
+                var err = out && out.error ? String(out.error) : "Unknown error";
+                if (err === "CANCELLED") return;
+                uiAlert("Auto Timing (WhisperX) failed.\n" + err);
+                try { logUiError("autoTiming.whisperx", err); } catch (eLog) {}
+                return;
+            }
+
+            var r = out.result;
+            if (typeof r === "string") {
+                var rt = String(r || "").trim();
+                if (rt && rt[0] === "{") {
+                    try { r = JSON.parse(rt); } catch (eJ) {}
+                }
+            }
+
+            if (!r || typeof r !== "object") {
+                uiAlert("Auto Timing (WhisperX): unexpected host result");
+                return;
+            }
+
+            uiAlert(_formatWhisperAutoTimingSummary(r));
+        });
+    });
+
     attachClick("btn-export-blocks", function () {
         function _dumpUnexpected(where, parsed, raw, extra) {
             var dbg = "";

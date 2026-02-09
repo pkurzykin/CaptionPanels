@@ -36,6 +36,160 @@
         return v;
     }
 
+
+    function _resolveRootPath() {
+        try {
+            // initPath() sets rootPath for the session (preferred).
+            if (typeof rootPath !== "undefined" && rootPath) return rootPath;
+        } catch (e0) {}
+        try {
+            // Fallback: derive root from this JSX file location.
+            var f = new File($.fileName);
+            if (f && f.parent && f.parent.parent && f.parent.parent.parent) {
+                return f.parent.parent.parent.fsName;
+            }
+        } catch (e) {}
+        return "";
+    }
+
+    function _resolvePathRelativeToRoot(pathValue) {
+        var v = _normalizePath(pathValue);
+        if (!v) return "";
+        if (_isAbsolutePath(v)) return v;
+        var base = _normalizePath(_resolveRootPath());
+        if (base) return base + "/" + v;
+        return v;
+    }
+
+    function _decodeURIComponentSafe(s) {
+        var v = String(s || "");
+        try { return decodeURIComponent(v); } catch (e) { return v; }
+    }
+
+    function _fileBaseNameNoExt(filePath) {
+        try {
+            var f = new File(_normalizePath(filePath));
+            var name = String(f.name || "");
+            name = _decodeURIComponentSafe(name);
+            // Strip last extension.
+            return name.replace(/\.[^\.]+$/, "");
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function _parseExitCode(outputText) {
+        var s = String(outputText || "");
+        var m = s.match(/__EXIT_CODE__:(\d+)__/);
+        if (m && m[1] !== undefined) {
+            var n = Number(m[1]);
+            if (!isNaN(n)) return n;
+        }
+        return -1;
+    }
+
+    function _runCmdBody(body, label, logDir, stamp) {
+        // Wrap into cmd.exe so we can capture stderr and always emit an exit code marker.
+        // cmd.exe /c ""<body> 2>&1 & echo __EXIT_CODE__:%errorlevel%__""
+        var cmd = 'cmd.exe /c ""' + String(body || "") + ' 2>&1 & echo __EXIT_CODE__:%errorlevel%__""';
+
+        var output = "";
+        try {
+            output = system.callSystem(cmd);
+        } catch (e) {
+            var msg = "";
+            try { msg = (e && (e.message || e.description)) ? (e.message || e.description) : String(e); } catch (e2) { msg = "Permission denied"; }
+            output = "callSystem error: " + msg + " (is Preferences > Scripting & Expressions > Allow Scripts to Write Files and Access Network enabled?)";
+        }
+
+        var exitCode = _parseExitCode(output);
+
+        var logPath = "";
+        try {
+            if (logDir) {
+                var p = _normalizePath(logDir + "/" + label + "_" + stamp + ".log");
+                var logText = "time=" + stamp + "\n";
+                logText += "cmd=" + cmd + "\n\n";
+                logText += "output:\n" + String(output || "") + "\n";
+                _writeTextFile(p, logText);
+                logPath = p;
+            }
+        } catch (eLog) {}
+
+        return { cmd: cmd, output: output, exitCode: exitCode, logPath: logPath };
+    }
+
+    function _findNewestJsonFile(dirPath) {
+        try {
+            var folder = new Folder(_normalizePath(dirPath));
+            if (!folder.exists) return "";
+            var files = folder.getFiles("*.json");
+            if (!files || !files.length) return "";
+
+            var best = null;
+            var bestT = 0;
+            for (var i = 0; i < files.length; i++) {
+                var f = files[i];
+                if (!(f instanceof File)) continue;
+                try {
+                    if (!f.exists) continue;
+                    var mt = 0;
+                    try { mt = f.modified ? f.modified.getTime() : 0; } catch (eT) { mt = 0; }
+                    if (!best || mt > bestT) {
+                        best = f;
+                        bestT = mt;
+                    }
+                } catch (e2) {}
+            }
+            return best ? _normalizePath(best.fsName) : "";
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function _getFilePathFromLayer(layer) {
+        try {
+            if (!layer) return "";
+            var src = layer.source;
+            if (!src) return "";
+
+            // Only file-based footage.
+            if (src instanceof FootageItem) {
+                var f = null;
+                try { f = src.file; } catch (e1) { f = null; }
+                if (!f) {
+                    try { f = src.mainSource && src.mainSource.file ? src.mainSource.file : null; } catch (e2) { f = null; }
+                }
+                if (f && f.exists) return _normalizePath(f.fsName);
+            }
+        } catch (e) {}
+        return "";
+    }
+
+    function _detectVideoFileFromComp(comp) {
+        // 1) Prefer selected layers.
+        try {
+            var sel = comp.selectedLayers;
+            if (sel && sel.length) {
+                for (var i = 0; i < sel.length; i++) {
+                    var p = _getFilePathFromLayer(sel[i]);
+                    if (p && p.toLowerCase().match(/\.mp4$/)) return p;
+                }
+            }
+        } catch (e1) {}
+
+        // 2) Otherwise, scan layers top-to-bottom and pick first mp4.
+        try {
+            for (var j = 1; j <= comp.numLayers; j++) {
+                var l = comp.layer(j);
+                var p2 = _getFilePathFromLayer(l);
+                if (p2 && p2.toLowerCase().match(/\.mp4$/)) return p2;
+            }
+        } catch (e2) {}
+
+        return "";
+    }
+
     function _two(n) {
         n = Number(n) || 0;
         return (n < 10 ? "0" : "") + String(n);
@@ -666,6 +820,155 @@
         }
     };
 
+    
+
+    // One-button workflow:
+    // - export blocks
+    // - detect video from timeline (or ask user)
+    // - run WhisperX
+    // - run alignment
+    // - apply timings
+    autoTimingRunWhisperXAndApply = function () {
+        try {
+            if (!app || !app.project) return respondErr("No active project");
+            var comp = app.project.activeItem;
+            if (!comp || !(comp instanceof CompItem)) return respondErr("No active comp");
+
+            // Always use fresh config (paths/model can be changed via config.json).
+            try { if (typeof reloadConfig === "function") reloadConfig(); } catch (eCfg) {}
+
+            var stamp = _timestamp();
+
+            // Logs
+            var logsDir = _getAutoTimingLogsDir();
+            if (!logsDir) return respondErr("autoTimingLogsDir is empty");
+            _ensureFolder(logsDir);
+
+            // 1) Export blocks
+            var expRaw = exportSubtitleBlocks();
+            var expObj = null;
+            try { expObj = _parseJsonSafe(String(expRaw || "")); } catch (eParse) { expObj = null; }
+            if (!expObj || !expObj.ok) {
+                var em = expObj && expObj.error ? String(expObj.error) : String(expRaw || "Export blocks failed");
+                return respondErr("Export blocks failed. " + em);
+            }
+
+            var blocksPath = "";
+            try { blocksPath = expObj.result && expObj.result.path ? String(expObj.result.path) : ""; } catch (eP) {}
+            if (!blocksPath) return respondErr("Export blocks: empty path");
+
+            // 2) Detect video
+            var videoPath = _detectVideoFileFromComp(comp);
+            if (!videoPath) {
+                var vf = File.openDialog("Select video.mp4 for WhisperX", "*.mp4");
+                if (!vf) return respondErr("CANCELLED");
+                videoPath = _normalizePath(vf.fsName);
+            }
+
+            // Shared run folder name (safe)
+            var runBase = _sanitizeFileBase(comp.name || "comp") + "_" + stamp;
+
+            // 3) Run WhisperX
+            var pyRaw = "";
+            try { pyRaw = String(getConfigValue("whisperxPythonPath", "") || ""); } catch (ePy) {}
+            var py = _resolvePathRelativeToConfig(pyRaw);
+            if (!py) return respondErr("whisperxPythonPath is not set in config.json");
+            if (!(new File(py)).exists) return respondErr("Python not found: " + py);
+
+            var model = "";
+            var lang = "";
+            var device = "";
+            var vad = "";
+            try { model = String(getConfigValue("whisperxModel", "medium") || "medium"); } catch (eM) { model = "medium"; }
+            try { lang = String(getConfigValue("whisperxLanguage", "ru") || "ru"); } catch (eL) { lang = "ru"; }
+            try { device = String(getConfigValue("whisperxDevice", "cuda") || "cuda"); } catch (eD) { device = "cuda"; }
+            try { vad = String(getConfigValue("whisperxVadMethod", "silero") || "silero"); } catch (eV) { vad = "silero"; }
+
+            var whisperBaseDir = _getAutoTimingWhisperXDir();
+            if (!whisperBaseDir) return respondErr("autoTimingWhisperXDir is empty");
+            var whisperRunDir = _normalizePath(whisperBaseDir + "/" + runBase);
+            _ensureFolder(whisperRunDir);
+
+            var whisperBody = '"' + _normalizePath(py) + '" -m whisperx "' + _normalizePath(videoPath) + '"' +
+                ' --language ' + lang +
+                ' --model ' + model +
+                ' --device ' + device +
+                ' --vad_method ' + vad +
+                ' --output_dir "' + _normalizePath(whisperRunDir) + '"';
+
+            var w = _runCmdBody(whisperBody, "whisperx", logsDir, stamp);
+            if (w.exitCode !== 0) {
+                var msg = "WhisperX failed (exit=" + w.exitCode + ")";
+                if (w.logPath) msg += "\nlog=" + w.logPath;
+                return respondErr(msg);
+            }
+
+            var whisperJson = _findNewestJsonFile(whisperRunDir);
+            if (!whisperJson) {
+                var msg2 = "WhisperX did not produce JSON in: " + whisperRunDir;
+                if (w.logPath) msg2 += "\nlog=" + w.logPath;
+                return respondErr(msg2);
+            }
+
+            // 4) Run alignment
+            var alignBaseDir = _getAutoTimingAlignmentDir();
+            if (!alignBaseDir) return respondErr("autoTimingAlignmentDir is empty");
+            var alignRunDir = _normalizePath(alignBaseDir + "/" + runBase);
+            _ensureFolder(alignRunDir);
+
+            var scriptRaw = "";
+            try { scriptRaw = String(getConfigValue("transcribeAlignScriptPath", "") || ""); } catch (eS) { scriptRaw = ""; }
+            if (!scriptRaw) scriptRaw = "host/tools/transcribe_align/transcribe_align.py";
+            var scriptPath = _resolvePathRelativeToRoot(scriptRaw);
+            scriptPath = _normalizePath(scriptPath);
+            if (!(new File(scriptPath)).exists) return respondErr("transcribe_align.py not found: " + scriptPath);
+
+            var alignBody = '"' + _normalizePath(py) + '" "' + scriptPath + '"' +
+                ' --blocks "' + _normalizePath(blocksPath) + '"' +
+                ' --whisperx-json "' + _normalizePath(whisperJson) + '"' +
+                ' --out-dir "' + _normalizePath(alignRunDir) + '"' +
+                ' --lang ' + lang;
+
+            var a = _runCmdBody(alignBody, "align", logsDir, stamp);
+            if (a.exitCode !== 0) {
+                var msg3 = "Alignment failed (exit=" + a.exitCode + ")";
+                if (a.logPath) msg3 += "\nlog=" + a.logPath;
+                return respondErr(msg3);
+            }
+
+            var alignmentPath = _normalizePath(alignRunDir + "/alignment.json");
+            if (!(new File(alignmentPath)).exists) {
+                var msg4 = "alignment.json not found: " + alignmentPath;
+                if (a.logPath) msg4 += "\nlog=" + a.logPath;
+                return respondErr(msg4);
+            }
+
+            // 5) Apply timings
+            var applyRaw = autoTimingApply(alignmentPath);
+            var applyObj = null;
+            try { applyObj = _parseJsonSafe(String(applyRaw || "")); } catch (eA) { applyObj = null; }
+            if (!applyObj || !applyObj.ok) {
+                var am = applyObj && applyObj.error ? String(applyObj.error) : String(applyRaw || "Apply failed");
+                return respondErr("Apply timings failed. " + am);
+            }
+
+            return respondOk({
+                runId: runBase,
+                blocksPath: blocksPath,
+                videoPath: videoPath,
+                whisperxDir: whisperRunDir,
+                whisperxJson: whisperJson,
+                alignmentDir: alignRunDir,
+                alignmentPath: alignmentPath,
+                whisperxLog: w.logPath,
+                alignLog: a.logPath,
+                apply: applyObj.result
+            });
+        } catch (e) {
+            return respondErr(e.message);
+        }
+    };
+
     // Ensure globals are visible when scripts are loaded via eval() inside loadModule().
     try {
         if ($ && $.global) {
@@ -675,6 +978,7 @@
             $.global.autoTimingPreviewApply = autoTimingPreviewApply;
             $.global.autoTimingApply = autoTimingApply;
             $.global.autoTimingApplyFromDialog = autoTimingApplyFromDialog;
+            $.global.autoTimingRunWhisperXAndApply = autoTimingRunWhisperXAndApply;
         }
     } catch (eG) {}
 })();
