@@ -91,7 +91,7 @@
     function _runCmdBody(body, label, logDir, stamp) {
         // Wrap into cmd.exe so we can capture stderr and always emit an exit code marker.
         // cmd.exe /c ""<body> 2>&1 & echo __EXIT_CODE__:%errorlevel%__""
-        var cmd = 'cmd.exe /c ""' + String(body || "") + ' 2>&1 & echo __EXIT_CODE__:%errorlevel%__""';
+        var cmd = 'cmd.exe /c ""' + String(body || "") + ' 2>&1 & echo __EXIT_CODE__:%errorlevel%__"';
 
         var output = "";
         try {
@@ -889,7 +889,7 @@
             var whisperRunDir = _normalizePath(whisperBaseDir + "/" + runBase);
             _ensureFolder(whisperRunDir);
 
-            var whisperBody = _normalizePath(py) + ' -m whisperx "' + _normalizePath(videoPath) + '"' +
+            var whisperBody = _normalizePath(py) + '" -m whisperx "' + _normalizePath(videoPath) + '"' +
                 ' --language ' + lang +
                 ' --model ' + model +
                 ' --device ' + device +
@@ -923,7 +923,7 @@
             scriptPath = _normalizePath(scriptPath);
             if (!(new File(scriptPath)).exists) return respondErr("transcribe_align.py not found: " + scriptPath);
 
-            var alignBody = _normalizePath(py) + ' "' + scriptPath + '"' +
+            var alignBody = _normalizePath(py) + '" "' + scriptPath + '"' +
                 ' --blocks "' + _normalizePath(blocksPath) + '"' +
                 ' --whisperx-json "' + _normalizePath(whisperJson) + '"' +
                 ' --out-dir "' + _normalizePath(alignRunDir) + '"' +
