@@ -213,6 +213,15 @@ function initSpeakersUI() {
         updateAddSpeakerBtnState();
     });
 
+    // Load current speaker from import queue (manual start of preview)
+    attachClick("btn-load-speaker", function () {
+        if (typeof jsonImportLoadCurrentSpeakerForTitles === "function") {
+            if (jsonImportLoadCurrentSpeakerForTitles()) return;
+        }
+        // Fallback: just show preview for current fields
+        safeTriggerSpeakerPreview();
+    });
+
     // Открыть базу
     attachClick("btn-open-database", function () { loadSpeakersDbThenOpen(); });
 

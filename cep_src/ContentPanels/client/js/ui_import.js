@@ -65,10 +65,27 @@ function jsonImportSetQueue(list, sourcePath) {
     JSON_IMPORT_ACTIVE = JSON_IMPORT_QUEUE.length > 0;
     JSON_IMPORT_SOURCE = sourcePath || "";
 
+    // Do not auto-create the first speaker preview after import.
+    // The user will explicitly start the titles flow via the "Load Speaker" button in the Speaker Titles tab.
     if (JSON_IMPORT_ACTIVE) {
-        var first = JSON_IMPORT_QUEUE[0] || {};
-        _setSpeakerFields(first.name || "", first.job || "");
+        _clearSpeakerFields(true);
+        try { csInterface.evalScript("removePreview()"); } catch (ePrev) {}
     }
+}
+
+
+function jsonImportLoadCurrentSpeakerForTitles() {
+    if (!jsonImportIsActive()) {
+        uiAlert("No speakers in queue. Import Word/JSON first.");
+        return false;
+    }
+
+    // Reset UI controls first (no preview), then fill and preview.
+    _clearSpeakerFields(true);
+
+    var cur = JSON_IMPORT_QUEUE[JSON_IMPORT_INDEX] || {};
+    _setSpeakerFields(cur.name || "", cur.job || "");
+    return true;
 }
 
 function jsonImportAdvanceAfterCreate() {
@@ -116,6 +133,7 @@ function _formatImportSummary(res) {
     msg += "\nVoiceover: " + (c.voiceover || 0);
     msg += "\nSynch: " + (c.synch || 0);
     msg += "\nСпикеров: " + (c.speakers || 0);
+    if ((c.speakers || 0) > 0) msg += "\nТитры: откройте Speaker Titles и нажмите Load Speaker";
     if (JSON_IMPORT_SOURCE) {
         msg += "\nФайл: " + JSON_IMPORT_SOURCE;
     }
