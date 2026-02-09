@@ -889,7 +889,7 @@
             var whisperRunDir = _normalizePath(whisperBaseDir + "/" + runBase);
             _ensureFolder(whisperRunDir);
 
-            var whisperBody = '"' + _normalizePath(py) + '" -m whisperx "' + _normalizePath(videoPath) + '"' +
+            var whisperBody = _normalizePath(py) + ' -m whisperx "' + _normalizePath(videoPath) + '"' +
                 ' --language ' + lang +
                 ' --model ' + model +
                 ' --device ' + device +
@@ -923,7 +923,7 @@
             scriptPath = _normalizePath(scriptPath);
             if (!(new File(scriptPath)).exists) return respondErr("transcribe_align.py not found: " + scriptPath);
 
-            var alignBody = '"' + _normalizePath(py) + '" "' + scriptPath + '"' +
+            var alignBody = _normalizePath(py) + ' "' + scriptPath + '"' +
                 ' --blocks "' + _normalizePath(blocksPath) + '"' +
                 ' --whisperx-json "' + _normalizePath(whisperJson) + '"' +
                 ' --out-dir "' + _normalizePath(alignRunDir) + '"' +
