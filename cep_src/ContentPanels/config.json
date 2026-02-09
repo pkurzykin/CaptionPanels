@@ -15,5 +15,16 @@
   "subtitleCharsPerLine": 60,
   "word2jsonExePath": "C:/AE/word2json/word2json.exe",
   "word2jsonOutDir": "C:/Temp/CaptionPanels/word2json",
-  "autoTimingOutDir": "C:/Temp/CaptionPanels/auto_timing"
+  "autoTimingOutDir": "C:/AE/CaptionPanelsData/auto_timing",
+  "captionPanelsDataRoot": "C:/AE/CaptionPanelsData",
+  "autoTimingBlocksDir": "C:/AE/CaptionPanelsData/auto_timing/blocks",
+  "autoTimingWhisperXDir": "C:/AE/CaptionPanelsData/auto_timing/whisperx",
+  "autoTimingAlignmentDir": "C:/AE/CaptionPanelsData/auto_timing/alignment",
+  "autoTimingLogsDir": "C:/AE/CaptionPanelsData/auto_timing/logs",
+  "whisperxPythonPath": "C:/AE/whisperx/.venv/Scripts/python.exe",
+  "whisperxModel": "medium",
+  "whisperxLanguage": "ru",
+  "whisperxDevice": "cuda",
+  "whisperxVadMethod": "silero",
+  "transcribeAlignScriptPath": "host/tools/transcribe_align/transcribe_align.py"
 }

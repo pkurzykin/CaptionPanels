@@ -177,10 +177,26 @@
         }
     }
 
+    function _getCaptionPanelsDataRoot() {
+        var raw = "";
+        try { raw = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (e) {}
+        var root = _resolvePathRelativeToConfig(raw);
+        // Sane Windows default (also matches our documentation).
+        if (!root) root = "C:/AE/CaptionPanelsData";
+        return _normalizePath(root);
+    }
+
     function _getAutoTimingOutDir() {
         var outDirRaw = "";
         try { outDirRaw = String(getConfigValue("autoTimingOutDir", "") || ""); } catch (e) {}
         var outDir = _resolvePathRelativeToConfig(outDirRaw);
+
+        // Prefer the unified data root if the legacy key is not set.
+        if (!outDir) {
+            var root = _getCaptionPanelsDataRoot();
+            if (root) outDir = root + "/auto_timing";
+        }
+
         if (!outDir) {
             try {
                 outDir = Folder.userData.fsName + "/CaptionPanels/auto_timing";
@@ -188,7 +204,52 @@
                 try { outDir = Folder.temp.fsName + "/CaptionPanels/auto_timing"; } catch (e3) {}
             }
         }
+
         return _normalizePath(outDir);
+    }
+
+    function _getAutoTimingBlocksDir() {
+        var raw = "";
+        try { raw = String(getConfigValue("autoTimingBlocksDir", "") || ""); } catch (e) {}
+        var dir = _resolvePathRelativeToConfig(raw);
+        if (!dir) {
+            var outDir = _getAutoTimingOutDir();
+            if (outDir) dir = outDir + "/blocks";
+        }
+        return _normalizePath(dir);
+    }
+
+    function _getAutoTimingWhisperXDir() {
+        var raw = "";
+        try { raw = String(getConfigValue("autoTimingWhisperXDir", "") || ""); } catch (e) {}
+        var dir = _resolvePathRelativeToConfig(raw);
+        if (!dir) {
+            var outDir = _getAutoTimingOutDir();
+            if (outDir) dir = outDir + "/whisperx";
+        }
+        return _normalizePath(dir);
+    }
+
+    function _getAutoTimingAlignmentDir() {
+        var raw = "";
+        try { raw = String(getConfigValue("autoTimingAlignmentDir", "") || ""); } catch (e) {}
+        var dir = _resolvePathRelativeToConfig(raw);
+        if (!dir) {
+            var outDir = _getAutoTimingOutDir();
+            if (outDir) dir = outDir + "/alignment";
+        }
+        return _normalizePath(dir);
+    }
+
+    function _getAutoTimingLogsDir() {
+        var raw = "";
+        try { raw = String(getConfigValue("autoTimingLogsDir", "") || ""); } catch (e) {}
+        var dir = _resolvePathRelativeToConfig(raw);
+        if (!dir) {
+            var outDir = _getAutoTimingOutDir();
+            if (outDir) dir = outDir + "/logs";
+        }
+        return _normalizePath(dir);
     }
 
     function _writeTextFile(filePath, text) {
@@ -206,24 +267,18 @@
         }
     }
 
-    // Debug helper: dumps diagnostics to a file in autoTimingOutDir.
+    // Debug helper: dumps diagnostics to a file in autoTimingLogsDir.
     // This is useful when the bridge returns an unexpected response that is hard to copy from alert().
     writeAutoTimingDebug = function (text) {
         try {
-            // Read fresh config (outDir can be changed via config.json).
+            // Read fresh config (paths can be changed via config.json).
             try { if (typeof reloadConfig === "function") reloadConfig(); } catch (eCfg) {}
 
-            var outDir = _getAutoTimingOutDir();
-            if (!outDir) {
-                try { outDir = Folder.userData.fsName + "/CaptionPanels/auto_timing"; } catch (e1) {}
-                try { if (!outDir) outDir = Folder.temp.fsName + "/CaptionPanels/auto_timing"; } catch (e2) {}
-            }
-
-            outDir = _normalizePath(outDir);
-            if (!outDir) return respondErr("autoTimingOutDir is empty");
+            var outDir = _getAutoTimingLogsDir();
+            if (!outDir) return respondErr("autoTimingLogsDir is empty");
             _ensureFolder(outDir);
 
-            var outPath = outDir + "/export_blocks_debug_" + _timestamp() + ".txt";
+            var outPath = outDir + "/auto_timing_debug_" + _timestamp() + ".txt";
             outPath = _normalizePath(outPath);
 
             if (!_writeTextFile(outPath, String(text || ""))) {
@@ -559,7 +614,8 @@
             return respondErr(e.message);
         }
     };
-exportSubtitleBlocks = function () {
+
+    exportSubtitleBlocks = function () {
         try {
             if (!app || !app.project) return respondErr("No active project");
             var comp = app.project.activeItem;
@@ -573,12 +629,12 @@ exportSubtitleBlocks = function () {
                 return respondErr("No subtitle blocks found (expected Sub_VOICEOVER_* or Sub_SYNCH_*)");
             }
 
-            var outDir = _getAutoTimingOutDir();
-            if (!outDir) return respondErr("autoTimingOutDir is empty");
-            _ensureFolder(outDir);
+            var blocksDir = _getAutoTimingBlocksDir();
+            if (!blocksDir) return respondErr("autoTimingBlocksDir is empty");
+            _ensureFolder(blocksDir);
 
             var base = _sanitizeFileBase(comp.name || "comp");
-            var outPath = outDir + "/blocks_" + base + "_" + _timestamp() + ".json";
+            var outPath = blocksDir + "/blocks_" + base + "_" + _timestamp() + ".json";
             outPath = _normalizePath(outPath);
 
             var payload = {
@@ -598,7 +654,7 @@ exportSubtitleBlocks = function () {
             }
 
             return respondOk({
-                outDir: outDir,
+                blocksDir: blocksDir,
                 path: outPath,
                 count: blocks.length
             });
