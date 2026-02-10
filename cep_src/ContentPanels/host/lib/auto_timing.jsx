@@ -85,6 +85,45 @@
             var n = Number(m[1]);
             if (!isNaN(n)) return n;
         }
+
+
+    function _isCudaUnavailableError(outputText) {
+        var s = String(outputText || "");
+        var low = s.toLowerCase();
+
+        // Common CUDA/GPU failure signatures across torch/ctranslate2/onnxruntime.
+        var patterns = [
+            'no cuda gpus are available',
+            'torch.cuda.is_available() is false',
+            'cuda driver version is insufficient',
+            'could not load',
+            'cudnn',
+            'cublas',
+            'cuda error',
+            'cuda runtime',
+            'cuda out of memory',
+            'failed to initialize nvml',
+            'no kernel image is available',
+            'device-side assert',
+            'unsatisfiedlinkerror',
+            'onnxruntimeerror',
+            'failed to load cublas',
+            'failed to load cudnn'
+        ];
+
+        for (var i = 0; i < patterns.length; i++) {
+            if (low.indexOf(patterns[i]) !== -1) return true;
+        }
+
+        // Heuristic: if output contains CUDA + a clear error keyword.
+        if (low.indexOf('cuda') !== -1) {
+            if (low.indexOf('error') !== -1 || low.indexOf('failed') !== -1 || low.indexOf('exception') !== -1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
         return -1;
     }
 
@@ -1000,6 +1039,25 @@
                 ' --output_dir "' + _normalizePath(whisperRunDir) + '"' + wxArgs;
 
             var w = _runCmdBody(whisperBody, "whisperx", logsDir, stamp);
+
+            // Auto-fallback: if CUDA fails (driver/GPU not available), retry once on CPU.
+            var deviceUsed = device;
+            var wFallbackLog = "";
+            if (w.exitCode !== 0 && String(device || "").toLowerCase() === "cuda" && _isCudaUnavailableError(w.output)) {
+                deviceUsed = "cpu";
+
+                var whisperBodyCpu = envPrefix + '"' + _normalizePath(py) + '" -m whisperx "' + _normalizePath(videoPath) + '"' +
+                    ' --language ' + lang +
+                    ' --model ' + model +
+                    ' --device ' + deviceUsed +
+                    ' --vad_method ' + vad +
+                    ' --output_dir "' + _normalizePath(whisperRunDir) + '"' + wxArgs;
+
+                var w2 = _runCmdBody(whisperBodyCpu, "whisperx_cpu_fallback", logsDir, stamp);
+                wFallbackLog = w2.logPath;
+                w = w2;
+            }
+
             if (w.exitCode !== 0) {
                 var msg = "WhisperX failed (exit=" + w.exitCode + ")";
                 if (w.logPath) msg += "\nlog=" + w.logPath;
@@ -1059,11 +1117,13 @@
                 runId: runBase,
                 blocksPath: blocksPath,
                 videoPath: videoPath,
+                whisperxDeviceUsed: deviceUsed,
                 whisperxDir: whisperRunDir,
                 whisperxJson: whisperJson,
                 alignmentDir: alignRunDir,
                 alignmentPath: alignmentPath,
                 whisperxLog: w.logPath,
+                whisperxFallbackLog: wFallbackLog,
                 alignLog: a.logPath,
                 apply: applyObj.result
             });
