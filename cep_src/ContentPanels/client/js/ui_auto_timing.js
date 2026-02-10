@@ -9,6 +9,29 @@ function _formatBlocksExportSummary(res) {
     return msg;
 }
 
+function _formatReasonStats(stats, maxItems) {
+    var s = (stats && typeof stats === "object") ? stats : null;
+    if (!s) return "";
+
+    var items = [];
+    for (var k in s) {
+        if (!s.hasOwnProperty(k)) continue;
+        items.push({ k: k, v: Number(s[k]) || 0 });
+    }
+    if (!items.length) return "";
+
+    items.sort(function (a, b) { return (b.v || 0) - (a.v || 0); });
+
+    var limit = (typeof maxItems === "number" && maxItems > 0) ? maxItems : 8;
+    var msg = "";
+    for (var i = 0; i < items.length && i < limit; i++) {
+        msg += "\n- " + items[i].k + ": " + items[i].v;
+    }
+    if (items.length > limit) msg += "\n...";
+    return msg;
+}
+
+
 function _formatWhisperAutoTimingSummary(res) {
     var r = (res && typeof res === "object") ? res : {};
     var a = (r.apply && typeof r.apply === "object") ? r.apply : {};
@@ -19,11 +42,19 @@ function _formatWhisperAutoTimingSummary(res) {
     if (r.whisperxJson) msg += "\nWhisperX JSON: " + r.whisperxJson;
     if (r.alignmentPath) msg += "\nAlignment: " + r.alignmentPath;
 
+    if (typeof a.total !== "undefined") msg += "\nTotal: " + (a.total || 0);
     if (typeof a.applied !== "undefined") msg += "\nApplied: " + (a.applied || 0);
     if (typeof a.matched !== "undefined") msg += " / matched " + (a.matched || 0);
+
+    if (a.unmatchedCount) msg += "\nUnmatched (ASR): " + a.unmatchedCount;
     if (a.missingCount) msg += "\nMissing segId: " + a.missingCount;
     if (a.invalidCount) msg += "\nInvalid: " + a.invalidCount;
     if (a.errorCount) msg += "\nErrors: " + a.errorCount;
+
+    if (a.reasonStats) {
+        msg += "\n\nSkipped reasons:";
+        msg += _formatReasonStats(a.reasonStats, 10);
+    }
 
     if (r.whisperxLog) msg += "\nwhisperx log: " + r.whisperxLog;
     if (r.alignLog) msg += "\nalign log: " + r.alignLog;
@@ -81,10 +112,20 @@ function _formatTimingsApplySummary(res) {
     var r = (res && typeof res === "object") ? res : {};
     var msg = "Auto Timing applied.";
     if (r.filePath) msg += "\nFile: " + r.filePath;
+
+    if (typeof r.total !== "undefined") msg += "\nTotal: " + (r.total || 0);
     msg += "\nApplied: " + (r.applied || 0) + " / matched " + (r.matched || 0);
+
+    if (r.unmatchedCount) msg += "\nUnmatched (ASR): " + r.unmatchedCount;
     if (r.missingCount) msg += "\nMissing: " + r.missingCount;
     if (r.invalidCount) msg += "\nInvalid: " + r.invalidCount;
     if (r.errorCount) msg += "\nErrors: " + r.errorCount;
+
+    if (r.reasonStats) {
+        msg += "\n\nSkipped reasons:";
+        msg += _formatReasonStats(r.reasonStats, 10);
+    }
+
     return msg;
 }
 

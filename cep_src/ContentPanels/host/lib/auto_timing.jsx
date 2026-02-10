@@ -586,11 +586,14 @@
         var fps = Number(comp.frameRate) || 25;
         var st = _readAlignmentSettings(alignmentObj);
         var items = _extractAlignmentBlocks(alignmentObj);
+        var unmatched = [];
+        try { if (alignmentObj && alignmentObj.unmatched && (alignmentObj.unmatched instanceof Array)) unmatched = alignmentObj.unmatched; } catch (eU) { unmatched = []; }
         var map = _collectSegIdMap(comp);
 
         var changes = [];
         var missing = [];
         var invalid = [];
+
 
         for (var i = 0; i < items.length; i++) {
             var t = _timeFromAlignmentItem(items[i], fps);
@@ -601,7 +604,7 @@
 
             var layer = map[t.segId];
             if (!layer) {
-                missing.push({ segId: t.segId });
+                missing.push({ segId: t.segId, reason: "layer_not_found" });
                 continue;
             }
 
@@ -632,6 +635,18 @@
             });
         }
 
+
+        // Include aligner unmatched reasons (ASR/matching issues) into the report.
+        try {
+            for (var u = 0; u < unmatched.length; u++) {
+                var it = unmatched[u];
+                if (!it) continue;
+                var sid = String(it.segId || it.segID || it.id || "");
+                if (!sid) continue;
+                var rsn = String(it.reason || "unmatched");
+                missing.push({ segId: sid, reason: rsn });
+            }
+        } catch (eUnm) {}
         // Sort by newIn to apply left-to-right.
         changes.sort(function (a, b) {
             if (a.newIn === b.newIn) return a.layerIndex - b.layerIndex;
@@ -640,7 +655,7 @@
 
         return {
             settings: st,
-            total: items.length,
+            total: items.length + (unmatched ? unmatched.length : 0),
             changes: changes,
             missing: missing,
             invalid: invalid
@@ -683,7 +698,9 @@
                 invalidCount: res.invalid.length,
                 settings: res.settings,
                 firstChanges: first,
-                firstMissing: res.missing.slice(0, 30)
+                firstMissing: res.missing.slice(0, 30),
+                unmatchedCount: (alignmentObj && alignmentObj.unmatched && (alignmentObj.unmatched instanceof Array)) ? alignmentObj.unmatched.length : 0,
+                firstUnmatched: (alignmentObj && alignmentObj.unmatched && (alignmentObj.unmatched instanceof Array)) ? alignmentObj.unmatched.slice(0, 30) : []
             });
         } catch (e) {
             return respondErr(e.message);
@@ -738,6 +755,19 @@
                 if (typeof _updateSubtitleBg === "function") _updateSubtitleBg(comp);
             } catch (eBg) {}
 
+            // Build a concise reason histogram for skipped blocks (unmatched, layer missing, invalid).
+            var reasonStats = {};
+            function _bumpReason(r) {
+                var k = String(r || "unknown");
+                if (!reasonStats[k]) reasonStats[k] = 0;
+                reasonStats[k]++;
+            }
+            try {
+                for (var mi = 0; mi < res.missing.length; mi++) _bumpReason(res.missing[mi] && res.missing[mi].reason);
+                for (var ii = 0; ii < res.invalid.length; ii++) _bumpReason(res.invalid[ii] && res.invalid[ii].reason);
+                for (var ei = 0; ei < errors.length; ei++) _bumpReason("apply_error");
+            } catch (eStats) {}
+
             app.endUndoGroup();
 
             return respondOk({
@@ -748,6 +778,9 @@
                 missingCount: res.missing.length,
                 invalidCount: res.invalid.length,
                 errorCount: errors.length,
+                unmatchedCount: (alignmentObj && alignmentObj.unmatched && (alignmentObj.unmatched instanceof Array)) ? alignmentObj.unmatched.length : 0,
+                reasonStats: reasonStats,
+                firstMissing: res.missing.slice(0, 30),
                 firstErrors: errors.slice(0, 20)
             });
         } catch (e) {
@@ -893,7 +926,7 @@
             var whisperRunDir = _normalizePath(whisperBaseDir + "/" + runBase);
             _ensureFolder(whisperRunDir);
 
-            var whisperBody = _normalizePath(py) + '" -m whisperx "' + _normalizePath(videoPath) + '"' +
+            var whisperBody = '"' + _normalizePath(py) + '" -m whisperx "' + _normalizePath(videoPath) + '"' +
                 ' --language ' + lang +
                 ' --model ' + model +
                 ' --device ' + device +
@@ -927,7 +960,7 @@
             scriptPath = _normalizePath(scriptPath);
             if (!(new File(scriptPath)).exists) return respondErr("transcribe_align.py not found: " + scriptPath);
 
-            var alignBody = _normalizePath(py) + '" "' + scriptPath + '"' +
+            var alignBody = '"' + _normalizePath(py) + '" "' + scriptPath + '"' +
                 ' --blocks "' + _normalizePath(blocksPath) + '"' +
                 ' --whisperx-json "' + _normalizePath(whisperJson) + '"' +
                 ' --out-dir "' + _normalizePath(alignRunDir) + '"' +
