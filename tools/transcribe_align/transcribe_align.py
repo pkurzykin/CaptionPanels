@@ -191,7 +191,10 @@ def load_blocks(path: Path) -> List[Dict[str, Any]]:
     return out
 
 
+
+
 def choose_anchor(tokens: List[str]) -> str:
+    # Backward-compatible single-anchor picker (kept for older code paths).
     for t in tokens:
         if len(t) <= 2:
             continue
@@ -201,7 +204,67 @@ def choose_anchor(tokens: List[str]) -> str:
     return tokens[0] if tokens else ""
 
 
-def try_match(tokens: List[str], words: List[Word], start_idx: int, max_words: int, max_skip: int) -> Tuple[float, Optional[Tuple[int, int]]]:
+def choose_anchors(tokens: List[str], freq: Dict[str, int], k: int) -> List[str]:
+    """Pick up to k anchors for candidate generation.
+
+    Heuristic:
+    - prefer non-stopwords
+    - prefer longer tokens
+    - prefer rarer tokens in the transcript (lower freq)
+
+    This usually reduces ambiguity and improves matching stability.
+    """
+    if not tokens:
+        return []
+
+    seen = set()
+
+    def uniq(seq):
+        out = []
+        for s in seq:
+            if s in seen:
+                continue
+            seen.add(s)
+            out.append(s)
+        return out
+
+    # Prefer meaningful tokens first.
+    meaningful = [t for t in tokens if len(t) > 2 and t not in _STOPWORDS]
+    if not meaningful:
+        meaningful = [t for t in tokens if len(t) > 1] or tokens
+
+    meaningful = uniq(meaningful)
+
+    def key(t: str):
+        return (freq.get(t, 10**9), -len(t), 1 if t in _STOPWORDS else 0)
+
+    meaningful.sort(key=key)
+    k = max(1, int(k or 1))
+    return meaningful[:k]
+
+
+def _token_match(word: str, tok: str, *, fuzzy: bool) -> bool:
+    if word == tok:
+        return True
+    if not fuzzy:
+        return False
+
+    # Cheap fuzzy match for Russian morphology / minor ASR variations.
+    # Use only for reasonably long tokens to avoid false positives.
+    if len(word) >= 5 and len(tok) >= 5:
+        if word[:4] == tok[:4]:
+            return True
+        if word.startswith(tok) or tok.startswith(word):
+            return True
+
+    # Numbers: allow 2.5 vs 2,5 normalization artifacts.
+    if word.replace(" ", "") == tok.replace(" ", ""):
+        return True
+
+    return False
+
+
+def try_match(tokens: List[str], words: List[Word], start_idx: int, max_words: int, max_skip: int, *, fuzzy: bool) -> Tuple[float, Optional[Tuple[int, int]]]:
     if not tokens:
         return 0.0, None
 
@@ -217,7 +280,7 @@ def try_match(tokens: List[str], words: List[Word], start_idx: int, max_words: i
         found = None
         j_end = min(end_limit, i + max_skip + 1)
         for j in range(i, j_end):
-            if words[j].w == tok:
+            if _token_match(words[j].w, tok, fuzzy=fuzzy):
                 found = j
                 break
         if found is None:
@@ -236,17 +299,55 @@ def try_match(tokens: List[str], words: List[Word], start_idx: int, max_words: i
         return 0.0, None
 
     base = matched / max(1, len(tokens))
-    # small penalty for skipping too much
-    score = base - min(0.2, skips * 0.002)
+
+    # Penalty for skipping too much.
+    score = base - min(0.25, skips * 0.002)
+
+    # Penalty for too wide span (likely wrong match on repeated words).
+    span_words = (last - first + 1)
+    if span_words > len(tokens) * 3:
+        score -= min(0.15, (span_words - len(tokens) * 3) * 0.002)
+
     if score < 0:
         score = 0.0
 
     return score, (first, last)
 
 
-def match_blocks(blocks: List[Dict[str, Any]], words: List[Word], *, window_words: int = 800, max_skip: int = 4, threshold: float = 0.70) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def _build_word_index(words: List[Word]) -> Tuple[Dict[str, int], Dict[str, List[int]]]:
+    freq: Dict[str, int] = {}
+    pos: Dict[str, List[int]] = {}
+    for i, w in enumerate(words):
+        freq[w.w] = freq.get(w.w, 0) + 1
+        pos.setdefault(w.w, []).append(i)
+    return freq, pos
+
+
+def match_blocks(
+    blocks: List[Dict[str, Any]],
+    words: List[Word],
+    *,
+    window_words: int = 800,
+    max_skip: int = 4,
+    threshold: float = 0.70,
+    backtrack_words: int = 80,
+    anchors_per_block: int = 3,
+    fuzzy: bool = True,
+    max_candidates: int = 2000,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Match subtitle blocks to ASR words left-to-right.
+
+    Improvements over the first prototype:
+    - multiple anchors per block (rarer/longer tokens)
+    - small backtrack window when previous blocks failed
+    - fuzzy token matching (cheap heuristic)
+    - adaptive threshold for short blocks
+    """
+
     results: List[Dict[str, Any]] = []
     unmatched: List[Dict[str, Any]] = []
+
+    freq, pos = _build_word_index(words)
 
     cur = 0
 
@@ -257,26 +358,75 @@ def match_blocks(blocks: List[Dict[str, Any]], words: List[Word], *, window_word
             unmatched.append({"segId": seg, "reason": "empty_text"})
             continue
 
-        anchor = choose_anchor(toks)
-        # candidate starts: where word == anchor
-        cand = [i for i in range(cur, min(len(words), cur + window_words)) if words[i].w == anchor]
+        # Search range: allow small backtrack (helps if a previous match was missed).
+        start_from = max(0, cur - int(backtrack_words or 0))
+        end_at = min(len(words), cur + int(window_words))
+
+        anchors = choose_anchors(toks, freq, int(anchors_per_block or 1))
+
+        cand: List[int] = []
+        for a in anchors:
+            for i in pos.get(a, []):
+                if start_from <= i < end_at:
+                    cand.append(i)
+
         if not cand:
-            unmatched.append({"segId": seg, "reason": "anchor_not_found"})
+            # Fallback: try the first token as an anchor.
+            a0 = toks[0]
+            for i in pos.get(a0, []):
+                if start_from <= i < end_at:
+                    cand.append(i)
+
+        if not cand:
+            unmatched.append({"segId": seg, "reason": "anchor_not_found", "anchors": anchors})
             continue
+
+        # Deduplicate and keep deterministic ordering.
+        cand = sorted(set(cand))
+        if len(cand) > max_candidates:
+            cand = cand[:max_candidates]
 
         best_score = 0.0
         best_span: Optional[Tuple[int, int]] = None
-        best_start = None
+        best_start: Optional[int] = None
 
-        for st in cand[:2000]:
-            score, span = try_match(toks, words, st, window_words, max_skip)
-            if score > best_score:
+        # First pass: default params.
+        for st in cand:
+            score, span = try_match(toks, words, st, int(window_words), int(max_skip), fuzzy=fuzzy)
+            if score > best_score or (score == best_score and best_start is not None and st < best_start):
                 best_score = score
                 best_span = span
                 best_start = st
 
-        if not best_span or best_score < threshold:
-            unmatched.append({"segId": seg, "reason": "low_confidence"})
+        # Adaptive threshold for short blocks.
+        min_thr = float(threshold)
+        if len(toks) <= 3:
+            min_thr = min(min_thr, 0.55)
+        elif len(toks) <= 5:
+            min_thr = min(min_thr, 0.62)
+
+        # Fallback: allow more skipping if we are close.
+        if (not best_span) or (best_score < min_thr):
+            best2_score = best_score
+            best2_span = best_span
+            best2_start = best_start
+
+            for st in cand:
+                score, span = try_match(toks, words, st, int(window_words), min(int(max_skip) * 2, 10), fuzzy=fuzzy)
+                if score > best2_score or (score == best2_score and best2_start is not None and st < best2_start):
+                    best2_score = score
+                    best2_span = span
+                    best2_start = st
+
+            best_score, best_span, best_start = best2_score, best2_span, best2_start
+
+        if not best_span or best_score < min_thr:
+            unmatched.append({
+                "segId": seg,
+                "reason": "low_confidence",
+                "score": round(float(best_score), 3),
+                "anchors": anchors,
+            })
             continue
 
         i0, i1 = best_span
@@ -290,7 +440,7 @@ def match_blocks(blocks: List[Dict[str, Any]], words: List[Word], *, window_word
             "confidence": round(best_score, 3),
         })
 
-        # advance current pointer to keep left-to-right matching stable
+        # Advance current pointer to keep left-to-right matching stable.
         cur = max(cur, i1 + 1)
 
     return results, unmatched
@@ -317,6 +467,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--threshold", type=float, default=0.70)
     ap.add_argument("--max-skip", type=int, default=4)
     ap.add_argument("--window-words", type=int, default=800)
+
+    ap.add_argument("--backtrack-words", type=int, default=80, help="Allow searching a bit before the last matched word (default: 80)")
+    ap.add_argument("--anchors-per-block", type=int, default=3, help="How many anchors per block to try (default: 3)")
+    ap.add_argument("--no-fuzzy", action="store_true", help="Disable fuzzy token matching")
+    ap.add_argument("--max-candidates", type=int, default=2000, help="Max candidate start positions to evaluate (default: 2000)")
 
     args = ap.parse_args(argv)
 
@@ -366,6 +521,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         window_words=int(args.window_words),
         max_skip=int(args.max_skip),
         threshold=float(args.threshold),
+        backtrack_words=int(args.backtrack_words),
+        anchors_per_block=int(args.anchors_per_block),
+        fuzzy=(not bool(args.no_fuzzy)),
+        max_candidates=int(args.max_candidates),
     )
 
     alignment = {

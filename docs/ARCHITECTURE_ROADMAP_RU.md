@@ -151,4 +151,5 @@
 1) [DONE] Завести `docs/CONFIG_REFERENCE.md` и описать текущие ключи.
 2) [DONE] Доделать runId/логи для авто-тайминга (короткий отчёт: сколько блоков пропущено и почему).
 3) [DONE] Добавить в настройки выбор модели ASR (small/medium/large-v3) + параметры (beam/temperature и т.д.).
-4) [NEXT] Улучшить aligner: tolerant-matching + fallback-логика для пропусков.
+4) [DONE] Улучшить aligner: tolerant-matching + fallback-логика для пропусков.
+5) [NEXT] Упаковать tools-бандл для офлайн-деплоя (whisperx env + models cache + ffmpeg portable) + `docs/DEPLOYMENT_GUIDE.md`.
