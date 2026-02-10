@@ -159,6 +159,7 @@
         </div>
 
         <div class="modal-body">
+
             <div class="modal-footer" style="display:flex; gap:8px; justify-content:space-between;">
                 <button id="btn-typo-fix-all" class="main-action" style="margin:0; flex:1;">Fix all</button>
                 <button id="btn-typo-fix-except" class="secondary-btn" style="margin:0; flex:1;">Fix except selected</button>
@@ -196,6 +197,70 @@
                 <label for="settings-topics">Topics (one per line)</label>
                 <textarea id="settings-topics" rows="6" placeholder="One rubric per line"></textarea>
             </div>
+
+
+            <details class="settings-details">
+                <summary>ASR (WhisperX)</summary>
+
+                <div class="settings-row">
+                    <label for="settings-whisperx-model">Model</label>
+                    <select id="settings-whisperx-model">
+                        <option value="small">small</option>
+                        <option value="medium">medium</option>
+                        <option value="large-v3">large-v3</option>
+                    </select>
+                </div>
+
+                <div class="settings-row">
+                    <label for="settings-whisperx-language">Language</label>
+                    <input id="settings-whisperx-language" type="text" placeholder="ru" />
+                </div>
+
+                <details class="settings-details settings-details-nested">
+                    <summary>Advanced params</summary>
+
+                    <div class="settings-row">
+                        <label class="settings-checkbox">
+                            <input id="settings-whisperx-adv-enabled" type="checkbox" />
+                            Use advanced args
+                        </label>
+                        <div class="settings-note">If disabled, only model/language/device/VAD are used.</div>
+                    </div>
+
+                    <div class="settings-row">
+                        <label for="settings-whisperx-beam">beam_size</label>
+                        <input id="settings-whisperx-beam" type="text" inputmode="numeric" placeholder="5" />
+                    </div>
+
+                    <div class="settings-row">
+                        <label for="settings-whisperx-temp">temperature</label>
+                        <input id="settings-whisperx-temp" type="text" placeholder="0.0" />
+                    </div>
+
+                    <div class="settings-row">
+                        <label for="settings-whisperx-nospeech">no_speech_threshold</label>
+                        <input id="settings-whisperx-nospeech" type="text" placeholder="0.6" />
+                    </div>
+
+                    <div class="settings-row">
+                        <label for="settings-whisperx-logprob">logprob_threshold</label>
+                        <input id="settings-whisperx-logprob" type="text" placeholder="-1.0" />
+                    </div>
+
+                    <div class="settings-row">
+                        <label class="settings-checkbox">
+                            <input id="settings-whisperx-condprev" type="checkbox" />
+                            condition_on_previous_text
+                        </label>
+                    </div>
+
+                    <div class="settings-row">
+                        <label for="settings-whisperx-extra">extra args (raw)</label>
+                        <input id="settings-whisperx-extra" type="text" placeholder="--beam_size 5 ..." />
+                        <div class="settings-note">Optional escape hatch: appended to the WhisperX command as-is.</div>
+                    </div>
+                </details>
+            </details>
 
             <div class="modal-footer" style="display:flex; gap:8px; justify-content:space-between;">
                 <button id="btn-settings-save" class="main-action" style="margin:0; flex:1;">Save</button>

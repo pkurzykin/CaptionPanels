@@ -920,6 +920,41 @@
             try { lang = String(getConfigValue("whisperxLanguage", "ru") || "ru"); } catch (eL) { lang = "ru"; }
             try { device = String(getConfigValue("whisperxDevice", "cuda") || "cuda"); } catch (eD) { device = "cuda"; }
             try { vad = String(getConfigValue("whisperxVadMethod", "silero") || "silero"); } catch (eV) { vad = "silero"; }
+            var wxAdv = false;
+            try { wxAdv = !!getConfigValue("whisperxAdvancedArgsEnabled", false); } catch (eAx) { wxAdv = false; }
+
+            var wxExtra = "";
+            try { wxExtra = String(getConfigValue("whisperxExtraArgs", "") || ""); } catch (eEx) { wxExtra = ""; }
+            wxExtra = String(wxExtra || "").replace(/^\s+|\s+$/g, "");
+
+            var wxArgs = "";
+            if (wxAdv) {
+                function _num(key, def) {
+                    var v = Number(getConfigValue(key, def));
+                    return isNaN(v) ? def : v;
+                }
+
+                var beam = Math.round(_num("whisperxBeamSize", 5));
+                if (beam < 1) beam = 1;
+                if (beam > 20) beam = 20;
+
+                var temp = _num("whisperxTemperature", 0.0);
+                var noSpeech = _num("whisperxNoSpeechThreshold", 0.6);
+                var logprob = _num("whisperxLogprobThreshold", -1.0);
+
+                var condPrev = true;
+                try { condPrev = !!getConfigValue("whisperxConditionOnPreviousText", true); } catch (eC) { condPrev = true; }
+
+                wxArgs += " --beam_size " + String(beam);
+                wxArgs += " --temperature " + String(temp);
+                wxArgs += " --no_speech_threshold " + String(noSpeech);
+                wxArgs += " --logprob_threshold " + String(logprob);
+                wxArgs += " --condition_on_previous_text " + (condPrev ? "true" : "false");
+            }
+
+            if (wxExtra) {
+                wxArgs += " " + wxExtra;
+            }
 
             var whisperBaseDir = _getAutoTimingWhisperXDir();
             if (!whisperBaseDir) return respondErr("autoTimingWhisperXDir is empty");
@@ -931,7 +966,7 @@
                 ' --model ' + model +
                 ' --device ' + device +
                 ' --vad_method ' + vad +
-                ' --output_dir "' + _normalizePath(whisperRunDir) + '"';
+                ' --output_dir "' + _normalizePath(whisperRunDir) + '"' + wxArgs;
 
             var w = _runCmdBody(whisperBody, "whisperx", logsDir, stamp);
             if (w.exitCode !== 0) {

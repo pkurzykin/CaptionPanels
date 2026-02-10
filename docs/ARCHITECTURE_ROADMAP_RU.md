@@ -150,5 +150,5 @@
 ## Рекомендуемый порядок следующих шагов (конкретно)
 1) [DONE] Завести `docs/CONFIG_REFERENCE.md` и описать текущие ключи.
 2) [DONE] Доделать runId/логи для авто-тайминга (короткий отчёт: сколько блоков пропущено и почему).
-3) [NEXT] Добавить в настройки выбор модели ASR (small/medium/large-v3) + параметры (beam/temperature и т.д.).
-4) [LATER] Улучшить aligner: tolerant-matching + fallback-логика для пропусков.
+3) [DONE] Добавить в настройки выбор модели ASR (small/medium/large-v3) + параметры (beam/temperature и т.д.).
+4) [NEXT] Улучшить aligner: tolerant-matching + fallback-логика для пропусков.

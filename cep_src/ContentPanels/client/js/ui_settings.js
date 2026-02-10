@@ -19,6 +19,23 @@ function _settingsParseInt(val, def) {
     return n;
 }
 
+
+function _settingsParseFloat(val, def) {
+    var s = String(val || "").replace(/,/g, ".");
+    s = s.replace(/^\s+|\s+$/g, "");
+    if (!s) return def;
+    var n = parseFloat(s);
+    if (isNaN(n)) return def;
+    return n;
+}
+
+function _settingsSetDisabled(ids, disabled) {
+    for (var i = 0; i < ids.length; i++) {
+        var el = document.getElementById(ids[i]);
+        if (el) el.disabled = !!disabled;
+    }
+}
+
 function _settingsParseLinesToList(txt) {
     var raw = String(txt || "");
     var lines = raw.split(/\r\n|\r|\n/);
@@ -71,6 +88,47 @@ function _settingsLoad() {
         if (topicsEl) {
             topicsEl.value = topics.join("\n");
         }
+
+        // 4) WhisperX (ASR)
+        var wxModel = (typeof res.whisperxModel === "string" && res.whisperxModel) ? res.whisperxModel : "medium";
+        var wxLang = (typeof res.whisperxLanguage === "string" && res.whisperxLanguage) ? res.whisperxLanguage : "ru";
+
+        var wxModelEl = document.getElementById("settings-whisperx-model");
+        if (wxModelEl) wxModelEl.value = String(wxModel);
+
+        var wxLangEl = document.getElementById("settings-whisperx-language");
+        if (wxLangEl) wxLangEl.value = String(wxLang);
+
+        var wxAdvEnabled = !!res.whisperxAdvancedArgsEnabled;
+        var wxAdvEl = document.getElementById("settings-whisperx-adv-enabled");
+        if (wxAdvEl) wxAdvEl.checked = wxAdvEnabled;
+
+        var beamEl = document.getElementById("settings-whisperx-beam");
+        if (beamEl) beamEl.value = String((typeof res.whisperxBeamSize !== "undefined") ? res.whisperxBeamSize : 5);
+
+        var tempEl = document.getElementById("settings-whisperx-temp");
+        if (tempEl) tempEl.value = String((typeof res.whisperxTemperature !== "undefined") ? res.whisperxTemperature : 0.0);
+
+        var nsEl = document.getElementById("settings-whisperx-nospeech");
+        if (nsEl) nsEl.value = String((typeof res.whisperxNoSpeechThreshold !== "undefined") ? res.whisperxNoSpeechThreshold : 0.6);
+
+        var lpEl = document.getElementById("settings-whisperx-logprob");
+        if (lpEl) lpEl.value = String((typeof res.whisperxLogprobThreshold !== "undefined") ? res.whisperxLogprobThreshold : -1.0);
+
+        var cpEl = document.getElementById("settings-whisperx-condprev");
+        if (cpEl) cpEl.checked = (typeof res.whisperxConditionOnPreviousText === "boolean") ? res.whisperxConditionOnPreviousText : true;
+
+        var extraEl = document.getElementById("settings-whisperx-extra");
+        if (extraEl) extraEl.value = String((typeof res.whisperxExtraArgs === "string") ? res.whisperxExtraArgs : "");
+
+        _settingsSetDisabled([
+            "settings-whisperx-beam",
+            "settings-whisperx-temp",
+            "settings-whisperx-nospeech",
+            "settings-whisperx-logprob",
+            "settings-whisperx-condprev",
+            "settings-whisperx-extra"
+        ], !wxAdvEnabled);
     });
 }
 
@@ -129,10 +187,54 @@ function _settingsSave() {
     var topicsEl = document.getElementById("settings-topics");
     var topics = _settingsParseLinesToList(topicsEl ? topicsEl.value : "");
 
+
+    var wxModelEl = document.getElementById("settings-whisperx-model");
+    var wxModel = wxModelEl ? String(wxModelEl.value || "medium") : "medium";
+
+    var wxLangEl = document.getElementById("settings-whisperx-language");
+    var wxLang = wxLangEl ? String(wxLangEl.value || "ru") : "ru";
+    wxLang = wxLang.replace(/^\s+|\s+$/g, "");
+    if (!wxLang) wxLang = "ru";
+
+    var wxAdvEl = document.getElementById("settings-whisperx-adv-enabled");
+    var wxAdvEnabled = wxAdvEl ? !!wxAdvEl.checked : false;
+
+    var wxBeamEl = document.getElementById("settings-whisperx-beam");
+    var wxBeam = _settingsParseInt(wxBeamEl ? wxBeamEl.value : "", 5);
+    if (wxBeam < 1) wxBeam = 1;
+    if (wxBeam > 20) wxBeam = 20;
+
+    var wxTempEl = document.getElementById("settings-whisperx-temp");
+    var wxTemp = _settingsParseFloat(wxTempEl ? wxTempEl.value : "", 0.0);
+
+    var wxNsEl = document.getElementById("settings-whisperx-nospeech");
+    var wxNoSpeech = _settingsParseFloat(wxNsEl ? wxNsEl.value : "", 0.6);
+
+    var wxLpEl = document.getElementById("settings-whisperx-logprob");
+    var wxLogprob = _settingsParseFloat(wxLpEl ? wxLpEl.value : "", -1.0);
+
+    var wxCpEl = document.getElementById("settings-whisperx-condprev");
+    var wxCondPrev = wxCpEl ? !!wxCpEl.checked : true;
+
+    var wxExtraEl = document.getElementById("settings-whisperx-extra");
+    var wxExtra = wxExtraEl ? String(wxExtraEl.value || "") : "";
+    wxExtra = wxExtra.replace(/^\s+|\s+$/g, "");
+
     var items = [
         { key: "subtitleCharsPerLine", value: Number(n) },
         { key: "speakersDbPath", value: String(sp || "") },
-        { key: "topicOptions", value: topics }
+        { key: "topicOptions", value: topics },
+
+        { key: "whisperxModel", value: String(wxModel || "medium") },
+        { key: "whisperxLanguage", value: String(wxLang || "ru") },
+
+        { key: "whisperxAdvancedArgsEnabled", value: !!wxAdvEnabled },
+        { key: "whisperxBeamSize", value: Number(wxBeam) },
+        { key: "whisperxTemperature", value: Number(wxTemp) },
+        { key: "whisperxNoSpeechThreshold", value: Number(wxNoSpeech) },
+        { key: "whisperxLogprobThreshold", value: Number(wxLogprob) },
+        { key: "whisperxConditionOnPreviousText", value: !!wxCondPrev },
+        { key: "whisperxExtraArgs", value: String(wxExtra || "") }
     ];
 
     function saveNext(i) {
@@ -169,6 +271,22 @@ function initSettingsUI() {
     attachClick("btn-settings-cancel", function () { _settingsClose(); });
     attachClick("btn-settings-save", function () { _settingsSave(); });
     attachClick("btn-settings-browse-speakers", function () { _settingsBrowseSpeakersDb(); });
+
+    var adv = document.getElementById("settings-whisperx-adv-enabled");
+    if (adv) {
+        adv.addEventListener("change", function () {
+            var on = !!adv.checked;
+            _settingsSetDisabled([
+                "settings-whisperx-beam",
+                "settings-whisperx-temp",
+                "settings-whisperx-nospeech",
+                "settings-whisperx-logprob",
+                "settings-whisperx-condprev",
+                "settings-whisperx-extra"
+            ], !on);
+        });
+    }
+
 
     var overlay = document.getElementById("settings-overlay");
     if (overlay) {

@@ -109,6 +109,29 @@
 - `whisperxVadMethod` (string)
   - Пример: `silero`.
 
+- `whisperxAdvancedArgsEnabled` (boolean)
+  - Включает передачу расширенных параметров в WhisperX CLI.
+  - Если `false` — плагин использует только базовые параметры (`model`, `language`, `device`, `vad_method`).
+
+- `whisperxBeamSize` (number)
+  - `beam_size` для декодирования (обычно 1..20).
+
+- `whisperxTemperature` (number)
+  - `temperature` (обычно 0.0 для детерминированности).
+
+- `whisperxNoSpeechThreshold` (number)
+  - `no_speech_threshold` (порог "нет речи").
+
+- `whisperxLogprobThreshold` (number)
+  - `logprob_threshold`.
+
+- `whisperxConditionOnPreviousText` (boolean)
+  - `condition_on_previous_text` (true/false).
+
+- `whisperxExtraArgs` (string)
+  - Raw строка аргументов, которая будет добавлена в конец команды WhisperX "как есть".
+  - Нужна как escape-hatch, если WhisperX CLI меняется и нужно быстро подстроиться без правки кода.
+
 - `transcribeAlignScriptPath` (string)
   - Путь к `transcribe_align.py`.
   - Обычно относительный: `host/tools/transcribe_align/transcribe_align.py`.
@@ -140,6 +163,14 @@
   "whisperxLanguage": "ru",
   "whisperxDevice": "cuda",
   "whisperxVadMethod": "silero",
+
+  "whisperxAdvancedArgsEnabled": false,
+  "whisperxBeamSize": 5,
+  "whisperxTemperature": 0.0,
+  "whisperxNoSpeechThreshold": 0.6,
+  "whisperxLogprobThreshold": -1.0,
+  "whisperxConditionOnPreviousText": false,
+  "whisperxExtraArgs": "",
 
   "transcribeAlignScriptPath": "host/tools/transcribe_align/transcribe_align.py"
 }

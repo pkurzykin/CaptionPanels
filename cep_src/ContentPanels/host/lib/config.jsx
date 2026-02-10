@@ -286,12 +286,50 @@
                 for (var j = 0; j < lines.length; j++) addTopic(lines[j]);
             }
 
+            var wxModel = String(getConfigValue("whisperxModel", "medium") || "medium");
+            var wxLang = String(getConfigValue("whisperxLanguage", "ru") || "ru");
+            var wxDevice = String(getConfigValue("whisperxDevice", "cuda") || "cuda");
+            var wxVad = String(getConfigValue("whisperxVadMethod", "silero") || "silero");
+
+            var wxAdvEnabled = false;
+            try { wxAdvEnabled = !!getConfigValue("whisperxAdvancedArgsEnabled", false); } catch (eWx) { wxAdvEnabled = false; }
+
+            function num(key, def) {
+                var v = getConfigValue(key, def);
+                var n = Number(v);
+                return isNaN(n) ? def : n;
+            }
+
+            var wxBeam = num("whisperxBeamSize", 5);
+            var wxTemp = num("whisperxTemperature", 0.0);
+            var wxNoSpeech = num("whisperxNoSpeechThreshold", 0.6);
+            var wxLogprob = num("whisperxLogprobThreshold", -1.0);
+
+            var wxCondPrev = true;
+            try { wxCondPrev = !!getConfigValue("whisperxConditionOnPreviousText", true); } catch (eC) { wxCondPrev = true; }
+
+            var wxExtraArgs = "";
+            try { wxExtraArgs = String(getConfigValue("whisperxExtraArgs", "") || ""); } catch (eX) { wxExtraArgs = ""; }
+
             return respondOk({
                 configPath: getConfigPath(),
                 subtitleCharsPerLine: n,
                 speakersDbPath: rawSp,
                 speakersDbPathResolved: resolvedSp,
-                topicOptions: topics
+                topicOptions: topics,
+
+                whisperxModel: wxModel,
+                whisperxLanguage: wxLang,
+                whisperxDevice: wxDevice,
+                whisperxVadMethod: wxVad,
+
+                whisperxAdvancedArgsEnabled: wxAdvEnabled,
+                whisperxBeamSize: wxBeam,
+                whisperxTemperature: wxTemp,
+                whisperxNoSpeechThreshold: wxNoSpeech,
+                whisperxLogprobThreshold: wxLogprob,
+                whisperxConditionOnPreviousText: wxCondPrev,
+                whisperxExtraArgs: wxExtraArgs
             });
         } catch (e) {
             return respondErr(e.message);
