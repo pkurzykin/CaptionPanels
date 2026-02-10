@@ -956,12 +956,43 @@
                 wxArgs += " " + wxExtra;
             }
 
+            
+
+            // Optional: use portable ffmpeg without touching system PATH.
+            // If ffmpegExePath is set, we prepend its folder to PATH for this WhisperX run only.
+            function _escapeCmdValue(v) {
+                // Escape cmd metacharacters for safe use in `set VAR=...`.
+                // We avoid quotes here because the whole body is wrapped into cmd.exe /c ""..."".
+                var s = String(v || "");
+                s = s.replace(/\^/g, "^^");
+                s = s.replace(/&/g, "^&");
+                s = s.replace(/\|/g, "^|");
+                s = s.replace(/</g, "^<");
+                s = s.replace(/>/g, "^>");
+                return s;
+            }
+
+            var envPrefix = "";
+            try {
+                var ffRaw = String(getConfigValue("ffmpegExePath", "") || "");
+                var ff = _resolvePathRelativeToConfig(ffRaw);
+                if (ff) {
+                    var ffFile = new File(ff);
+                    if (ffFile.exists) {
+                        var ffDir = _dirName(ff);
+                        if (ffDir) {
+                            envPrefix = "set PATH=" + _escapeCmdValue(_normalizePath(ffDir)) + ";%PATH% & ";
+                        }
+                    }
+                }
+            } catch (eFf) {}
+
             var whisperBaseDir = _getAutoTimingWhisperXDir();
             if (!whisperBaseDir) return respondErr("autoTimingWhisperXDir is empty");
             var whisperRunDir = _normalizePath(whisperBaseDir + "/" + runBase);
             _ensureFolder(whisperRunDir);
 
-            var whisperBody = '"' + _normalizePath(py) + '" -m whisperx "' + _normalizePath(videoPath) + '"' +
+            var whisperBody = envPrefix + '"' + _normalizePath(py) + '" -m whisperx "' + _normalizePath(videoPath) + '"' +
                 ' --language ' + lang +
                 ' --model ' + model +
                 ' --device ' + device +

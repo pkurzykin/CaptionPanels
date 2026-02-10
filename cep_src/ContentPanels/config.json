@@ -21,7 +21,7 @@
   "autoTimingWhisperXDir": "C:/AE/CaptionPanelsData/auto_timing/whisperx",
   "autoTimingAlignmentDir": "C:/AE/CaptionPanelsData/auto_timing/alignment",
   "autoTimingLogsDir": "C:/AE/CaptionPanelsData/auto_timing/logs",
-  "whisperxPythonPath": "C:/AE/whisperx/.venv/Scripts/python.exe",
+  "whisperxPythonPath": "C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe",
   "whisperxModel": "medium",
   "whisperxLanguage": "ru",
   "whisperxDevice": "cuda",
@@ -34,5 +34,6 @@
   "whisperxNoSpeechThreshold": 0.6,
   "whisperxLogprobThreshold": -1.0,
   "whisperxConditionOnPreviousText": false,
-  "whisperxExtraArgs": ""
+  "whisperxExtraArgs": "",
+  "ffmpegExePath": "C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe"
 }

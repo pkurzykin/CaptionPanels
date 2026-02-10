@@ -94,8 +94,8 @@
 ### whisperx (ASR)
 - `whisperxPythonPath` (string)
   - Путь к Python из venv WhisperX.
-  - Пример: `C:/AE/whisperx/.venv/Scripts/python.exe`
-  - Это позволяет **не устанавливать системный Python** на рабочих ПК (достаточно скопировать папку `C:\AE\whisperx\`).
+  - Пример: `C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe`
+  - Это позволяет **не устанавливать системный Python** на рабочих ПК (достаточно скопировать папку `C:\AE\CaptionPanelsTools\whisperx\`).
 
 - `whisperxModel` (string)
   - Пример: `small`, `medium`, позже возможно `large-v3`.
@@ -158,7 +158,7 @@
   "autoTimingAlignmentDir": "C:/AE/CaptionPanelsData/auto_timing/alignment",
   "autoTimingLogsDir": "C:/AE/CaptionPanelsData/auto_timing/logs",
 
-  "whisperxPythonPath": "C:/AE/whisperx/.venv/Scripts/python.exe",
+  "whisperxPythonPath": "C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe",
   "whisperxModel": "medium",
   "whisperxLanguage": "ru",
   "whisperxDevice": "cuda",
@@ -171,6 +171,8 @@
   "whisperxLogprobThreshold": -1.0,
   "whisperxConditionOnPreviousText": false,
   "whisperxExtraArgs": "",
+
+  "ffmpegExePath": "C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe",
 
   "transcribeAlignScriptPath": "host/tools/transcribe_align/transcribe_align.py"
 }
@@ -185,7 +187,9 @@
 
 ---
 
-## Planned (TODO)
-(зафиксировано в роадмапе)
-- `ffmpegExePath`: использовать ffmpeg как portable‑утилиту без `PATH`:
-  - `C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe`
+## ffmpeg (portable, без PATH)
+- `ffmpegExePath` (string)
+  - Путь к `ffmpeg.exe`.
+  - Пример: `C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe`
+  - Если ключ задан и файл существует, плагин **на время запуска WhisperX** добавляет папку ffmpeg в `PATH` процесса (через `cmd.exe /c set PATH=...;%PATH%`).
+  - Системный `PATH` не изменяется.
