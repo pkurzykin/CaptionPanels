@@ -466,6 +466,11 @@ input[type="range"] { width: 100%; cursor: pointer; margin-top: 5px; }
     max-width: 520px;
 }
 
+.settings-window .modal-body {
+    max-height: calc(90vh - 44px);
+    overflow-y: auto;
+}
+
 .settings-row {
     display: grid;
     grid-template-columns: 1fr;

@@ -406,6 +406,17 @@ function _updateSubtitleBg(comp) {
     } catch (eGap) {}
 
     var bg = comp.layer(BG_NAME);
+    if (!bg) {
+        // Fallback: if the base layer was duplicated/renamed, reuse the first auto BG layer as base.
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (l && l.name && String(l.name).indexOf(BG_PREFIX) === 0) {
+                bg = l;
+                try { bg.name = BG_NAME; } catch (eRn) {}
+                break;
+            }
+        }
+    }
     if (!bg) return;
 
     _removeAutoBgLayers(comp, BG_PREFIX);
