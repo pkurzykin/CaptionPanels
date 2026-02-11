@@ -627,7 +627,6 @@
             return (v === null) ? def : v;
         }
         return {
-            padStartFrames: n("padStartFrames", 0),
             padEndFrames: n("padEndFrames", 0),
             minDurationFrames: n("minDurationFrames", 1)
         };
@@ -665,7 +664,7 @@
                 continue;
             }
 
-            var start = t.start - (st.padStartFrames / fps);
+            var start = t.start;
             var end = t.end + (st.padEndFrames / fps);
 
             // Minimum duration
@@ -990,56 +989,13 @@
             var wxArgs = "";
             var wxIgnored = [];
 
+            function _num(key, def) {
+                var v = Number(getConfigValue(key, def));
+                return isNaN(v) ? def : v;
+            }
+
             if (wxAdv) {
-                // NOTE: WhisperX CLI flags are not perfectly stable across versions.
-                // We probe `python -m whisperx --help` once per session and only pass the flags that exist.
-
-                function _helpHas(help, flag) {
-                    return help && String(help).indexOf(flag) !== -1;
-                }
-
-                function _pickFlag(help, variants) {
-                    for (var i = 0; i < variants.length; i++) {
-                        if (_helpHas(help, variants[i])) return variants[i];
-                    }
-                    return "";
-                }
-
-                function _getWhisperxHelpTextCached(pyExeStr) {
-                    try {
-                        if ($.global.__CP_WX_HELP_TEXT && $.global.__CP_WX_HELP_PY === pyExeStr) {
-                            return String($.global.__CP_WX_HELP_TEXT || "");
-                        }
-                    } catch (e0) {}
-
-                    var h = _runCmdBody(pyExeStr + ' -m whisperx --help', 'whisperx_help', logsDir, stamp);
-                    var helpText = "";
-                    try {
-                        // Prefer the redirected output file (full output).
-                        if (h && h.logPath && (new File(h.logPath)).exists) {
-                            helpText = _readFileText(h.logPath);
-                        } else {
-                            helpText = String((h && h.output) ? h.output : "");
-                        }
-                    } catch (e1) {
-                        helpText = "";
-                    }
-
-                    try {
-                        $.global.__CP_WX_HELP_TEXT = helpText;
-                        $.global.__CP_WX_HELP_PY = pyExeStr;
-                    } catch (e2) {}
-
-                    return String(helpText || "");
-                }
-
-                var help = _getWhisperxHelpTextCached(pyExe);
-
-                function _num(key, def) {
-                    var v = Number(getConfigValue(key, def));
-                    return isNaN(v) ? def : v;
-                }
-
+                // We pass advanced decode params to our Python runner (not the WhisperX CLI).
                 var beam = Math.round(_num("whisperxBeamSize", 5));
                 if (beam < 1) beam = 1;
                 if (beam > 20) beam = 20;
@@ -1051,40 +1007,18 @@
                 var condPrev = true;
                 try { condPrev = !!getConfigValue("whisperxConditionOnPreviousText", true); } catch (eC) { condPrev = true; }
 
-                // Prefer whichever spelling the CLI exposes (underscore vs hyphen).
-                var beamFlag = _pickFlag(help, ["--beam_size", "--beam-size"]);
-                if (beamFlag) wxArgs += " " + beamFlag + "=" + String(beam); else wxIgnored.push("beam_size");
-
-                var tempFlag = _pickFlag(help, ["--temperature"]);
-                if (tempFlag) wxArgs += " " + tempFlag + "=" + String(temp); else wxIgnored.push("temperature");
-
-                var nsFlag = _pickFlag(help, ["--no_speech_threshold", "--no-speech-threshold"]);
-                if (nsFlag) wxArgs += " " + nsFlag + "=" + String(noSpeech); else wxIgnored.push("no_speech_threshold");
-
-                var lpFlag = _pickFlag(help, ["--logprob_threshold", "--logprob-threshold"]);
-                if (lpFlag) wxArgs += " " + lpFlag + "=" + String(logprob); else wxIgnored.push("logprob_threshold");
-
-                var condFlag = _pickFlag(help, ["--condition_on_previous_text", "--condition-on-previous-text"]);
-                var noCondFlag = _pickFlag(help, ["--no-condition_on_previous_text", "--no-condition-on-previous-text"]);
-
-                if (condFlag) {
-                    if (noCondFlag) {
-                        // Typer-style boolean flags: --foo / --no-foo
-                        wxArgs += " " + (condPrev ? condFlag : noCondFlag);
-                    } else {
-                        // Value-style boolean: --foo=true/false
-                        wxArgs += " " + condFlag + "=" + (condPrev ? "true" : "false");
-                    }
-                } else {
-                    wxIgnored.push("condition_on_previous_text");
-                }
+                wxArgs += " --beam_size " + String(beam);
+                wxArgs += " --temperature " + String(temp);
+                wxArgs += " --no_speech_threshold " + String(noSpeech);
+                // Use = for negative values to avoid cmd parsing edge cases.
+                wxArgs += " --logprob_threshold=" + String(logprob);
+                wxArgs += " --condition_on_previous_text " + (condPrev ? "true" : "false");
             }
 
             if (wxExtra) {
+                // Passed through to the runner (unknown args are ignored but reported).
                 wxArgs += " " + wxExtra;
             }
-
-            
 
             // Optional: use portable ffmpeg without touching system PATH.
             // If ffmpegExePath is set, we prepend its folder to PATH for this WhisperX run only.
@@ -1120,14 +1054,39 @@
             var whisperRunDir = _normalizePath(whisperBaseDir + "/" + runBase);
             _ensureFolder(whisperRunDir);
 
-            var whisperBody = envPrefix + pyExe + ' -m whisperx "' + _normalizePath(videoPath) + '"' +
+            // WhisperX runner script (stable API wrapper around WhisperX/faster-whisper).
+            var runnerRaw = "";
+            try { runnerRaw = String(getConfigValue("whisperxRunnerScriptPath", "") || ""); } catch (eR) { runnerRaw = ""; }
+            if (!runnerRaw) runnerRaw = "host/tools/whisperx_runner/run_whisperx.py";
+            var runnerPath = _resolvePathRelativeToRoot(runnerRaw);
+            runnerPath = _normalizePath(runnerPath);
+            if (!(new File(runnerPath)).exists) return respondErr("WhisperX runner not found: " + runnerPath);
+
+            // Deterministic model cache root (offline-friendly)
+            var cacheDir = "";
+            try { cacheDir = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (eCd) { cacheDir = ""; }
+            if (cacheDir) cacheDir = _normalizePath(cacheDir + "/models");
+            if (cacheDir) _ensureFolder(cacheDir);
+
+            var whisperJsonExpected = _normalizePath(whisperRunDir + "/whisperx.json");
+            var runnerMetaPath = _normalizePath(whisperRunDir + "/whisperx_runner_meta.json");
+
+            var whisperBody = envPrefix + pyExe + ' "' + runnerPath + '"' +
+                ' --input "' + _normalizePath(videoPath) + '"' +
+                ' --output_dir "' + _normalizePath(whisperRunDir) + '"' +
+                ' --out_json "' + _normalizePath(whisperJsonExpected) + '"' +
                 ' --language ' + lang +
                 ' --model ' + model +
                 ' --device ' + device +
-                ' --vad_method ' + vad +
-                ' --output_dir "' + _normalizePath(whisperRunDir) + '"' + wxArgs;
+                ' --vad_method ' + vad;
 
-            var w = _runCmdBody(whisperBody, "whisperx", logsDir, stamp);
+            if (cacheDir) {
+                whisperBody += ' --cache_dir "' + _normalizePath(cacheDir) + '"';
+            }
+
+            whisperBody += wxArgs;
+
+            var w = _runCmdBody(whisperBody, "whisperx_runner", logsDir, stamp);
 
             // Auto-fallback: if CUDA fails (driver/GPU not available), retry once on CPU.
             var deviceUsed = device;
@@ -1135,12 +1094,20 @@
             if (w.exitCode !== 0 && String(device || "").toLowerCase() === "cuda" && _isCudaUnavailableError(w.output)) {
                 deviceUsed = "cpu";
 
-                var whisperBodyCpu = envPrefix + pyExe + ' -m whisperx "' + _normalizePath(videoPath) + '"' +
+                var whisperBodyCpu = envPrefix + pyExe + ' "' + runnerPath + '"' +
+                    ' --input "' + _normalizePath(videoPath) + '"' +
+                    ' --output_dir "' + _normalizePath(whisperRunDir) + '"' +
+                    ' --out_json "' + _normalizePath(whisperJsonExpected) + '"' +
                     ' --language ' + lang +
                     ' --model ' + model +
                     ' --device ' + deviceUsed +
-                    ' --vad_method ' + vad +
-                    ' --output_dir "' + _normalizePath(whisperRunDir) + '"' + wxArgs;
+                    ' --vad_method ' + vad;
+
+                if (cacheDir) {
+                    whisperBodyCpu += ' --cache_dir "' + _normalizePath(cacheDir) + '"';
+                }
+
+                whisperBodyCpu += wxArgs;
 
                 var w2 = _runCmdBody(whisperBodyCpu, "whisperx_cpu_fallback", logsDir, stamp);
                 wFallbackLog = w2.logPath;
@@ -1174,20 +1141,32 @@
                 return respondErr(msg);
             }
 
-            var whisperJson = _findNewestJsonFile(whisperRunDir);
+            // Read runner meta (if present) to report which args were applied/ignored.
+            try {
+                if (runnerMetaPath && (new File(runnerMetaPath)).exists) {
+                    var m = _readJsonFile(runnerMetaPath);
+                    if (m && m.argsIgnored && (m.argsIgnored instanceof Array)) {
+                        wxIgnored = m.argsIgnored;
+                    }
+                }
+            } catch (eMeta) {}
+
+            var whisperJson = whisperJsonExpected;
+            try {
+                if (!(new File(whisperJson)).exists) {
+                    whisperJson = _findNewestJsonFile(whisperRunDir);
+                }
+            } catch (eWj) {
+                whisperJson = _findNewestJsonFile(whisperRunDir);
+            }
+
             if (!whisperJson) {
-                var msg2 = "WhisperX did not produce JSON in: " + whisperRunDir;
+                var msg2 = "WhisperX runner did not produce JSON in: " + whisperRunDir;
                 if (w.logPath) msg2 += "\nlog=" + w.logPath;
                 return respondErr(msg2);
             }
 
             // 4) Run alignment
-            // Pad subtitle start a bit earlier to compensate ASR latency.
-            var padStartFramesCfg = 6;
-            try {
-                var pv = Number(getConfigValue("autoTimingPadStartFrames", 6));
-                if (!isNaN(pv) && pv >= 0 && pv <= 50) padStartFramesCfg = Math.round(pv);
-            } catch (ePad) {}
 
             var alignBaseDir = _getAutoTimingAlignmentDir();
             if (!alignBaseDir) return respondErr("autoTimingAlignmentDir is empty");
@@ -1205,7 +1184,6 @@
                 ' --blocks "' + _normalizePath(blocksPath) + '"' +
                 ' --whisperx-json "' + _normalizePath(whisperJson) + '"' +
                 ' --out-dir "' + _normalizePath(alignRunDir) + '"' +
-                ' --pad-start-frames ' + String(padStartFramesCfg) +
                 ' --lang ' + lang;
 
             var a = _runCmdBody(alignBody, "align", logsDir, stamp);

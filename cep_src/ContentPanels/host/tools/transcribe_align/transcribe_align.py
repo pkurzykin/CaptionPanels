@@ -459,8 +459,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--whisperx-device", default="cuda", help="Device: cuda or cpu (default: cuda)")
     ap.add_argument("--whisperx-extra", default="", help="Extra args for whisperx CLI (raw string)")
     ap.add_argument("--out-dir", required=True, help="Output directory")
-
-    ap.add_argument("--pad-start-frames", type=float, default=0)
     ap.add_argument("--pad-end-frames", type=float, default=2)
     ap.add_argument("--min-duration-frames", type=float, default=3)
 
@@ -535,7 +533,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             "media": str(args.video or ""),
         },
         "settings": {
-            "padStartFrames": args.pad_start_frames,
             "padEndFrames": args.pad_end_frames,
             "minDurationFrames": args.min_duration_frames,
         },

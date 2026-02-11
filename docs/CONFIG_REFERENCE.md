@@ -102,6 +102,11 @@
   - Путь к Python из venv WhisperX.
   - Пример: `C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe`
   - Это позволяет **не устанавливать системный Python** на рабочих ПК (достаточно скопировать папку `C:\AE\CaptionPanelsTools\whisperx\`).
+- `whisperxRunnerScriptPath` (string)
+  - Путь к Python-скрипту `run_whisperx.py`, который запускает ASR/выравнивание через Python API.
+  - По умолчанию: `host/tools/whisperx_runner/run_whisperx.py` (внутри папки плагина).
+  - Нужен, чтобы расширенные параметры (beam_size, temperature и т.п.) работали стабильно независимо от версии WhisperX CLI.
+
 
 - `whisperxModel` (string)
   - Пример: `small`, `medium`, позже возможно `large-v3`.
@@ -116,7 +121,7 @@
   - Пример: `silero`.
 
 - `whisperxAdvancedArgsEnabled` (boolean)
-  - Включает передачу расширенных параметров в WhisperX CLI.
+  - Включает передачу расширенных параметров в ASR runner (faster-whisper decode params).
   - Если `false` — плагин использует только базовые параметры (`model`, `language`, `device`, `vad_method`).
 
 - `whisperxBeamSize` (number)
@@ -166,6 +171,7 @@
   "autoTimingLogsDir": "C:/AE/CaptionPanelsData/auto_timing/logs",
 
   "whisperxPythonPath": "C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe",
+  "whisperxRunnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
   "whisperxModel": "medium",
   "whisperxLanguage": "ru",
   "whisperxDevice": "cuda",
@@ -204,8 +210,5 @@
 
 ## Auto Timing
 
-`autoTimingPadStartFrames` (number, default: `6`)
-- На сколько кадров сдвигать НАЧАЛО субтитра влево при Auto Timing (компенсация задержки ASR).
-- Пример: `6` кадров при 25fps = ~0.24 сек раньше.
-- Диапазон: `0..50`
+StartPad (сдвиг начала субтитров) удален. Теперь Auto Timing применяет тайминги строго по данным выравнивания (alignment.json) без автоматического смещения начала.
 

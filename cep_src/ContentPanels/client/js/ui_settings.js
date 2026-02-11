@@ -73,11 +73,6 @@ function _settingsLoad() {
         var swEl = document.getElementById("settings-short-word-len");
         if (swEl) swEl.value = String(swVal);
 
-        // 1.2) autoTimingPadStartFrames
-        var psVal = (typeof res.autoTimingPadStartFrames !== "undefined") ? res.autoTimingPadStartFrames : 6;
-        var psEl = document.getElementById("settings-pad-start-frames");
-        if (psEl) psEl.value = String(psVal);
-
         // 2) speakersDbPath
         var sp = "";
         if (typeof res.speakersDbPath === "string" && res.speakersDbPath) {
@@ -197,11 +192,6 @@ function _settingsSave() {
     if (sw < 1) sw = 1;
     if (sw > 10) sw = 10;
 
-    var psInput = document.getElementById("settings-pad-start-frames");
-    var ps = _settingsParseInt(psInput ? psInput.value : "", 6);
-    if (ps < 0) ps = 0;
-    if (ps > 50) ps = 50;
-
     var spEl = document.getElementById("settings-speakers-path");
     var sp = spEl ? String(spEl.value || "") : "";
     sp = sp.replace(/\\/g, "/").replace(/^\s+|\s+$/g, "");
@@ -245,7 +235,6 @@ function _settingsSave() {
     var items = [
         { key: "subtitleCharsPerLine", value: Number(n) },
         { key: "subtitleShortWordMaxLen", value: Number(sw) },
-        { key: "autoTimingPadStartFrames", value: Number(ps) },
         { key: "speakersDbPath", value: String(sp || "") },
         { key: "topicOptions", value: topics },
 
