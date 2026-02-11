@@ -42,6 +42,9 @@ function _formatWhisperAutoTimingSummary(res) {
     if (r.whisperxJson) msg += "\nWhisperX JSON: " + r.whisperxJson;
     if (r.alignmentPath) msg += "\nAlignment: " + r.alignmentPath;
 
+    if (r.whisperxArgs) msg += "\nWhisperX args: " + r.whisperxArgs;
+    if (r.whisperxArgsIgnored && r.whisperxArgsIgnored.length) msg += "\nWhisperX ignored: " + r.whisperxArgsIgnored.join(", ");
+
     if (typeof a.total !== "undefined") msg += "\nTotal: " + (a.total || 0);
     if (typeof a.applied !== "undefined") msg += "\nApplied: " + (a.applied || 0);
     if (typeof a.matched !== "undefined") msg += " / matched " + (a.matched || 0);
