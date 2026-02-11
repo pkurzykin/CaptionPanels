@@ -125,15 +125,28 @@
 
     function _runCmdBody(body, label, logDir, stamp) {
         // Wrap into cmd.exe so we can capture stderr and always emit an exit code marker.
-        // We escape quotes in the body and wrap everything with /C "...".
-        // This avoids the fragile cmd.exe /C ""<exe>" ..."" patterns.
+        // system.callSystem() can truncate long outputs; when logDir is provided we redirect
+        // stdout/stderr to a file so the full output is always available.
+
+        var outLogPath = "";
+        try {
+            if (logDir) outLogPath = _normalizePath(logDir + "/" + label + "_" + stamp + ".out.txt");
+        } catch (eP) { outLogPath = ""; }
 
         var b = String(body || "");
-        // Escape caret first, then quotes (cmd escaping uses ^)
-        b = b.replace(/\^/g, "^^");
-        b = b.replace(/\"/g, "^\"");
+        if (outLogPath) {
+            b += ' 1> "' + outLogPath + '" 2>&1';
+        } else {
+            b += " 2>&1";
+        }
 
-        var cmd = 'cmd.exe /V:OFF /S /C "' + b + ' 2>&1 & echo __EXIT_CODE__:%errorlevel%__"';
+        // Escape caret first, then exclamation (delayed expansion), then quotes (cmd escaping uses ^)
+        b = b.replace(/\^/g, "^^");
+        b = b.replace(/!/g, "^!");
+        b = b.replace(/"/g, "^\"");
+
+        // Use delayed expansion so !errorlevel! reflects the exit code after running the command.
+        var cmd = 'cmd.exe /V:ON /S /C "' + b + ' & echo __EXIT_CODE__:!errorlevel!__"';
 
         var output = "";
         try {
@@ -146,19 +159,21 @@
 
         var exitCode = _parseExitCode(output);
 
-        var logPath = "";
+        // Write a small meta-log that points to the full output log (if any).
+        var metaPath = "";
         try {
             if (logDir) {
-                var p = _normalizePath(logDir + "/" + label + "_" + stamp + ".log");
+                metaPath = _normalizePath(logDir + "/" + label + "_" + stamp + ".log");
                 var logText = "time=" + stamp + "\n";
                 logText += "cmd=" + cmd + "\n\n";
-                logText += "output:\n" + String(output || "") + "\n";
-                _writeTextFile(p, logText);
-                logPath = p;
+                logText += "exitCode=" + String(exitCode) + "\n";
+                if (outLogPath) logText += "outLog=" + outLogPath + "\n";
+                logText += "\noutputTail:\n" + String(output || "") + "\n";
+                _writeTextFile(metaPath, logText);
             }
-        } catch (eLog) {}
+        } catch (eLog) { metaPath = ""; }
 
-        return { cmd: cmd, output: output, exitCode: exitCode, logPath: logPath };
+        return { cmd: cmd, output: output, exitCode: exitCode, logPath: (outLogPath || metaPath), metaPath: metaPath };
     }
 
     function _findNewestJsonFile(dirPath) {
