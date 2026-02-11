@@ -72,6 +72,30 @@ function normalizeNameToOneLine(name) {
     return String(name || "").replace(/\r\n|\n|\r/g, " ").replace(/\s+/g, " ").trim();
 }
 
+
+// For speaker titles input: if name is a simple "Name Surname" (2 words), convert to 2 lines.
+// If name is already multiline or non-standard (3+ words, punctuation, etc.) keep as-is.
+function formatSpeakerNameForInput(name) {
+    var raw = String(name || "");
+
+    // Preserve multiline names (DB often stores as "Имя\nФамилия").
+    if (raw.indexOf("\n") !== -1 || raw.indexOf("\r") !== -1) return raw;
+
+    // Normalize whitespace.
+    var norm = raw.replace(/\u00A0/g, " ");
+    norm = norm.replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+    if (!norm) return raw;
+
+    var parts = norm.split(" ");
+    if (parts.length !== 2) return raw;
+
+    // Only split clean words (letters + optional hyphen), otherwise keep as-is.
+    var reWord = /^[A-Za-zА-Яа-яЁё-]+$/;
+    if (!reWord.test(parts[0]) || !reWord.test(parts[1])) return raw;
+
+    return parts[0] + "\n" + parts[1];
+}
+
 function uiAlert(msg) {
     try {
         csInterface.evalScript("alert(" + JSON.stringify(String(msg)) + ")");

@@ -10,7 +10,8 @@ var JSON_IMPORT_BRANDING = null; // { head, topic, geotags[] }
 function _setSpeakerFields(name, job, opts) {
     var nameEl = document.getElementById("input-name");
     var jobEl = document.getElementById("input-job");
-    if (nameEl) nameEl.value = String(name || "");
+    var nameVal = (typeof formatSpeakerNameForInput === "function") ? formatSpeakerNameForInput(name) : String(name || "");
+    if (nameEl) nameEl.value = String(nameVal || "");
     if (jobEl) jobEl.value = String(job || "");
 
     if (typeof updateAddSpeakerBtnState === "function") {

@@ -39,24 +39,6 @@ function _normalizeJobKey(s) {
 }
 
 
-function _formatSpeakerNameForInput(s) {
-    var raw = String(s || "");
-    // If already multiline (DB may store as "Имя\nФамилия"), keep as-is.
-    if (raw.indexOf("\n") !== -1 || raw.indexOf("\r") !== -1) return raw;
-
-    var norm = raw.replace(/\u00A0/g, " ");
-    norm = norm.replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
-    if (!norm) return raw;
-
-    // "Standard" case: exactly 2 words (Name Surname) without punctuation.
-    var parts = norm.split(" ");
-    if (parts.length !== 2) return raw;
-
-    var reWord = /^[A-Za-zА-Яа-яЁё-]+$/;
-    if (!reWord.test(parts[0]) || !reWord.test(parts[1])) return raw;
-
-    return parts[0] + "\n" + parts[1];
-}
 
 function _findSpeakerMatch(name, job) {
     var nKey = _normalizeNameKey(name);
@@ -97,7 +79,7 @@ function tryAutoFillSpeakerFromDb() {
         if (!match) return;
 
         _AUTO_DB_FILL_LOCK = true;
-        nameEl.value = _formatSpeakerNameForInput(match.name || "");
+        nameEl.value = (typeof formatSpeakerNameForInput === "function") ? formatSpeakerNameForInput(match.name || "") : (match.name || "");
         jobEl.value = match.job || "";
         _AUTO_DB_FILL_LOCK = false;
 
