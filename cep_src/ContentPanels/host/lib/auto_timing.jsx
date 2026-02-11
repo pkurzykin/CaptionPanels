@@ -988,7 +988,53 @@
             wxExtra = String(wxExtra || "").replace(/^\s+|\s+$/g, "");
 
             var wxArgs = "";
+            var wxIgnored = [];
+
             if (wxAdv) {
+                // NOTE: WhisperX CLI flags are not perfectly stable across versions.
+                // We probe `python -m whisperx --help` once per session and only pass the flags that exist.
+
+                function _helpHas(help, flag) {
+                    return help && String(help).indexOf(flag) !== -1;
+                }
+
+                function _pickFlag(help, variants) {
+                    for (var i = 0; i < variants.length; i++) {
+                        if (_helpHas(help, variants[i])) return variants[i];
+                    }
+                    return "";
+                }
+
+                function _getWhisperxHelpTextCached(pyExeStr) {
+                    try {
+                        if ($.global.__CP_WX_HELP_TEXT && $.global.__CP_WX_HELP_PY === pyExeStr) {
+                            return String($.global.__CP_WX_HELP_TEXT || "");
+                        }
+                    } catch (e0) {}
+
+                    var h = _runCmdBody(pyExeStr + ' -m whisperx --help', 'whisperx_help', logsDir, stamp);
+                    var helpText = "";
+                    try {
+                        // Prefer the redirected output file (full output).
+                        if (h && h.logPath && (new File(h.logPath)).exists) {
+                            helpText = _readFileText(h.logPath);
+                        } else {
+                            helpText = String((h && h.output) ? h.output : "");
+                        }
+                    } catch (e1) {
+                        helpText = "";
+                    }
+
+                    try {
+                        $.global.__CP_WX_HELP_TEXT = helpText;
+                        $.global.__CP_WX_HELP_PY = pyExeStr;
+                    } catch (e2) {}
+
+                    return String(helpText || "");
+                }
+
+                var help = _getWhisperxHelpTextCached(pyExe);
+
                 function _num(key, def) {
                     var v = Number(getConfigValue(key, def));
                     return isNaN(v) ? def : v;
@@ -1005,12 +1051,33 @@
                 var condPrev = true;
                 try { condPrev = !!getConfigValue("whisperxConditionOnPreviousText", true); } catch (eC) { condPrev = true; }
 
-                // Use "--key=value" form to avoid cmd/click parsing issues with values like -1.
-                wxArgs += " --beam_size=" + String(beam);
-                wxArgs += " --temperature=" + String(temp);
-                wxArgs += " --no_speech_threshold=" + String(noSpeech);
-                wxArgs += " --logprob_threshold=" + String(logprob);
-                wxArgs += " --condition_on_previous_text=" + (condPrev ? "true" : "false");
+                // Prefer whichever spelling the CLI exposes (underscore vs hyphen).
+                var beamFlag = _pickFlag(help, ["--beam_size", "--beam-size"]);
+                if (beamFlag) wxArgs += " " + beamFlag + "=" + String(beam); else wxIgnored.push("beam_size");
+
+                var tempFlag = _pickFlag(help, ["--temperature"]);
+                if (tempFlag) wxArgs += " " + tempFlag + "=" + String(temp); else wxIgnored.push("temperature");
+
+                var nsFlag = _pickFlag(help, ["--no_speech_threshold", "--no-speech-threshold"]);
+                if (nsFlag) wxArgs += " " + nsFlag + "=" + String(noSpeech); else wxIgnored.push("no_speech_threshold");
+
+                var lpFlag = _pickFlag(help, ["--logprob_threshold", "--logprob-threshold"]);
+                if (lpFlag) wxArgs += " " + lpFlag + "=" + String(logprob); else wxIgnored.push("logprob_threshold");
+
+                var condFlag = _pickFlag(help, ["--condition_on_previous_text", "--condition-on-previous-text"]);
+                var noCondFlag = _pickFlag(help, ["--no-condition_on_previous_text", "--no-condition-on-previous-text"]);
+
+                if (condFlag) {
+                    if (noCondFlag) {
+                        // Typer-style boolean flags: --foo / --no-foo
+                        wxArgs += " " + (condPrev ? condFlag : noCondFlag);
+                    } else {
+                        // Value-style boolean: --foo=true/false
+                        wxArgs += " " + condFlag + "=" + (condPrev ? "true" : "false");
+                    }
+                } else {
+                    wxIgnored.push("condition_on_previous_text");
+                }
             }
 
             if (wxExtra) {
@@ -1080,9 +1147,30 @@
                 w = w2;
             }
 
+            function _readTailSafe(filePath, maxChars) {
+                try {
+                    if (!filePath) return "";
+                    var p = _normalizePath(String(filePath));
+                    var f = new File(p);
+                    if (!f.exists) return "";
+                    var t = _readFileText(p);
+                    var m = (typeof maxChars === "number" && maxChars > 0) ? maxChars : 2000;
+                    if (t && t.length > m) return t.slice(t.length - m);
+                    return String(t || "");
+                } catch (eRt) {
+                    return "";
+                }
+            }
+
             if (w.exitCode !== 0) {
                 var msg = "WhisperX failed (exit=" + w.exitCode + ")";
-                if (w.logPath) msg += "\nlog=" + w.logPath;
+                if (w.metaPath) msg += "\nmeta=" + w.metaPath;
+                if (w.logPath) msg += "\nout=" + w.logPath;
+                if (wxIgnored && wxIgnored.length) msg += "\nignoredArgs=" + wxIgnored.join(", ");
+
+                var tail = _readTailSafe(w.logPath, 2400);
+                if (tail) msg += "\n\n---- whisperx output (tail) ----\n" + tail;
+
                 return respondErr(msg);
             }
 
@@ -1147,6 +1235,8 @@
                 whisperxLog: w.logPath,
                 whisperxFallbackLog: wFallbackLog,
                 alignLog: a.logPath,
+                whisperxArgs: wxArgs,
+                whisperxArgsIgnored: wxIgnored,
                 apply: applyObj.result
             });
         } catch (e) {
