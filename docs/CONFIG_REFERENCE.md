@@ -200,3 +200,12 @@
   - Пример: `C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe`
   - Если ключ задан и файл существует, плагин **на время запуска WhisperX** добавляет папку ffmpeg в `PATH` процесса (через `cmd.exe /c set PATH=...;%PATH%`).
   - Системный `PATH` не изменяется.
+
+
+## Auto Timing
+
+`autoTimingPadStartFrames` (number, default: `6`)
+- На сколько кадров сдвигать НАЧАЛО субтитра влево при Auto Timing (компенсация задержки ASR).
+- Пример: `6` кадров при 25fps = ~0.24 сек раньше.
+- Диапазон: `0..50`
+

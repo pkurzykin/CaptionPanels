@@ -36,5 +36,6 @@
   "whisperxLogprobThreshold": -1.0,
   "whisperxConditionOnPreviousText": false,
   "whisperxExtraArgs": "",
-  "ffmpegExePath": "C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe"
+  "ffmpegExePath": "C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe",
+  "autoTimingPadStartFrames": 6
 }

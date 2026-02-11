@@ -268,6 +268,10 @@
             swMax = Math.round(swMax);
 
 
+            var padStart = Number(getConfigValue("autoTimingPadStartFrames", 6));
+            if (isNaN(padStart) || padStart < 0 || padStart > 50) padStart = 6;
+            padStart = Math.round(padStart);
+
             var rawSp = (cfg && cfg.hasOwnProperty("speakersDbPath")) ? String(cfg["speakersDbPath"] || "") : "";
             var resolvedSp = "";
             try { resolvedSp = String(getSpeakersDbPath() || ""); } catch (eSp) {}
@@ -320,6 +324,7 @@
                 configPath: getConfigPath(),
                 subtitleCharsPerLine: n,
                 subtitleShortWordMaxLen: swMax,
+                autoTimingPadStartFrames: padStart,
                 speakersDbPath: rawSp,
                 speakersDbPathResolved: resolvedSp,
                 topicOptions: topics,

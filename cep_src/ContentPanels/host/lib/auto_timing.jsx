@@ -1182,6 +1182,13 @@
             }
 
             // 4) Run alignment
+            // Pad subtitle start a bit earlier to compensate ASR latency.
+            var padStartFramesCfg = 6;
+            try {
+                var pv = Number(getConfigValue("autoTimingPadStartFrames", 6));
+                if (!isNaN(pv) && pv >= 0 && pv <= 50) padStartFramesCfg = Math.round(pv);
+            } catch (ePad) {}
+
             var alignBaseDir = _getAutoTimingAlignmentDir();
             if (!alignBaseDir) return respondErr("autoTimingAlignmentDir is empty");
             var alignRunDir = _normalizePath(alignBaseDir + "/" + runBase);
@@ -1198,6 +1205,7 @@
                 ' --blocks "' + _normalizePath(blocksPath) + '"' +
                 ' --whisperx-json "' + _normalizePath(whisperJson) + '"' +
                 ' --out-dir "' + _normalizePath(alignRunDir) + '"' +
+                ' --pad-start-frames ' + String(padStartFramesCfg) +
                 ' --lang ' + lang;
 
             var a = _runCmdBody(alignBody, "align", logsDir, stamp);
