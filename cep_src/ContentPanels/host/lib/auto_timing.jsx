@@ -1005,11 +1005,12 @@
                 var condPrev = true;
                 try { condPrev = !!getConfigValue("whisperxConditionOnPreviousText", true); } catch (eC) { condPrev = true; }
 
-                wxArgs += " --beam_size " + String(beam);
-                wxArgs += " --temperature " + String(temp);
-                wxArgs += " --no_speech_threshold " + String(noSpeech);
-                wxArgs += " --logprob_threshold " + String(logprob);
-                wxArgs += " --condition_on_previous_text " + (condPrev ? "true" : "false");
+                // Use "--key=value" form to avoid cmd/click parsing issues with values like -1.
+                wxArgs += " --beam_size=" + String(beam);
+                wxArgs += " --temperature=" + String(temp);
+                wxArgs += " --no_speech_threshold=" + String(noSpeech);
+                wxArgs += " --logprob_threshold=" + String(logprob);
+                wxArgs += " --condition_on_previous_text=" + (condPrev ? "true" : "false");
             }
 
             if (wxExtra) {
