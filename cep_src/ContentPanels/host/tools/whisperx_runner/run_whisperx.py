@@ -24,7 +24,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 def _str2bool(v: Any) -> bool:
@@ -43,8 +43,8 @@ def _ensure_dir(p: Path) -> None:
 
 
 def _write_json(p: Path, obj: Any) -> None:
-    p.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "
-", encoding="utf-8")
+    p.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
 
 
 def _filter_kwargs(func, kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
@@ -66,7 +66,7 @@ def _filter_kwargs(func, kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], List[s
     return accepted, ignored
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(prog="run_whisperx", add_help=True)
     ap.add_argument("--input", required=True, help="Path to input media (.mp4)")
     ap.add_argument("--output_dir", required=True, help="Directory for outputs")
