@@ -67,6 +67,12 @@ function _settingsLoad() {
         var input = document.getElementById("settings-chars");
         if (input) input.value = String(val);
 
+
+        // 1.1) subtitleShortWordMaxLen
+        var swVal = (typeof res.subtitleShortWordMaxLen !== "undefined") ? res.subtitleShortWordMaxLen : 3;
+        var swEl = document.getElementById("settings-short-word-len");
+        if (swEl) swEl.value = String(swVal);
+
         // 2) speakersDbPath
         var sp = "";
         if (typeof res.speakersDbPath === "string" && res.speakersDbPath) {
@@ -180,6 +186,12 @@ function _settingsSave() {
     if (n < 20) n = 20;
     if (n > 200) n = 200;
 
+
+    var swInput = document.getElementById("settings-short-word-len");
+    var sw = _settingsParseInt(swInput ? swInput.value : "", 3);
+    if (sw < 1) sw = 1;
+    if (sw > 10) sw = 10;
+
     var spEl = document.getElementById("settings-speakers-path");
     var sp = spEl ? String(spEl.value || "") : "";
     sp = sp.replace(/\\/g, "/").replace(/^\s+|\s+$/g, "");
@@ -222,6 +234,7 @@ function _settingsSave() {
 
     var items = [
         { key: "subtitleCharsPerLine", value: Number(n) },
+        { key: "subtitleShortWordMaxLen", value: Number(sw) },
         { key: "speakersDbPath", value: String(sp || "") },
         { key: "topicOptions", value: topics },
 

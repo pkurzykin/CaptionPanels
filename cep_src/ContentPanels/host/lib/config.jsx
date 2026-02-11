@@ -263,6 +263,11 @@
             var n = Number(v);
             if (isNaN(n) || n < 20 || n > 200) n = 60;
 
+            var swMax = Number(getConfigValue("subtitleShortWordMaxLen", 3));
+            if (isNaN(swMax) || swMax < 1 || swMax > 10) swMax = 3;
+            swMax = Math.round(swMax);
+
+
             var rawSp = (cfg && cfg.hasOwnProperty("speakersDbPath")) ? String(cfg["speakersDbPath"] || "") : "";
             var resolvedSp = "";
             try { resolvedSp = String(getSpeakersDbPath() || ""); } catch (eSp) {}
@@ -314,6 +319,7 @@
             return respondOk({
                 configPath: getConfigPath(),
                 subtitleCharsPerLine: n,
+                subtitleShortWordMaxLen: swMax,
                 speakersDbPath: rawSp,
                 speakersDbPathResolved: resolvedSp,
                 topicOptions: topics,

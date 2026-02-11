@@ -136,6 +136,14 @@ function splitTextToChunksCore(text) {
     } catch (e) {}
     var linesPerLayer = 3;
     
+    var shortWordMaxLen = 3;
+    try {
+        if (typeof getConfigValue === "function") {
+            var sw = Number(getConfigValue("subtitleShortWordMaxLen", 3));
+            if (!isNaN(sw) && sw >= 1 && sw <= 10) shortWordMaxLen = Math.round(sw);
+        }
+    } catch (e) {}
+
     // Чистим типографику перед нарезкой (общая функция из utils.jsx)
     var fixedText = (typeof fixTypographyText === "function") ? fixTypographyText(text) : text.toString();
 
@@ -147,7 +155,7 @@ function splitTextToChunksCore(text) {
 
     function _isMoveableShortWord(w) {
         if (!w) return false;
-        if (w.length <= 2) return true;
+        if (w.length <= shortWordMaxLen) return true;
         if (w.length === 3 && w === w.toUpperCase()) return true;
         return false;
     }
