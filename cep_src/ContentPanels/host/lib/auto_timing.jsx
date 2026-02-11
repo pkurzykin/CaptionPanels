@@ -125,8 +125,15 @@
 
     function _runCmdBody(body, label, logDir, stamp) {
         // Wrap into cmd.exe so we can capture stderr and always emit an exit code marker.
-        // cmd.exe /c ""<body> 2>&1 & echo __EXIT_CODE__:%errorlevel%__""
-        var cmd = 'cmd.exe /V:OFF /S /C ""' + String(body || "") + ' 2>&1 & echo __EXIT_CODE__:%errorlevel%__"';
+        // We escape quotes in the body and wrap everything with /C "...".
+        // This avoids the fragile cmd.exe /C ""<exe>" ..."" patterns.
+
+        var b = String(body || "");
+        // Escape caret first, then quotes (cmd escaping uses ^)
+        b = b.replace(/\^/g, "^^");
+        b = b.replace(/\"/g, "^\"");
+
+        var cmd = 'cmd.exe /V:OFF /S /C "' + b + ' 2>&1 & echo __EXIT_CODE__:%errorlevel%__"';
 
         var output = "";
         try {
@@ -947,10 +954,8 @@
             if (!py) return respondErr("whisperxPythonPath is not set in config.json");
             if (!(new File(py)).exists) return respondErr("Python not found: " + py);
 
-            var pyExe = _normalizePath(py);
-            if (pyExe.indexOf(" ") !== -1) {
-                return respondErr("Python path contains spaces. Put WhisperX under C:/AE/... (no spaces) and update whisperxPythonPath.");
-            }
+            var pyExe = "\"" + _normalizePath(py) + "\"";
+
 
             var model = "";
             var lang = "";
@@ -1021,7 +1026,7 @@
                     if (ffFile.exists) {
                         var ffDir = _dirName(ff);
                         if (ffDir) {
-                            envPrefix = "set PATH=" + _escapeCmdValue(_normalizePath(ffDir)) + ";%PATH% & ";
+                            envPrefix = "set \"PATH=" + _escapeCmdValue(_normalizePath(ffDir)) + ";%PATH%\" & ";
                         }
                     }
                 }
