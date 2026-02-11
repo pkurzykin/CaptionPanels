@@ -85,7 +85,8 @@
             var n = Number(m[1]);
             if (!isNaN(n)) return n;
         }
-
+        return -1;
+    }
 
     function _isCudaUnavailableError(outputText) {
         var s = String(outputText || "");
@@ -96,7 +97,6 @@
             'no cuda gpus are available',
             'torch.cuda.is_available() is false',
             'cuda driver version is insufficient',
-            'could not load',
             'cudnn',
             'cublas',
             'cuda error',
@@ -104,8 +104,6 @@
             'cuda out of memory',
             'failed to initialize nvml',
             'no kernel image is available',
-            'device-side assert',
-            'unsatisfiedlinkerror',
             'onnxruntimeerror',
             'failed to load cublas',
             'failed to load cudnn'
@@ -124,13 +122,11 @@
 
         return false;
     }
-        return -1;
-    }
 
     function _runCmdBody(body, label, logDir, stamp) {
         // Wrap into cmd.exe so we can capture stderr and always emit an exit code marker.
         // cmd.exe /c ""<body> 2>&1 & echo __EXIT_CODE__:%errorlevel%__""
-        var cmd = 'cmd.exe /c ""' + String(body || "") + ' 2>&1 & echo __EXIT_CODE__:%errorlevel%__"';
+        var cmd = 'cmd.exe /V:OFF /S /C ""' + String(body || "") + ' 2>&1 & echo __EXIT_CODE__:%errorlevel%__"';
 
         var output = "";
         try {
@@ -951,6 +947,11 @@
             if (!py) return respondErr("whisperxPythonPath is not set in config.json");
             if (!(new File(py)).exists) return respondErr("Python not found: " + py);
 
+            var pyExe = _normalizePath(py);
+            if (pyExe.indexOf(" ") !== -1) {
+                return respondErr("Python path contains spaces. Put WhisperX under C:/AE/... (no spaces) and update whisperxPythonPath.");
+            }
+
             var model = "";
             var lang = "";
             var device = "";
@@ -1031,7 +1032,7 @@
             var whisperRunDir = _normalizePath(whisperBaseDir + "/" + runBase);
             _ensureFolder(whisperRunDir);
 
-            var whisperBody = envPrefix + '"' + _normalizePath(py) + '" -m whisperx "' + _normalizePath(videoPath) + '"' +
+            var whisperBody = envPrefix + pyExe + ' -m whisperx "' + _normalizePath(videoPath) + '"' +
                 ' --language ' + lang +
                 ' --model ' + model +
                 ' --device ' + device +
@@ -1046,7 +1047,7 @@
             if (w.exitCode !== 0 && String(device || "").toLowerCase() === "cuda" && _isCudaUnavailableError(w.output)) {
                 deviceUsed = "cpu";
 
-                var whisperBodyCpu = envPrefix + '"' + _normalizePath(py) + '" -m whisperx "' + _normalizePath(videoPath) + '"' +
+                var whisperBodyCpu = envPrefix + pyExe + ' -m whisperx "' + _normalizePath(videoPath) + '"' +
                     ' --language ' + lang +
                     ' --model ' + model +
                     ' --device ' + deviceUsed +
@@ -1084,7 +1085,7 @@
             scriptPath = _normalizePath(scriptPath);
             if (!(new File(scriptPath)).exists) return respondErr("transcribe_align.py not found: " + scriptPath);
 
-            var alignBody = '"' + _normalizePath(py) + '" "' + scriptPath + '"' +
+            var alignBody = pyExe + ' "' + scriptPath + '"' +
                 ' --blocks "' + _normalizePath(blocksPath) + '"' +
                 ' --whisperx-json "' + _normalizePath(whisperJson) + '"' +
                 ' --out-dir "' + _normalizePath(alignRunDir) + '"' +
