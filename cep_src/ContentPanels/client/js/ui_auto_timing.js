@@ -89,6 +89,7 @@ function _formatTimingsPreview(preview) {
     msg += "\nInvalid items: " + (p.invalidCount || 0);
 
     msg += "\n\nSettings:";
+    msg += "\n  padStartFrames: " + (s.padStartFrames || 0);
     msg += "\n  padEndFrames: " + (s.padEndFrames || 0);
     msg += "\n  minDurationFrames: " + (s.minDurationFrames || 0);
 

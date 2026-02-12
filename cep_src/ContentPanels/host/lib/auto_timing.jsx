@@ -626,7 +626,15 @@
             try { v = _asNum(s[key]); } catch (e) { v = null; }
             return (v === null) ? def : v;
         }
+        // Default padStartFrames compensates for template intro animation
+        // (text appears a few frames after the precomp start).
+        var defaultPadStart = 6;
+        try {
+            var cfgPadStart = _asNum(getConfigValue("autoTimingPadStartFrames", defaultPadStart));
+            if (cfgPadStart !== null) defaultPadStart = cfgPadStart;
+        } catch (eCfg) {}
         return {
+            padStartFrames: n("padStartFrames", defaultPadStart),
             padEndFrames: n("padEndFrames", 0),
             minDurationFrames: n("minDurationFrames", 1)
         };
@@ -664,7 +672,7 @@
                 continue;
             }
 
-            var start = t.start;
+            var start = t.start - (st.padStartFrames / fps);
             var end = t.end + (st.padEndFrames / fps);
 
             // Minimum duration

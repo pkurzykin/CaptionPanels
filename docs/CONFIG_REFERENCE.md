@@ -81,6 +81,13 @@
 - `autoTimingOutDir` (string)
   - Legacy ключ (оставлен для совместимости). Рекомендуется использовать специализированные каталоги ниже.
 
+- `autoTimingPadStartFrames` (number)
+  - Паддинг к началу субтитра в кадрах (pre-roll).
+  - Практический смысл: если в шаблоне субтитра есть короткая "интро" анимация и текст появляется не на первом кадре блока,
+    то без этого параметра визуально будет ощущение, что субтитры "опаздывают" на несколько кадров.
+  - Значение по умолчанию: `6` (для 25 fps это ~0.24 сек).
+  - Можно переопределить в `alignment.json.settings.padStartFrames`, но если там нет — используется значение из config.
+
 - `autoTimingBlocksDir` (string)
   - Куда сохраняется `blocks_*.json` при Export Blocks.
   - Рекомендация: `C:/AE/CaptionPanelsData/auto_timing/blocks`
@@ -176,6 +183,7 @@
   "autoTimingWhisperXDir": "C:/AE/CaptionPanelsData/auto_timing/whisperx",
   "autoTimingAlignmentDir": "C:/AE/CaptionPanelsData/auto_timing/alignment",
   "autoTimingLogsDir": "C:/AE/CaptionPanelsData/auto_timing/logs",
+  "autoTimingPadStartFrames": 6,
 
   "whisperxPythonPath": "C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe",
   "whisperxRunnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
