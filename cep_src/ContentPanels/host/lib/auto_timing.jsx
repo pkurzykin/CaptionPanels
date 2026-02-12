@@ -80,7 +80,7 @@
 
     function _parseExitCode(outputText) {
         var s = String(outputText || "");
-        var m = s.match(/__EXIT_CODE__:(\d+)__/);
+        var m = s.match(/__EXIT_CODE__:(-?\d+)__/);
         if (m && m[1] !== undefined) {
             var n = Number(m[1]);
             if (!isNaN(n)) return n;
@@ -123,6 +123,12 @@
         return false;
     }
 
+    function _isHardCrashExitCode(code) {
+        // Negative Windows exit codes often come from native crashes / fastfail,
+        // e.g. -1073740791 (0xC0000409) stack buffer overrun.
+        try { return Number(code) < 0; } catch (e) { return false; }
+    }
+
     function _runCmdBody(body, label, logDir, stamp) {
         // Wrap into cmd.exe so we can capture stderr and always emit an exit code marker.
         // system.callSystem() can truncate long outputs; when logDir is provided we redirect
@@ -134,19 +140,19 @@
         } catch (eP) { outLogPath = ""; }
 
         var b = String(body || "");
-        if (outLogPath) {
-            b += ' 1> "' + outLogPath + '" 2>&1';
-        } else {
-            b += " 2>&1";
-        }
 
         // Escape caret first, then exclamation (delayed expansion), then quotes (cmd escaping uses ^)
+        // NOTE: We escape only the user command body, and build redirections/exit marker separately.
         b = b.replace(/\^/g, "^^");
         b = b.replace(/!/g, "^!");
         b = b.replace(/"/g, "^\"");
 
+        var redir = outLogPath ? (' 1> "' + outLogPath + '" 2>&1') : " 2>&1";
+        var exitToFile = outLogPath ? (' & echo __EXIT_CODE__:!errorlevel!__>>"' + outLogPath + '"') : "";
+
         // Use delayed expansion so !errorlevel! reflects the exit code after running the command.
-        var cmd = 'cmd.exe /V:ON /S /C "' + b + ' & echo __EXIT_CODE__:!errorlevel!__"';
+        // Also append exit code marker into outLogPath (if any) so the file is never empty.
+        var cmd = 'cmd.exe /V:ON /S /C "' + b + redir + exitToFile + ' & echo __EXIT_CODE__:!errorlevel!__"';
 
         var output = "";
         try {
@@ -1108,7 +1114,11 @@
             // Auto-fallback: if CUDA fails (driver/GPU not available), retry once on CPU.
             var deviceUsed = device;
             var wFallbackLog = "";
-            if (w.exitCode !== 0 && String(device || "").toLowerCase() === "cuda" && _isCudaUnavailableError(w.output)) {
+            if (
+                w.exitCode !== 0 &&
+                String(device || "").toLowerCase() === "cuda" &&
+                (_isCudaUnavailableError(w.output) || _isHardCrashExitCode(w.exitCode))
+            ) {
                 deviceUsed = "cpu";
 
                 var whisperBodyCpu = envPrefix + pyExe + ' "' + runnerPath + '"' +
