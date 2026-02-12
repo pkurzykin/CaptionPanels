@@ -22,7 +22,6 @@
   "autoTimingWhisperXDir": "C:/AE/CaptionPanelsData/auto_timing/whisperx",
   "autoTimingAlignmentDir": "C:/AE/CaptionPanelsData/auto_timing/alignment",
   "autoTimingLogsDir": "C:/AE/CaptionPanelsData/auto_timing/logs",
-  "autoTimingPadStartFrames": 6,
   "whisperxPythonPath": "C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe",
   "whisperxRunnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
   "whisperxModel": "medium",

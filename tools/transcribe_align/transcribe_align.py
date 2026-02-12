@@ -76,7 +76,11 @@ def load_words(path: Path) -> List[Word]:
         e = float(it.get("e", 0.0))
         if not w:
             continue
-        out.append(Word(w=_norm_text(w), s=s, e=e))
+        wn = _norm_text(w)
+        # Drop tokens like "-" that can appear in some Whisper outputs.
+        if not wn or not re.search(r"[0-9a-zа-я]", wn, flags=re.IGNORECASE):
+            continue
+        out.append(Word(w=wn, s=s, e=e))
     return out
 
 def load_words_from_whisperx_json(path: Path) -> List[Word]:
@@ -91,6 +95,9 @@ def load_words_from_whisperx_json(path: Path) -> List[Word]:
                 return
             w = _norm_text(str(word).strip())
             if not w:
+                return
+            # Drop tokens like "-" that can appear in some Whisper outputs.
+            if not re.search(r"[0-9a-zа-я]", w, flags=re.IGNORECASE):
                 return
             if s is None or e is None:
                 return
@@ -364,18 +371,42 @@ def match_blocks(
 
         anchors = choose_anchors(toks, freq, int(anchors_per_block or 1))
 
+        def _tok_offsets(tok: str) -> List[int]:
+            # All indices where this token appears in the block.
+            out: List[int] = []
+            for ti, t in enumerate(toks):
+                if t == tok:
+                    out.append(ti)
+            return out
+
         cand: List[int] = []
         for a in anchors:
+            offsets = _tok_offsets(a)
+            if not offsets:
+                continue
             for i in pos.get(a, []):
-                if start_from <= i < end_at:
-                    cand.append(i)
+                if not (start_from <= i < end_at):
+                    continue
+                # Candidate "block start" positions derived from the anchor position minus
+                # the anchor offset inside the block.
+                for off in offsets:
+                    st = i - off
+                    if st < 0:
+                        continue
+                    cand.append(st)
 
         if not cand:
             # Fallback: try the first token as an anchor.
             a0 = toks[0]
+            offsets0 = _tok_offsets(a0) or [0]
             for i in pos.get(a0, []):
-                if start_from <= i < end_at:
-                    cand.append(i)
+                if not (start_from <= i < end_at):
+                    continue
+                for off in offsets0:
+                    st = i - off
+                    if st < 0:
+                        continue
+                    cand.append(st)
 
         if not cand:
             unmatched.append({"segId": seg, "reason": "anchor_not_found", "anchors": anchors})
