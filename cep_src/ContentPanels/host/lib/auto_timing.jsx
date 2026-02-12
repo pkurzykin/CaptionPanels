@@ -981,6 +981,8 @@
             try { vad = String(getConfigValue("whisperxVadMethod", "silero") || "silero"); } catch (eV) { vad = "silero"; }
             var wxAdv = false;
             try { wxAdv = !!getConfigValue("whisperxAdvancedArgsEnabled", false); } catch (eAx) { wxAdv = false; }
+            var wxApplyShift = true;
+            try { wxApplyShift = !!getConfigValue("whisperxApplyTimeShift", true); } catch (eSh) { wxApplyShift = true; }
 
             var wxExtra = "";
             try { wxExtra = String(getConfigValue("whisperxExtraArgs", "") || ""); } catch (eEx) { wxExtra = ""; }
@@ -988,6 +990,9 @@
 
             var wxArgs = "";
             var wxIgnored = [];
+            var wxTimeShiftAppliedSec = 0;
+            var wxTimeShiftSuggestedSec = 0;
+            var wxOnsetBiasSec = null;
 
             function _num(key, def) {
                 var v = Number(getConfigValue(key, def));
@@ -1084,6 +1089,10 @@
                 whisperBody += ' --cache_dir "' + _normalizePath(cacheDir) + '"';
             }
 
+            if (wxApplyShift) {
+                whisperBody += " --apply_time_shift";
+            }
+
             whisperBody += wxArgs;
 
             var w = _runCmdBody(whisperBody, "whisperx_runner", logsDir, stamp);
@@ -1105,6 +1114,10 @@
 
                 if (cacheDir) {
                     whisperBodyCpu += ' --cache_dir "' + _normalizePath(cacheDir) + '"';
+                }
+
+                if (wxApplyShift) {
+                    whisperBodyCpu += " --apply_time_shift";
                 }
 
                 whisperBodyCpu += wxArgs;
@@ -1148,6 +1161,9 @@
                     if (m && m.argsIgnored && (m.argsIgnored instanceof Array)) {
                         wxIgnored = m.argsIgnored;
                     }
+                    try { wxTimeShiftAppliedSec = Number(m.timeShiftAppliedSec) || 0; } catch (eTs1) { wxTimeShiftAppliedSec = 0; }
+                    try { wxTimeShiftSuggestedSec = Number(m.timeShiftSuggestedSec) || 0; } catch (eTs2) { wxTimeShiftSuggestedSec = 0; }
+                    try { wxOnsetBiasSec = (m.onsetBiasSec && typeof m.onsetBiasSec === "object") ? m.onsetBiasSec : null; } catch (eTs3) { wxOnsetBiasSec = null; }
                 }
             } catch (eMeta) {}
 
@@ -1223,6 +1239,10 @@
                 alignLog: a.logPath,
                 whisperxArgs: wxArgs,
                 whisperxArgsIgnored: wxIgnored,
+                whisperxApplyTimeShift: wxApplyShift,
+                whisperxTimeShiftAppliedSec: wxTimeShiftAppliedSec,
+                whisperxTimeShiftSuggestedSec: wxTimeShiftSuggestedSec,
+                whisperxOnsetBiasSec: wxOnsetBiasSec,
                 apply: applyObj.result
             });
         } catch (e) {

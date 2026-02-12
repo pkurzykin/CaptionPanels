@@ -46,6 +46,210 @@ def _write_json(p: Path, obj: Any) -> None:
     p.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _median(vals: List[float]) -> float:
+    if not vals:
+        return 0.0
+    a = sorted(float(x) for x in vals)
+    n = len(a)
+    mid = n // 2
+    if n % 2 == 1:
+        return float(a[mid])
+    return float((a[mid - 1] + a[mid]) / 2.0)
+
+
+def _percentile(vals: List[float], p: float) -> float:
+    """Simple percentile for small diagnostic stats (p in [0..1])."""
+    if not vals:
+        return 0.0
+    a = sorted(float(x) for x in vals)
+    if p <= 0:
+        return float(a[0])
+    if p >= 1:
+        return float(a[-1])
+    idx = int(round((len(a) - 1) * p))
+    idx = max(0, min(len(a) - 1, idx))
+    return float(a[idx])
+
+
+def _clamp(v: float, lo: float, hi: float) -> float:
+    return float(max(lo, min(hi, v)))
+
+
+def _compute_onset_bias_from_segments(segments: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Estimate systematic "late start" bias.
+
+    WhisperX word-level timestamps can be slightly later than the perceived speech onset,
+    especially with VAD/segmentation. We estimate the typical delta between segment start
+    and the first aligned word start.
+    """
+    deltas: List[float] = []
+
+    for seg in segments:
+        if not isinstance(seg, dict):
+            continue
+        try:
+            seg_start = float(seg.get("start", 0.0))
+        except Exception:
+            continue
+
+        wlist = seg.get("words")
+        if not isinstance(wlist, list) or not wlist:
+            continue
+
+        first: Optional[float] = None
+        for w in wlist:
+            if not isinstance(w, dict):
+                continue
+            st = w.get("start")
+            if st is None:
+                st = w.get("s")
+            if st is None:
+                continue
+            try:
+                ss = float(st)
+            except Exception:
+                continue
+            if first is None or ss < first:
+                first = ss
+
+        if first is None:
+            continue
+
+        d = float(first - seg_start)
+        # Guard rails: ignore weird negatives and huge gaps.
+        if d < 0 or d > 1.0:
+            continue
+        deltas.append(d)
+
+    med = _median(deltas)
+    stats = {
+        "count": int(len(deltas)),
+        "median": round(float(med), 4),
+        "p90": round(float(_percentile(deltas, 0.90)), 4) if deltas else 0.0,
+        "min": round(float(min(deltas)), 4) if deltas else 0.0,
+        "max": round(float(max(deltas)), 4) if deltas else 0.0,
+    }
+    return {"deltas": deltas, "stats": stats}
+
+
+def _compute_onset_bias_from_original_and_aligned(
+    original_segments: List[Dict[str, Any]],
+    aligned_segments: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Estimate systematic bias using original ASR segments vs aligned words.
+
+    Important: whisperx.align() often sets segment.start == first_word.start, which makes the
+    naive "segment.start -> first_word.start" delta always 0. To detect a real onset bias,
+    we compare the original ASR segment start (from faster-whisper) against the first aligned
+    word start after WhisperX alignment.
+    """
+    deltas: List[float] = []
+
+    orig_by_id: Dict[int, float] = {}
+    for i, seg in enumerate(original_segments):
+        if not isinstance(seg, dict):
+            continue
+        seg_id = seg.get("id", i)
+        try:
+            sid = int(seg_id)
+        except Exception:
+            continue
+        try:
+            orig_by_id[sid] = float(seg.get("start", 0.0))
+        except Exception:
+            continue
+
+    for idx, seg in enumerate(aligned_segments):
+        if not isinstance(seg, dict):
+            continue
+
+        # Find original start by id when possible, otherwise fall back to index.
+        orig_start: Optional[float] = None
+        if "id" in seg:
+            try:
+                orig_start = float(orig_by_id.get(int(seg.get("id")), 0.0))
+            except Exception:
+                orig_start = None
+        if orig_start is None:
+            if idx < len(original_segments) and isinstance(original_segments[idx], dict):
+                try:
+                    orig_start = float(original_segments[idx].get("start", 0.0))
+                except Exception:
+                    orig_start = None
+        if orig_start is None:
+            continue
+
+        # Prefer the first word start (more stable than seg.start).
+        wlist = seg.get("words")
+        if not isinstance(wlist, list) or not wlist:
+            continue
+
+        first: Optional[float] = None
+        for w in wlist:
+            if not isinstance(w, dict):
+                continue
+            st = w.get("start")
+            if st is None:
+                st = w.get("s")
+            if st is None:
+                continue
+            try:
+                ss = float(st)
+            except Exception:
+                continue
+            if first is None or ss < first:
+                first = ss
+
+        if first is None:
+            continue
+
+        d = float(first - float(orig_start))
+        # Guard rails: ignore weird negatives and huge gaps.
+        if d < 0 or d > 1.0:
+            continue
+        deltas.append(d)
+
+    med = _median(deltas)
+    stats = {
+        "count": int(len(deltas)),
+        "median": round(float(med), 4),
+        "p90": round(float(_percentile(deltas, 0.90)), 4) if deltas else 0.0,
+        "min": round(float(min(deltas)), 4) if deltas else 0.0,
+        "max": round(float(max(deltas)), 4) if deltas else 0.0,
+    }
+    return {"deltas": deltas, "stats": stats}
+
+
+def _apply_time_shift_to_segments(segments: List[Dict[str, Any]], shift_sec: float) -> None:
+    """In-place shift of segment/word timestamps (seconds)."""
+    if not segments:
+        return
+    if abs(float(shift_sec)) < 1e-9:
+        return
+
+    for seg in segments:
+        if not isinstance(seg, dict):
+            continue
+        for k in ("start", "end"):
+            if k in seg and seg[k] is not None:
+                try:
+                    seg[k] = float(seg[k]) + float(shift_sec)
+                except Exception:
+                    pass
+        wlist = seg.get("words")
+        if not isinstance(wlist, list):
+            continue
+        for w in wlist:
+            if not isinstance(w, dict):
+                continue
+            for k in ("start", "end", "s", "e"):
+                if k in w and w[k] is not None:
+                    try:
+                        w[k] = float(w[k]) + float(shift_sec)
+                    except Exception:
+                        pass
+
+
 
 def _filter_kwargs(func, kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
     """Return (accepted_kwargs, ignored_keys) based on func signature."""
@@ -78,6 +282,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--vad_method", default="silero", help="silero or none")
     ap.add_argument("--compute_type", default="", help="Optional faster-whisper compute_type")
     ap.add_argument("--cache_dir", default="", help="Optional cache root (will set HF_HOME there)")
+
+    ap.add_argument(
+        "--apply_time_shift",
+        action="store_true",
+        help="Apply heuristic negative shift to timestamps to compensate systematic late starts",
+    )
 
     # Advanced decode params (optional; if not set we use model defaults)
     ap.add_argument("--beam_size", type=int, default=None)
@@ -183,6 +393,31 @@ def main(argv: Optional[List[str]] = None) -> int:
     except Exception as e:
         raise SystemExit(f"Alignment failed: {e}")
 
+    # 3.5) Estimate onset bias and optionally apply a global time shift.
+    # Compare original ASR segment start -> first aligned word start.
+    onset = _compute_onset_bias_from_original_and_aligned(
+        segments_out,
+        aligned_segments if isinstance(aligned_segments, list) else [],
+    )
+    onset_stats = onset.get("stats", {}) if isinstance(onset, dict) else {}
+
+    # Suggested shift: move everything earlier by the typical segment->first-word delta.
+    # Clamp to a sane range to avoid accidental huge shifts on bad input.
+    suggested_shift_sec = 0.0
+    try:
+        if isinstance(onset_stats, dict) and int(onset_stats.get("count", 0)) >= 5:
+            med = float(onset_stats.get("median", 0.0))
+            # Ignore tiny biases to reduce jitter.
+            if med >= 0.08:
+                suggested_shift_sec = -_clamp(med, 0.0, 0.40)
+    except Exception:
+        suggested_shift_sec = 0.0
+
+    applied_shift_sec = 0.0
+    if bool(args.apply_time_shift) and abs(suggested_shift_sec) > 1e-9:
+        _apply_time_shift_to_segments(aligned_segments, suggested_shift_sec)
+        applied_shift_sec = float(suggested_shift_sec)
+
     out_obj: Dict[str, Any] = {
         "schemaVersion": 1,
         "language": lang,
@@ -209,11 +444,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         "argsIgnored": sorted(set(ignored_keys + [a for a in unknown if a.startswith('--')])),
         "unknownArgs": unknown,
         "segments": len(aligned_segments),
+        "onsetBiasSec": onset_stats,
+        "timeShiftSuggestedSec": round(float(suggested_shift_sec), 4),
+        "timeShiftAppliedSec": round(float(applied_shift_sec), 4),
+        "timeShiftReason": "asr_segment_start_vs_first_word_start_median",
     }
     _write_json(out_dir / "whisperx_runner_meta.json", meta)
 
     # Keep stdout short (AE callSystem can truncate).
-    print(f"OK out_json={out_json} segments={len(aligned_segments)}")
+    print(
+        f"OK out_json={out_json} segments={len(aligned_segments)} "
+        f"shiftAppliedSec={round(float(applied_shift_sec), 4)}"
+    )
     return 0
 
 

@@ -120,6 +120,13 @@
 - `whisperxVadMethod` (string)
   - Пример: `silero`.
 
+- `whisperxApplyTimeShift` (boolean)
+  - Если `true`, WhisperX runner после выравнивания оценивает систематический "late start" (насколько начало первого слова в сегменте позже начала сегмента)
+    и при необходимости применяет небольшой отрицательный сдвиг ко всем таймкодам (в секундах).
+  - Это помогает в кейсе, когда визуально субтитры появляются на несколько кадров позже начала говорения.
+  - По умолчанию: `true`.
+  - Диагностика пишется в `whisperx_runner_meta.json` (поля `onsetBiasSec`, `timeShiftSuggestedSec`, `timeShiftAppliedSec`).
+
 - `whisperxAdvancedArgsEnabled` (boolean)
   - Включает передачу расширенных параметров в ASR runner (faster-whisper decode params).
   - Если `false` — плагин использует только базовые параметры (`model`, `language`, `device`, `vad_method`).
@@ -176,6 +183,7 @@
   "whisperxLanguage": "ru",
   "whisperxDevice": "cuda",
   "whisperxVadMethod": "silero",
+  "whisperxApplyTimeShift": true,
 
   "whisperxAdvancedArgsEnabled": false,
   "whisperxBeamSize": 5,
@@ -210,5 +218,8 @@
 
 ## Auto Timing
 
-StartPad (сдвиг начала субтитров) удален. Теперь Auto Timing применяет тайминги строго по данным выравнивания (alignment.json) без автоматического смещения начала.
+StartPad (ручной сдвиг начала субтитров) удален.
 
+Если визуально субтитры начинают появляться чуть позже начала речи, используем `whisperxApplyTimeShift: true`:
+- runner оценивает систематический "late start" по статистике сегментов
+- при необходимости применяет небольшой отрицательный сдвиг ко всем таймкодам (см. `whisperx_runner_meta.json`)

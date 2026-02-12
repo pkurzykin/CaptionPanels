@@ -44,6 +44,11 @@ function _formatWhisperAutoTimingSummary(res) {
 
     if (r.whisperxArgs) msg += "\nWhisperX args: " + r.whisperxArgs;
     if (r.whisperxArgsIgnored && r.whisperxArgsIgnored.length) msg += "\nWhisperX ignored: " + r.whisperxArgsIgnored.join(", ");
+    if (typeof r.whisperxTimeShiftAppliedSec !== "undefined") msg += "\nTime shift applied (sec): " + r.whisperxTimeShiftAppliedSec;
+    if (typeof r.whisperxTimeShiftSuggestedSec !== "undefined") msg += "\nTime shift suggested (sec): " + r.whisperxTimeShiftSuggestedSec;
+    if (r.whisperxOnsetBiasSec && typeof r.whisperxOnsetBiasSec === "object") {
+        msg += "\nOnset bias (sec): median=" + (r.whisperxOnsetBiasSec.median || 0) + " p90=" + (r.whisperxOnsetBiasSec.p90 || 0) + " n=" + (r.whisperxOnsetBiasSec.count || 0);
+    }
 
     if (typeof a.total !== "undefined") msg += "\nTotal: " + (a.total || 0);
     if (typeof a.applied !== "undefined") msg += "\nApplied: " + (a.applied || 0);
