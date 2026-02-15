@@ -106,32 +106,148 @@
         return null;
     }
 
+    function _readTextFile(filePath) {
+        var f = null;
+        try {
+            f = new File(filePath);
+            if (!f.exists) return "";
+            f.encoding = "UTF-8";
+            if (!f.open("r")) return "";
+            var t = f.read();
+            f.close();
+            if (t && String(t).length) return String(t);
+        } catch (e1) {
+            try { if (f && f.opened) f.close(); } catch (e2) {}
+        }
+        try {
+            // Fallback to system code page.
+            f = new File(filePath);
+            if (!f.exists) return "";
+            f.encoding = "";
+            if (!f.open("r")) return "";
+            var t2 = f.read();
+            f.close();
+            if (t2 && String(t2).length) return String(t2);
+        } catch (e3) {
+            try { if (f && f.opened) f.close(); } catch (e4) {}
+        }
+        try {
+            // Fallback to UTF-16.
+            f = new File(filePath);
+            if (!f.exists) return "";
+            f.encoding = "UTF-16";
+            if (!f.open("r")) return "";
+            var t3 = f.read();
+            f.close();
+            return String(t3 || "");
+        } catch (e5) {
+            try { if (f && f.opened) f.close(); } catch (e6) {}
+            return "";
+        }
+    }
+
+    function _parseExitCode(outputText) {
+        var s = String(outputText || "");
+        var m = s.match(/__EXIT_CODE__:(-?\d+)__/);
+        if (m && m[1] !== undefined) {
+            var n = Number(m[1]);
+            if (!isNaN(n)) return n;
+        }
+        return -1;
+    }
+
+    function _escapeCmdArg(s) {
+        return String(s || "").replace(/"/g, '""');
+    }
+
+    function _toCmdWinPath(p) {
+        // cmd.exe on Windows is safer with backslashes for UNC/local paths.
+        return String(p || "").replace(/\//g, "\\");
+    }
+
+    function _containsNonAscii(s) {
+        return /[^\x00-\x7F]/.test(String(s || ""));
+    }
+
+    function _ensureHiddenRunnerScript(dirPath) {
+        try {
+            var dir = _normalizePath(dirPath || "");
+            if (!dir) {
+                try { dir = _normalizePath(Folder.temp.fsName + "/CaptionPanels"); } catch (e0) { dir = ""; }
+            }
+            if (!dir) return "";
+            _ensureFolder(dir);
+
+            var vbsPath = _normalizePath(dir + "/__cp_run_hidden.vbs");
+            var f = new File(vbsPath);
+            if (!f.exists) {
+                var script =
+                    'On Error Resume Next\n' +
+                    'Dim sh, cmd, code\n' +
+                    'cmd = ""\n' +
+                    'If WScript.Arguments.Count > 0 Then cmd = WScript.Arguments(0)\n' +
+                    'Set sh = CreateObject("WScript.Shell")\n' +
+                    'code = sh.Run(cmd, 0, True)\n' +
+                    'If Err.Number <> 0 Then\n' +
+                    '  WScript.Echo "__EXIT_CODE__:-1__"\n' +
+                    '  WScript.Echo "VBS_RUN_ERROR: " & Err.Description\n' +
+                    'Else\n' +
+                    '  WScript.Echo "__EXIT_CODE__:" & CStr(code) & "__"\n' +
+                    'End If\n';
+                _writeTextFile(vbsPath, script);
+            }
+            return vbsPath;
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function _runHiddenCommand(cmd, helperDir) {
+        var c = String(cmd || "");
+        var vbsPath = _ensureHiddenRunnerScript(helperDir);
+        if (!vbsPath) {
+            try { return system.callSystem(c); } catch (e0) { return "callSystem error: " + String(e0 || "Unknown error"); }
+        }
+
+        var runCmd = 'cscript //nologo "' + _normalizePath(vbsPath) + '" "' + _escapeCmdArg(c) + '"';
+        try {
+            var out = system.callSystem(runCmd);
+            if (_parseExitCode(out) !== -1) return out;
+        } catch (e1) {}
+
+        try { return system.callSystem(c); } catch (e2) { return "callSystem error: " + String(e2 || "Unknown error"); }
+    }
+
     function _decodeURIComponentSafe(s) {
         var v = String(s || "");
         // File.name can be URI-encoded for non-ASCII (e.g. %D0%A5...), so try to decode it.
         try { return decodeURIComponent(v); } catch (e) { return v; }
     }
 
-    function _runWord2Json(exePath, docxPath, outJsonPath) {
+    function _runWord2Json(exePath, docxPath, outJsonPath, processLogPath) {
         // Use cmd.exe so we can capture stderr (2>&1) and always get an exit code marker.
-        // Pattern: cmd.exe /c ""<exe>" "<docx>" --out "<json>" 2>&1 & echo __EXIT_CODE__:%errorlevel%__""
-        var cmd = 'cmd.exe /c ""' + exePath + '" "' + docxPath + '" --out "' + outJsonPath + '" 2>&1 & echo __EXIT_CODE__:%errorlevel%__"';
+        // Run hidden via WScript.Shell so user does not see a console window.
+        var procLog = _normalizePath(processLogPath || (_dirName(outJsonPath) + "/word2json_process.log"));
+        var exe = _toCmdWinPath(exePath);
+        var doc = _toCmdWinPath(docxPath);
+        var out = _toCmdWinPath(outJsonPath);
+        var log = _toCmdWinPath(procLog);
+        var cmd = 'cmd.exe /V:ON /D /Q /S /C ""' + exe + '" "' + doc + '" --out "' + out + '" 1> "' + log + '" 2>&1 & echo __EXIT_CODE__:!errorlevel!__>>"' + log + '""';
 
-        var output = "";
-        try {
-            output = system.callSystem(cmd);
-        } catch (e) {
-            var msg = "";
-            try {
-                msg = (e && (e.message || e.description)) ? (e.message || e.description) : String(e);
-            } catch (e2) {
-                msg = "Permission denied";
-            }
-            output = "callSystem error: " + msg + " (is Preferences > Scripting & Expressions > Allow Scripts to Write Files and Access Network enabled?)";
-        }
+        var runOut = _runHiddenCommand(cmd, _dirName(procLog));
+        var output = _readTextFile(procLog);
+        if (!output) output = String(runOut || "");
+        var exitCode = _parseExitCode(output);
+        if (exitCode === -1) exitCode = _parseExitCode(runOut);
 
-        return { cmd: cmd, output: output };
+        return { cmd: cmd, output: output, exitCode: exitCode, processLogPath: procLog };
     }
+
+    pickWordFileForImport = function () {
+        var file = File.openDialog("Выберите Word (.docx)", "*.docx");
+        if (!file) return respondErr("CANCELLED");
+        return respondOk({ path: _normalizePath(file.fsName) });
+    };
 
     importWordFromDialog = function () {
         var file = File.openDialog("Выберите Word (.docx)", "*.docx");
@@ -206,13 +322,39 @@
 
             var outJsonPath = outDir + "/" + safeBase + "_" + _timestamp() + ".json";
             var logPath = outDir + "/word2json_last.log";
+            var processLogPath = outDir + "/word2json_process_last.log";
+            var stagedInputPath = "";
 
             // Normalize to forward slashes for cmd quoting stability.
             var exeCmd = _normalizePath(exePath);
             var docCmd = _normalizePath(docxPath);
             var outCmd = _normalizePath(outJsonPath);
 
-            var run = _runWord2Json(exeCmd, docCmd, outCmd);
+            // Stage source DOCX to a local ASCII-only path.
+            // This avoids UNC/non-ASCII issues in hidden cmd execution.
+            try {
+                var stageDir = _normalizePath(outDir + "/_input_stage");
+                _ensureFolder(stageDir);
+                stagedInputPath = _normalizePath(stageDir + "/input_" + _timestamp() + ".docx");
+
+                var dstDoc = new File(stagedInputPath);
+                if (dstDoc.exists) {
+                    try { dstDoc.remove(); } catch (eRm) {}
+                }
+                if (!inFile.copy(stagedInputPath)) {
+                    stagedInputPath = "";
+                }
+            } catch (eStage) {
+                stagedInputPath = "";
+            }
+
+            if (stagedInputPath) {
+                docCmd = stagedInputPath;
+            } else if (String(docCmd || "").indexOf("//") === 0 || _containsNonAscii(docCmd)) {
+                return respondErr("Cannot stage DOCX to local temp path. Check access to: " + outDir);
+            }
+
+            var run = _runWord2Json(exeCmd, docCmd, outCmd, processLogPath);
             var output = run && run.output ? String(run.output) : "";
 
             // Save command/output to a log file for troubleshooting.
@@ -222,12 +364,23 @@
                 logText += "config=" + String(getConfigPath ? getConfigPath() : "") + "\n";
                 logText += "exe=" + String(exePath || "") + "\n";
                 logText += "docx=" + String(docxPath || "") + "\n";
+                if (stagedInputPath) logText += "docxStaged=" + String(stagedInputPath || "") + "\n";
                 logText += "outDir=" + String(outDir || "") + "\n";
                 logText += "outJson=" + String(outJsonPath || "") + "\n";
+                if (run && run.processLogPath) logText += "processLog=" + String(run.processLogPath) + "\n";
                 logText += "\ncmd:\n" + String(run && run.cmd ? run.cmd : "") + "\n";
+                logText += "exitCode=" + String(run && typeof run.exitCode !== "undefined" ? run.exitCode : "") + "\n";
                 logText += "\noutput:\n" + String(output || "") + "\n";
                 _writeTextFile(logPath, logText);
             } catch (eLog) {}
+
+            if (run && typeof run.exitCode !== "undefined" && Number(run.exitCode) !== 0) {
+                var fail = "word2json failed (exit=" + String(run.exitCode) + ")";
+                fail += "\nlog=" + logPath;
+                if (run.processLogPath) fail += "\nprocessLog=" + run.processLogPath;
+                fail += "\nOutput:\n" + String(output || "");
+                return respondErr(fail);
+            }
 
             var outFile = new File(outJsonPath);
             if (!outFile.exists) {

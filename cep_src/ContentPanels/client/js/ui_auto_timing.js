@@ -188,6 +188,50 @@ function _evalAe(cmd, cb) {
     });
 }
 
+function _startAutoTimingProgress() {
+    var dots = 0;
+    var t0 = Date.now();
+    showTaskProgress("Auto Timing (WhisperX)", "Preparing...");
+    updateTaskProgress(2, "Preparing...");
+
+    var timer = setInterval(function () {
+        var sec = (Date.now() - t0) / 1000.0;
+        var pct = 2;
+        var caption = "Preparing...";
+
+        if (sec < 3) {
+            pct = 2 + sec * 4; // 2..14
+            caption = "Exporting subtitle blocks...";
+        } else if (sec < 25) {
+            pct = 14 + (sec - 3) * 2.1; // 14..60
+            caption = "Running WhisperX transcription...";
+        } else if (sec < 55) {
+            pct = 60 + (sec - 25) * 0.9; // 60..87
+            caption = "Aligning words to subtitle blocks...";
+        } else if (sec < 75) {
+            pct = 87 + (sec - 55) * 0.35; // 87..94
+            caption = "Applying timings in After Effects...";
+        } else {
+            pct = 94;
+            dots = (dots + 1) % 4;
+            caption = "Finalizing" + Array(dots + 1).join(".");
+        }
+
+        if (pct > 95) pct = 95;
+        updateTaskProgress(pct, caption);
+    }, 500);
+
+    return function (ok) {
+        clearInterval(timer);
+        if (ok) {
+            updateTaskProgress(100, "Done.");
+            setTimeout(function () { hideTaskProgress(); }, 250);
+        } else {
+            hideTaskProgress();
+        }
+    };
+}
+
 function initAutoTimingUI() {
     attachClick("btn-auto-timing-whisperx", function () {
         var btn = document.getElementById("btn-auto-timing-whisperx");
@@ -197,6 +241,8 @@ function initAutoTimingUI() {
             btn.textContent = "Running WhisperX...";
         }
 
+        var stopProgress = _startAutoTimingProgress();
+
         _evalAe("autoTimingRunWhisperXAndApply()", function (out, raw) {
             if (btn) {
                 btn.disabled = false;
@@ -204,6 +250,7 @@ function initAutoTimingUI() {
             }
 
             if (!out || !out.ok) {
+                try { stopProgress(false); } catch (eP0) {}
                 var err = out && out.error ? String(out.error) : "Unknown error";
                 if (err === "CANCELLED") return;
                 uiAlert("Auto Timing (WhisperX) failed.\n" + err);
@@ -220,10 +267,12 @@ function initAutoTimingUI() {
             }
 
             if (!r || typeof r !== "object") {
+                try { stopProgress(false); } catch (eP1) {}
                 uiAlert("Auto Timing (WhisperX): unexpected host result");
                 return;
             }
 
+            try { stopProgress(true); } catch (eP2) {}
             uiAlert(_formatWhisperAutoTimingSummary(r));
         });
     });

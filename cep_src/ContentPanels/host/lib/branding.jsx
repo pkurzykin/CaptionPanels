@@ -247,8 +247,9 @@
         return (srcName.indexOf("geotag_") === 0) || (layerName.indexOf("geotag_") === 0);
     }
 
-    function _findPrevGeotagOut(comp, t) {
+    function _findPrevGeotagOut(comp, t, afterTime) {
         var EPS = 1.0 / 60.0;
+        var hasAfter = (typeof afterTime === "number");
         var best = null;
         var bestOut = -1;
         for (var i = 1; i <= comp.numLayers; i++) {
@@ -256,6 +257,7 @@
             if (!_isGeotagLayer(l)) continue;
             var out = Number(l.outPoint) || 0;
             if (out > t + EPS) continue;
+            if (hasAfter && out <= afterTime + EPS) continue;
             if (out > bestOut) {
                 bestOut = out;
                 best = l;
@@ -401,14 +403,18 @@
         // HEAD_TOPIC: first layer starts at the first subtitle block start (not playhead).
 
         // create layers for each group
+        var prevGroupEnd = -999999;
         for (var g = 0; g < groups.length; g++) {
             var st = groups[g].start;
             var en = groups[g].end;
+            var groupEndRaw = groups[g].end;
             var EPS = 1.0 / 60.0;
             var minDur = 1.0 / Math.max(1, Number(comp.frameRate) || 25);
 
-            // A) If there is a geotag right before this group, start head_topic exactly after geotag.
-            var geoOut = _findPrevGeotagOut(comp, st);
+            // A) If there is a geotag between previous VO-group end and this group start,
+            // snap this head_topic start to geotag end.
+            // This handles head_topic_1 and any next "first group after geotag".
+            var geoOut = _findPrevGeotagOut(comp, st, prevGroupEnd);
             if (geoOut !== null && !isNaN(geoOut)) st = geoOut;
 
             // B) Prefer end at the first Sub_SYNCH start after this head_topic start.
@@ -432,6 +438,8 @@
             if (anchor) {
                 try { l.moveAfter(anchor); } catch (e) {}
             }
+
+            prevGroupEnd = groupEndRaw;
         }
 
         app.endUndoGroup();

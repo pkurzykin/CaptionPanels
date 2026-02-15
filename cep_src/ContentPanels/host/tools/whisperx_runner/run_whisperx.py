@@ -46,6 +46,16 @@ def _write_json(p: Path, obj: Any) -> None:
     p.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _read_text_fallback(p: Path) -> str:
+    for enc in ("utf-8", "utf-16", "cp1251", "mbcs"):
+        try:
+            return p.read_text(encoding=enc)
+        except Exception:
+            continue
+    # Last resort: bytes -> utf-8 with replacement.
+    return p.read_bytes().decode("utf-8", errors="replace")
+
+
 def _median(vals: List[float]) -> float:
     if not vals:
         return 0.0
@@ -272,7 +282,8 @@ def _filter_kwargs(func, kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], List[s
 
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(prog="run_whisperx", add_help=True)
-    ap.add_argument("--input", required=True, help="Path to input media (.mp4)")
+    ap.add_argument("--input", default="", help="Path to input media (.mp4)")
+    ap.add_argument("--input_file", default="", help="Optional text file with input media path (UTF-8/UTF-16)")
     ap.add_argument("--output_dir", required=True, help="Directory for outputs")
     ap.add_argument("--out_json", default="", help="Output JSON path (default: <output_dir>/whisperx.json)")
 
@@ -298,6 +309,17 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Keep compatibility with our Settings "extra args" field: we accept unknown args and just report them.
     args, unknown = ap.parse_known_args(argv)
+
+    if args.input_file:
+        ipf = Path(args.input_file)
+        if not ipf.exists():
+            raise SystemExit(f"input_file not found: {ipf}")
+        args.input = _read_text_fallback(ipf).strip()
+        if not args.input:
+            raise SystemExit(f"input_file is empty: {ipf}")
+
+    if not args.input:
+        raise SystemExit("Either --input or --input_file must be provided")
 
     input_path = Path(args.input)
     out_dir = Path(args.output_dir)

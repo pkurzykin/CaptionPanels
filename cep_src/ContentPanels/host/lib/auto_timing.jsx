@@ -80,12 +80,15 @@
 
     function _parseExitCode(outputText) {
         var s = String(outputText || "");
-        var m = s.match(/__EXIT_CODE__:(-?\d+)__/);
-        if (m && m[1] !== undefined) {
+        var re = /__EXIT_CODE__:\s*(-?\d+)\s*__/g;
+        var m = null;
+        var last = -1;
+        while ((m = re.exec(s)) !== null) {
+            if (!m || m[1] === undefined) continue;
             var n = Number(m[1]);
-            if (!isNaN(n)) return n;
+            if (!isNaN(n)) last = n;
         }
-        return -1;
+        return last;
     }
 
     function _isCudaUnavailableError(outputText) {
@@ -129,6 +132,70 @@
         try { return Number(code) < 0; } catch (e) { return false; }
     }
 
+    function _escapeCmdArg(s) {
+        // Escape quotes for passing a full command as a single quoted argument.
+        return String(s || "").replace(/"/g, '""');
+    }
+
+    function _toCmdWinPath(p) {
+        // cmd.exe on Windows handles backslashes more predictably for local/UNC paths.
+        return String(p || "").replace(/\//g, "\\");
+    }
+
+    function _hasNonAscii(s) {
+        return /[^\x00-\x7F]/.test(String(s || ""));
+    }
+
+    function _ensureHiddenRunnerScript(dirPath) {
+        try {
+            var dir = _normalizePath(dirPath || "");
+            if (!dir) {
+                try { dir = _normalizePath(Folder.temp.fsName + "/CaptionPanels"); } catch (e0) { dir = ""; }
+            }
+            if (!dir) return "";
+            _ensureFolder(dir);
+
+            var vbsPath = _normalizePath(dir + "/__cp_run_hidden.vbs");
+            var f = new File(vbsPath);
+            if (!f.exists) {
+                var script =
+                    'On Error Resume Next\n' +
+                    'Dim sh, cmd, code\n' +
+                    'cmd = ""\n' +
+                    'If WScript.Arguments.Count > 0 Then cmd = WScript.Arguments(0)\n' +
+                    'Set sh = CreateObject("WScript.Shell")\n' +
+                    'code = sh.Run(cmd, 0, True)\n' +
+                    'If Err.Number <> 0 Then\n' +
+                    '  WScript.Echo "__EXIT_CODE__:-1__"\n' +
+                    '  WScript.Echo "VBS_RUN_ERROR: " & Err.Description\n' +
+                    'Else\n' +
+                    '  WScript.Echo "__EXIT_CODE__:" & CStr(code) & "__"\n' +
+                    'End If\n';
+                _writeTextFile(vbsPath, script);
+            }
+            return vbsPath;
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function _runHiddenCommand(cmd, helperDir) {
+        var c = String(cmd || "");
+        var vbsPath = _ensureHiddenRunnerScript(helperDir);
+        if (!vbsPath) {
+            try { return system.callSystem(c); } catch (e0) { return "callSystem error: " + String(e0 || "Unknown error"); }
+        }
+
+        var runCmd = 'cscript //nologo "' + _normalizePath(vbsPath) + '" "' + _escapeCmdArg(c) + '"';
+        try {
+            var out = system.callSystem(runCmd);
+            if (_parseExitCode(out) !== -1) return out;
+        } catch (e1) {}
+
+        // Fallback: direct run (visible) if hidden wrapper failed.
+        try { return system.callSystem(c); } catch (e2) { return "callSystem error: " + String(e2 || "Unknown error"); }
+    }
+
     function _runCmdBody(body, label, logDir, stamp) {
         // Wrap into cmd.exe so we can capture stderr and always emit an exit code marker.
         // system.callSystem() can truncate long outputs; when logDir is provided we redirect
@@ -140,30 +207,66 @@
         } catch (eP) { outLogPath = ""; }
 
         var b = String(body || "");
+        var outLogCmdPath = outLogPath ? _toCmdWinPath(outLogPath) : "";
 
-        // Escape caret first, then exclamation (delayed expansion), then quotes (cmd escaping uses ^)
-        // NOTE: We escape only the user command body, and build redirections/exit marker separately.
-        b = b.replace(/\^/g, "^^");
-        b = b.replace(/!/g, "^!");
-        b = b.replace(/"/g, "^\"");
-
-        var redir = outLogPath ? (' 1> "' + outLogPath + '" 2>&1') : " 2>&1";
-        var exitToFile = outLogPath ? (' & echo __EXIT_CODE__:!errorlevel!__>>"' + outLogPath + '"') : "";
-
-        // Use delayed expansion so !errorlevel! reflects the exit code after running the command.
-        // Also append exit code marker into outLogPath (if any) so the file is never empty.
-        var cmd = 'cmd.exe /V:ON /S /C "' + b + redir + exitToFile + ' & echo __EXIT_CODE__:!errorlevel!__"';
-
-        var output = "";
+        // Use a temporary .cmd script to avoid nested-quote parsing issues in cmd /C.
+        var cmdScriptPath = "";
         try {
-            output = system.callSystem(cmd);
-        } catch (e) {
-            var msg = "";
-            try { msg = (e && (e.message || e.description)) ? (e.message || e.description) : String(e); } catch (e2) { msg = "Permission denied"; }
-            output = "callSystem error: " + msg + " (is Preferences > Scripting & Expressions > Allow Scripts to Write Files and Access Network enabled?)";
+            if (logDir) cmdScriptPath = _normalizePath(logDir + "/" + label + "_" + stamp + ".cmd");
+            else cmdScriptPath = _normalizePath(Folder.temp.fsName + "/CaptionPanels/" + label + "_" + stamp + ".cmd");
+        } catch (eSp) { cmdScriptPath = ""; }
+        if (!cmdScriptPath) {
+            return { cmd: "", output: "Cannot build command script path", exitCode: -1, logPath: outLogPath, metaPath: "" };
         }
 
-        var exitCode = _parseExitCode(output);
+        var script = "@echo off\r\n";
+        script += "setlocal EnableExtensions EnableDelayedExpansion\r\n";
+        script += b + (outLogCmdPath ? (' 1> "' + outLogCmdPath + '" 2>&1') : " 2>&1") + "\r\n";
+        script += 'set "__CP_EC=!errorlevel!"\r\n';
+        if (outLogCmdPath) {
+            script += 'echo __EXIT_CODE__:!__CP_EC!__>>"' + outLogCmdPath + '"\r\n';
+        }
+        script += "echo __EXIT_CODE__:!__CP_EC!__\r\n";
+        script += "exit /b !__CP_EC!__\r\n";
+
+        if (!_writeBatchFile(cmdScriptPath, script)) {
+            return { cmd: "", output: "Cannot write command script: " + cmdScriptPath, exitCode: -1, logPath: outLogPath, metaPath: "" };
+        }
+
+        var cmd = 'cmd.exe /V:ON /D /Q /C "' + _toCmdWinPath(cmdScriptPath) + '"';
+
+        var output = _runHiddenCommand(cmd, logDir);
+        if (String(output || "").indexOf("callSystem error:") === 0) {
+            output += " (is Preferences > Scripting & Expressions > Allow Scripts to Write Files and Access Network enabled?)";
+        }
+
+        function _readExitCodeFromLogWithRetry(path, attempts, sleepMs) {
+            var n = Number(attempts);
+            if (isNaN(n) || n < 1) n = 1;
+            var wait = Number(sleepMs);
+            if (isNaN(wait) || wait < 0) wait = 0;
+            for (var i = 0; i < n; i++) {
+                try {
+                    var t = _readFileText(path);
+                    var ec = _parseExitCode(t);
+                    if (ec !== -1) return ec;
+                } catch (eR) {}
+                if (i < n - 1 && wait > 0) {
+                    try { $.sleep(wait); } catch (eS) {}
+                }
+            }
+            return -1;
+        }
+
+        // Prefer exit code marker from redirected output file (more reliable in hidden mode),
+        // fallback to wrapper stdout marker.
+        var exitCode = -1;
+        try {
+            if (outLogPath) {
+                exitCode = _readExitCodeFromLogWithRetry(outLogPath, 10, 80);
+            }
+        } catch (eEc) {}
+        if (exitCode === -1) exitCode = _parseExitCode(output);
 
         // Write a small meta-log that points to the full output log (if any).
         var metaPath = "";
@@ -172,6 +275,7 @@
                 metaPath = _normalizePath(logDir + "/" + label + "_" + stamp + ".log");
                 var logText = "time=" + stamp + "\n";
                 logText += "cmd=" + cmd + "\n\n";
+                logText += "cmdScript=" + _normalizePath(cmdScriptPath) + "\n";
                 logText += "exitCode=" + String(exitCode) + "\n";
                 if (outLogPath) logText += "outLog=" + outLogPath + "\n";
                 logText += "\noutputTail:\n" + String(output || "") + "\n";
@@ -484,6 +588,23 @@
         }
     }
 
+    function _writeBatchFile(filePath, text) {
+        var f = null;
+        try {
+            f = new File(filePath);
+            // cmd.exe reads ANSI/OEM scripts more reliably than UTF-8 BOM.
+            f.encoding = "";
+            if (!f.open("w")) return false;
+            try { f.lineFeed = "Windows"; } catch (eLf) {}
+            f.write(String(text || ""));
+            f.close();
+            return true;
+        } catch (e1) {
+            try { if (f && f.opened) f.close(); } catch (e2) {}
+            return false;
+        }
+    }
+
     // Debug helper: dumps diagnostics to a file in autoTimingLogsDir.
     // This is useful when the bridge returns an unexpected response that is hard to copy from alert().
     writeAutoTimingDebug = function (text) {
@@ -524,15 +645,35 @@
             if (!f.open("r")) throw new Error("Cannot open file: " + p);
             txt = f.read();
             f.close();
+            if (txt && txt.length) {
+                if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+                return String(txt || "");
+            }
         } catch (e1) {
             try { if (f && f.opened) f.close(); } catch (e2) {}
-            // UTF-16 fallback (some Windows tools save JSON as UTF-16)
+        }
+
+        try {
+            // System codepage fallback (important for cmd.exe output on Windows).
             f = new File(p);
-            f.encoding = "UTF-16";
-            if (!f.open("r")) throw new Error("Cannot open file (UTF-16): " + p);
+            f.encoding = "";
+            if (!f.open("r")) throw new Error("Cannot open file (system encoding): " + p);
             txt = f.read();
             f.close();
+            if (txt && txt.length) {
+                if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+                return String(txt || "");
+            }
+        } catch (e3) {
+            try { if (f && f.opened) f.close(); } catch (e4) {}
         }
+
+        // UTF-16 fallback (some Windows tools save JSON/logs as UTF-16)
+        f = new File(p);
+        f.encoding = "UTF-16";
+        if (!f.open("r")) throw new Error("Cannot open file (UTF-16): " + p);
+        txt = f.read();
+        f.close();
 
         if (txt && txt.length && txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
         return String(txt || "");
@@ -1186,7 +1327,7 @@
             if (!py) return respondErr("whisperxPythonPath is not set in config.json");
             if (!(new File(py)).exists) return respondErr("Python not found: " + py);
 
-            var pyExe = "\"" + _normalizePath(py) + "\"";
+            var pyExe = "\"" + _toCmdWinPath(_normalizePath(py)) + "\"";
 
 
             var model = "";
@@ -1294,17 +1435,29 @@
             var whisperJsonExpected = _normalizePath(whisperRunDir + "/whisperx.json");
             var runnerMetaPath = _normalizePath(whisperRunDir + "/whisperx_runner_meta.json");
 
-            var whisperBody = envPrefix + pyExe + ' "' + runnerPath + '"' +
-                ' --input "' + _normalizePath(videoPath) + '"' +
-                ' --output_dir "' + _normalizePath(whisperRunDir) + '"' +
-                ' --out_json "' + _normalizePath(whisperJsonExpected) + '"' +
+            var inputArg = "";
+            var videoPathNorm = _normalizePath(videoPath);
+            if (_hasNonAscii(videoPathNorm)) {
+                var inputFile = _normalizePath(whisperRunDir + "/video_input_path.txt");
+                if (!_writeTextFile(inputFile, videoPathNorm + "\n")) {
+                    return respondErr("Cannot write WhisperX input path file: " + inputFile);
+                }
+                inputArg = ' --input_file "' + _toCmdWinPath(inputFile) + '"';
+            } else {
+                inputArg = ' --input "' + _toCmdWinPath(videoPathNorm) + '"';
+            }
+
+            var whisperBody = envPrefix + pyExe + ' "' + _toCmdWinPath(runnerPath) + '"' +
+                inputArg +
+                ' --output_dir "' + _toCmdWinPath(_normalizePath(whisperRunDir)) + '"' +
+                ' --out_json "' + _toCmdWinPath(_normalizePath(whisperJsonExpected)) + '"' +
                 ' --language ' + lang +
                 ' --model ' + model +
                 ' --device ' + device +
                 ' --vad_method ' + vad;
 
             if (cacheDir) {
-                whisperBody += ' --cache_dir "' + _normalizePath(cacheDir) + '"';
+                whisperBody += ' --cache_dir "' + _toCmdWinPath(_normalizePath(cacheDir)) + '"';
             }
 
             if (wxApplyShift) {
@@ -1325,17 +1478,17 @@
             ) {
                 deviceUsed = "cpu";
 
-                var whisperBodyCpu = envPrefix + pyExe + ' "' + runnerPath + '"' +
-                    ' --input "' + _normalizePath(videoPath) + '"' +
-                    ' --output_dir "' + _normalizePath(whisperRunDir) + '"' +
-                    ' --out_json "' + _normalizePath(whisperJsonExpected) + '"' +
+                var whisperBodyCpu = envPrefix + pyExe + ' "' + _toCmdWinPath(runnerPath) + '"' +
+                    inputArg +
+                    ' --output_dir "' + _toCmdWinPath(_normalizePath(whisperRunDir)) + '"' +
+                    ' --out_json "' + _toCmdWinPath(_normalizePath(whisperJsonExpected)) + '"' +
                     ' --language ' + lang +
                     ' --model ' + model +
                     ' --device ' + deviceUsed +
                     ' --vad_method ' + vad;
 
                 if (cacheDir) {
-                    whisperBodyCpu += ' --cache_dir "' + _normalizePath(cacheDir) + '"';
+                    whisperBodyCpu += ' --cache_dir "' + _toCmdWinPath(_normalizePath(cacheDir)) + '"';
                 }
 
                 if (wxApplyShift) {
@@ -1424,10 +1577,10 @@
                 if (!isNaN(mg) && mg >= 0) minGapFrames = mg;
             } catch (eMg) { minGapFrames = 1; }
 
-            var alignBody = pyExe + ' "' + scriptPath + '"' +
-                ' --blocks "' + _normalizePath(blocksPath) + '"' +
-                ' --whisperx-json "' + _normalizePath(whisperJson) + '"' +
-                ' --out-dir "' + _normalizePath(alignRunDir) + '"' +
+            var alignBody = pyExe + ' "' + _toCmdWinPath(scriptPath) + '"' +
+                ' --blocks "' + _toCmdWinPath(_normalizePath(blocksPath)) + '"' +
+                ' --whisperx-json "' + _toCmdWinPath(_normalizePath(whisperJson)) + '"' +
+                ' --out-dir "' + _toCmdWinPath(_normalizePath(alignRunDir)) + '"' +
                 ' --lang ' + lang +
                 ' --min-gap-frames ' + String(minGapFrames);
 

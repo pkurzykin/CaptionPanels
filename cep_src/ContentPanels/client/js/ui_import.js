@@ -116,6 +116,69 @@ function _setBrandingFields(head, topic, geotag) {
     if (geoEl && typeof geotag !== "undefined") geoEl.value = String(geotag || "");
 }
 
+function _normalizeImportResult(result) {
+    var r = result;
+
+    // Some bridge paths return result as JSON string.
+    if (typeof r === "string") {
+        var t = r.trim();
+        if (t && t.charCodeAt(0) === 0xFEFF) t = t.slice(1);
+        if (t && t[0] === "{") {
+            try { r = JSON.parse(t); } catch (e1) {}
+        }
+    }
+
+    // Some bridge paths return { ok, result: "<json>" } as nested payload.
+    if (r && typeof r === "object" && typeof r.result === "string") {
+        var t2 = String(r.result || "").trim();
+        if (t2 && t2.charCodeAt(0) === 0xFEFF) t2 = t2.slice(1);
+        if (t2 && t2[0] === "{") {
+            try { r = JSON.parse(t2); } catch (e2) {}
+        }
+    }
+
+    if (!r || typeof r !== "object") return {};
+    return r;
+}
+
+function _resolveBrandingFromImportResult(res) {
+    if (!res || typeof res !== "object") return null;
+
+    var b = res.branding || null;
+    if (b && (b.head || b.topic || (b.geotags && b.geotags.length))) return b;
+
+    // Fallback: derive from raw script json shape { meta, segments }.
+    var meta = res.meta || null;
+    var segs = res.segments || [];
+    if (!meta && res.result && typeof res.result === "object") {
+        meta = res.result.meta || null;
+        if ((!segs || !segs.length) && res.result.segments) segs = res.result.segments;
+    }
+
+    var head = "";
+    var topic = "";
+    if (meta && typeof meta === "object") {
+        head = meta.title || meta.head || "";
+        topic = meta.rubric || meta.topic || "";
+    }
+
+    var geotags = [];
+    if (segs && segs.length) {
+        for (var i = 0; i < segs.length; i++) {
+            var s = segs[i] || {};
+            var t = String(s.type || "").toLowerCase();
+            if (t !== "geotag") continue;
+            geotags.push({ text: String(s.text || ""), time: Number(s.time || 0) || 0 });
+        }
+    }
+
+    if (head || topic || geotags.length) {
+        return { head: head, topic: topic, geotags: geotags };
+    }
+
+    return b;
+}
+
 function jsonImportSetBranding(branding) {
     JSON_IMPORT_BRANDING = branding || null;
     if (!branding) return;
@@ -141,6 +204,47 @@ function _formatImportSummary(res) {
     return msg;
 }
 
+function _startWordImportProgress() {
+    var t0 = Date.now();
+    var dots = 0;
+    showTaskProgress("Load Word", "Starting import...");
+    updateTaskProgress(5, "Starting import...");
+
+    var timer = setInterval(function () {
+        var sec = (Date.now() - t0) / 1000.0;
+        var pct = 5;
+        var caption = "Preparing import...";
+
+        if (sec < 3) {
+            pct = 5 + sec * 8; // 5..29
+            caption = "Converting DOCX to JSON...";
+        } else if (sec < 8) {
+            pct = 29 + (sec - 3) * 8; // 29..69
+            caption = "Converting DOCX to JSON...";
+        } else if (sec < 14) {
+            pct = 69 + (sec - 8) * 3.5; // 69..90
+            caption = "Importing JSON into project...";
+        } else {
+            pct = 90;
+            dots = (dots + 1) % 4;
+            caption = "Finalizing" + Array(dots + 1).join(".");
+        }
+
+        if (pct > 92) pct = 92;
+        updateTaskProgress(pct, caption);
+    }, 400);
+
+    return function (ok) {
+        clearInterval(timer);
+        if (ok) {
+            updateTaskProgress(100, "Done.");
+            setTimeout(function () { hideTaskProgress(); }, 200);
+        } else {
+            hideTaskProgress();
+        }
+    };
+}
+
 function initJsonImportUI() {
     attachClick("btn-load-json", function () {
         aeCall("importJsonFromDialog()", function (out) {
@@ -152,11 +256,12 @@ function initJsonImportUI() {
                 return;
             }
 
-            var res = out.result || {};
+            var res = _normalizeImportResult(out.result);
             var list = (res && res.speakers && res.speakers.length) ? res.speakers : [];
             jsonImportSetQueue(list, res.source || "");
-            if (res.branding) {
-                jsonImportSetBranding(res.branding);
+            var branding = _resolveBrandingFromImportResult(res);
+            if (branding) {
+                jsonImportSetBranding(branding);
             }
             uiAlert(_formatImportSummary(res));
             logUi("json.import ok");
@@ -165,33 +270,61 @@ function initJsonImportUI() {
 
 
     attachClick("btn-load-word", function () {
-        aeCall("importWordFromDialog()", function (out) {
-            if (!out || !out.ok) {
-                var err = (out && typeof out.error !== 'undefined') ? String(out.error) : '';
-                if (String(err) === 'CANCELLED') return;
-
-                // If AE returned an empty/whitespace error, show debug payload so we can diagnose.
-                if (!err || !err.replace(/\s+/g, '')) {
-                    try {
-                        err = 'Unknown error\n\nDEBUG(out): ' + JSON.stringify(out);
-                    } catch (eDbg) {
-                        err = 'Unknown error';
-                    }
-                }
-
-                uiAlert("Ошибка импорта Word (.docx).\n" + err);
-                logUiError("word.import", err);
+        aeCall("pickWordFileForImport()", function (pick) {
+            if (!pick || !pick.ok) {
+                var pickErr = (pick && typeof pick.error !== "undefined") ? String(pick.error) : "";
+                if (pickErr === "CANCELLED") return;
+                uiAlert("Ошибка выбора Word файла.\n" + (pickErr || "Unknown error"));
+                logUiError("word.pick", pickErr || "Unknown error");
                 return;
             }
 
-            var res = out.result || {};
-            var list = (res && res.speakers && res.speakers.length) ? res.speakers : [];
-            jsonImportSetQueue(list, res.source || "");
-            if (res.branding) {
-                jsonImportSetBranding(res.branding);
+            var pickRes = pick.result || {};
+            var pickedPath = "";
+            if (typeof pickRes === "string") {
+                pickedPath = pickRes;
+            } else if (pickRes && typeof pickRes.path === "string") {
+                pickedPath = pickRes.path;
             }
-            uiAlert(_formatImportSummary(res));
-            logUi("word.import ok");
+            if (!pickedPath) {
+                uiAlert("Ошибка выбора Word файла.\nПуть не получен.");
+                logUiError("word.pick", "Empty path");
+                return;
+            }
+
+            var stopProgress = _startWordImportProgress();
+            var cmd = "importWordFromFile(" + JSON.stringify(String(pickedPath)) + ")";
+            aeCall(cmd, function (out) {
+                if (!out || !out.ok) {
+                    try { stopProgress(false); } catch (ePr0) {}
+                    var err = (out && typeof out.error !== 'undefined') ? String(out.error) : '';
+                    if (String(err) === 'CANCELLED') return;
+
+                    // If AE returned an empty/whitespace error, show debug payload so we can diagnose.
+                    if (!err || !err.replace(/\s+/g, '')) {
+                        try {
+                            err = 'Unknown error\n\nDEBUG(out): ' + JSON.stringify(out);
+                        } catch (eDbg) {
+                            err = 'Unknown error';
+                        }
+                    }
+
+                    uiAlert("Ошибка импорта Word (.docx).\n" + err);
+                    logUiError("word.import", err);
+                    return;
+                }
+
+                try { stopProgress(true); } catch (ePr1) {}
+                var res = _normalizeImportResult(out.result);
+                var list = (res && res.speakers && res.speakers.length) ? res.speakers : [];
+                jsonImportSetQueue(list, res.source || "");
+                var branding = _resolveBrandingFromImportResult(res);
+                if (branding) {
+                    jsonImportSetBranding(branding);
+                }
+                uiAlert(_formatImportSummary(res));
+                logUi("word.import ok");
+            });
         });
     });
 

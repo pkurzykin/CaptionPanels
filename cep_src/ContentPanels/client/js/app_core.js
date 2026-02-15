@@ -114,6 +114,45 @@ function uiConfirm(msg, cb) {
     }
 }
 
+function _taskProgressEls() {
+    return {
+        overlay: document.getElementById("task-progress-overlay"),
+        title: document.getElementById("task-progress-title"),
+        fill: document.getElementById("task-progress-fill"),
+        caption: document.getElementById("task-progress-caption")
+    };
+}
+
+function showTaskProgress(title, caption) {
+    var el = _taskProgressEls();
+    if (!el.overlay) return;
+    if (el.title) el.title.textContent = String(title || "Processing...");
+    if (el.caption) el.caption.textContent = String(caption || "Please wait...");
+    if (el.fill) el.fill.style.width = "2%";
+    el.overlay.style.display = "block";
+}
+
+function updateTaskProgress(percent, caption) {
+    var el = _taskProgressEls();
+    if (!el.overlay || el.overlay.style.display === "none") return;
+    if (el.fill && typeof percent !== "undefined" && percent !== null) {
+        var p = Number(percent);
+        if (isNaN(p)) p = 0;
+        if (p < 0) p = 0;
+        if (p > 100) p = 100;
+        el.fill.style.width = p.toFixed(1) + "%";
+    }
+    if (el.caption && typeof caption !== "undefined" && caption !== null) {
+        el.caption.textContent = String(caption);
+    }
+}
+
+function hideTaskProgress() {
+    var el = _taskProgressEls();
+    if (!el.overlay) return;
+    el.overlay.style.display = "none";
+}
+
 function normalizeSpeakerText(txt) {
     return String(txt || "").replace(/\r\n|\r/g, "\n").trim();
 }
