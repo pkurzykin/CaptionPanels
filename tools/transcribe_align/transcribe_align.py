@@ -491,9 +491,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--whisperx-extra", default="", help="Extra args for whisperx CLI (raw string)")
     ap.add_argument("--out-dir", required=True, help="Output directory")
 
-    ap.add_argument("--pad-start-frames", type=float, default=0)
     ap.add_argument("--pad-end-frames", type=float, default=2)
     ap.add_argument("--min-duration-frames", type=float, default=3)
+    ap.add_argument("--min-gap-frames", type=float, default=1)
 
     ap.add_argument("--threshold", type=float, default=0.70)
     ap.add_argument("--max-skip", type=int, default=4)
@@ -566,9 +566,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             "media": str(args.video or ""),
         },
         "settings": {
-            "padStartFrames": args.pad_start_frames,
             "padEndFrames": args.pad_end_frames,
             "minDurationFrames": args.min_duration_frames,
+            "minGapFrames": args.min_gap_frames,
         },
         "blocks": matched,
         "unmatched": unmatched,

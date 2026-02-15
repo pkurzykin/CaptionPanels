@@ -1,7 +1,7 @@
 # CaptionPanels
 
 AEGP‑плагин для After Effects 2024+ (Windows 10/11) с UI на WebView2 и JSX‑мостом.
-Текущая версия: 2.2.0.
+Текущая версия: 2.3.0.
 
 ## Структура
 ```
@@ -42,7 +42,9 @@ legacy_cep/       архив CEP версии
 - `captionPanelsToolsRoot` — единый корень внешних утилит (рекомендуется: `C:\AE\CaptionPanelsTools`)
 - `word2jsonExePath` — путь к `word2json.exe` (Word .docx -> .json), рекомендуется: `C:\AE\CaptionPanelsTools\word2json\word2json.exe`
 - `word2jsonOutDir` — куда сохранять JSON после конвертации, рекомендуется: `C:\AE\CaptionPanelsData\word2json` (если пусто — `%TEMP%\CaptionPanels\word2json`)
-- `autoTimingOutDir` — куда сохранять `blocks_*.json` при Export Blocks… (если пусто — `%APPDATA%\CaptionPanels\auto_timing`)
+- `autoTimingOutDir` — корневая папка данных Auto Timing (если пусто — `%APPDATA%\CaptionPanels\auto_timing`)
+- `autoTimingMinGapFrames` — минимальный зазор между соседними блоками разных групп при Auto Timing (в кадрах)
+- `whisperxApplyTimeShift` — глобальный time shift (рекомендуется `false`, включать только для диагностики)
 
 ## Логи
 При `enableLogs: true` логи пишутся в:

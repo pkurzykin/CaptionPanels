@@ -632,9 +632,18 @@
             try { v = _asNum(s[key]); } catch (e) { v = null; }
             return (v === null) ? def : v;
         }
+        function cfgNum(key, def) {
+            try {
+                var v = Number(getConfigValue(key, def));
+                return isNaN(v) ? def : v;
+            } catch (eC) {
+                return def;
+            }
+        }
         return {
             padEndFrames: n("padEndFrames", 0),
-            minDurationFrames: n("minDurationFrames", 1)
+            minDurationFrames: n("minDurationFrames", 1),
+            minGapFrames: n("minGapFrames", cfgNum("autoTimingMinGapFrames", 1))
         };
     }
 
@@ -642,6 +651,41 @@
         if (v < a) return a;
         if (v > b) return b;
         return v;
+    }
+
+    function _frameFloor(sec, fps) {
+        var f = Number(fps) || 25;
+        return Math.floor((Number(sec) || 0) * f + 1e-6) / f;
+    }
+
+    function _frameCeil(sec, fps) {
+        var f = Number(fps) || 25;
+        return Math.ceil((Number(sec) || 0) * f - 1e-6) / f;
+    }
+
+    function _parseSubtitleGroup(segId) {
+        var s = String(segId || "");
+        var m = s.match(/^Sub_(VOICEOVER|SYNCH)_(\d+)_(\d+)$/i);
+        if (!m) return null;
+        var t = String(m[1] || "").toUpperCase();
+        var batch = parseInt(m[2], 10);
+        var idx = parseInt(m[3], 10);
+        if (isNaN(batch) || isNaN(idx)) return null;
+        return {
+            type: t,
+            batch: batch,
+            index: idx,
+            key: "Sub_" + t + "_" + String(batch)
+        };
+    }
+
+    function _sameStitchGroup(segIdA, segIdB) {
+        var a = _parseSubtitleGroup(segIdA);
+        var b = _parseSubtitleGroup(segIdB);
+        if (!a || !b) return false;
+        if (a.key !== b.key) return false;
+        // Keep only forward order; protects from accidental reverse pairs.
+        return b.index > a.index;
     }
 
     function _buildTimingChanges(comp, alignmentObj) {
@@ -655,6 +699,10 @@
         var changes = [];
         var missing = [];
         var invalid = [];
+        var minDurFrames = Math.max(1, Math.round(Number(st.minDurationFrames) || 1));
+        var minDur = minDurFrames / fps;
+        var minGapFrames = Math.max(0, Math.round(Number(st.minGapFrames) || 0));
+        var minGap = minGapFrames / fps;
 
 
         for (var i = 0; i < items.length; i++) {
@@ -670,11 +718,10 @@
                 continue;
             }
 
-            var start = t.start;
-            var end = t.end + (st.padEndFrames / fps);
+            var start = _frameFloor(t.start, fps);
+            var end = _frameCeil(t.end + (st.padEndFrames / fps), fps);
 
             // Minimum duration
-            var minDur = (st.minDurationFrames / fps);
             if (end - start < minDur) end = start + minDur;
 
             // Clamp to comp duration
@@ -714,6 +761,56 @@
             if (a.newIn === b.newIn) return a.layerIndex - b.layerIndex;
             return a.newIn - b.newIn;
         });
+
+        // Pairwise correction:
+        // - default: keep min gap between different groups
+        // - inside one generated group (Sub_*_<batch>_<n>): force "butt cut" (no gap)
+        for (var c = 1; c < changes.length; c++) {
+            var prev = changes[c - 1];
+            var curCh = changes[c];
+            var stitch = _sameStitchGroup(prev.segId, curCh.segId);
+            var reqGap = stitch ? 0 : minGap;
+
+            var overlapSec = (prev.newOut + reqGap) - curCh.newIn;
+            if (overlapSec <= 1e-9) continue;
+
+            var desiredPrevOut = _frameFloor(curCh.newIn - reqGap, fps);
+            var prevMinOut = prev.newIn + minDur;
+            if (desiredPrevOut >= prevMinOut) {
+                prev.newOut = desiredPrevOut;
+                continue;
+            }
+
+            // If previous block cannot be shortened safely, move current block right.
+            curCh.newIn = _frameCeil(prev.newOut + reqGap, fps);
+            if (curCh.newOut - curCh.newIn < minDur) curCh.newOut = curCh.newIn + minDur;
+
+            // For same-group subtitles we want exact adjacency (no visual hole).
+            if (stitch) prev.newOut = curCh.newIn;
+        }
+
+        // Fill positive gaps inside one generated group (Sub_*_<batch>_<n>) so blocks are in butt cut.
+        for (var g = 1; g < changes.length; g++) {
+            var p = changes[g - 1];
+            var q = changes[g];
+            if (!_sameStitchGroup(p.segId, q.segId)) continue;
+            if (q.newIn > p.newOut + 1e-9) p.newOut = _frameFloor(q.newIn, fps);
+        }
+
+        // Final frame-quantization pass and validation after anti-overlap correction.
+        var normalized = [];
+        for (var n = 0; n < changes.length; n++) {
+            var ch = changes[n];
+            ch.newIn = _clamp(_frameFloor(ch.newIn, fps), 0, comp.duration);
+            ch.newOut = _clamp(_frameCeil(ch.newOut, fps), 0, comp.duration);
+            if (ch.newOut - ch.newIn < minDur) ch.newOut = _clamp(ch.newIn + minDur, 0, comp.duration);
+            if (ch.newOut <= ch.newIn) {
+                invalid.push({ segId: ch.segId, reason: "end<=start_after_normalize" });
+                continue;
+            }
+            normalized.push(ch);
+        }
+        changes = normalized;
 
         return {
             settings: st,
@@ -987,8 +1084,8 @@
             try { vad = String(getConfigValue("whisperxVadMethod", "silero") || "silero"); } catch (eV) { vad = "silero"; }
             var wxAdv = false;
             try { wxAdv = !!getConfigValue("whisperxAdvancedArgsEnabled", false); } catch (eAx) { wxAdv = false; }
-            var wxApplyShift = true;
-            try { wxApplyShift = !!getConfigValue("whisperxApplyTimeShift", true); } catch (eSh) { wxApplyShift = true; }
+            var wxApplyShift = false;
+            try { wxApplyShift = !!getConfigValue("whisperxApplyTimeShift", false); } catch (eSh) { wxApplyShift = false; }
 
             var wxExtra = "";
             try { wxExtra = String(getConfigValue("whisperxExtraArgs", "") || ""); } catch (eEx) { wxExtra = ""; }
@@ -1206,11 +1303,18 @@
             scriptPath = _normalizePath(scriptPath);
             if (!(new File(scriptPath)).exists) return respondErr("transcribe_align.py not found: " + scriptPath);
 
+            var minGapFrames = 1;
+            try {
+                var mg = Number(getConfigValue("autoTimingMinGapFrames", 1));
+                if (!isNaN(mg) && mg >= 0) minGapFrames = mg;
+            } catch (eMg) { minGapFrames = 1; }
+
             var alignBody = pyExe + ' "' + scriptPath + '"' +
                 ' --blocks "' + _normalizePath(blocksPath) + '"' +
                 ' --whisperx-json "' + _normalizePath(whisperJson) + '"' +
                 ' --out-dir "' + _normalizePath(alignRunDir) + '"' +
-                ' --lang ' + lang;
+                ' --lang ' + lang +
+                ' --min-gap-frames ' + String(minGapFrames);
 
             var a = _runCmdBody(alignBody, "align", logsDir, stamp);
             if (a.exitCode !== 0) {

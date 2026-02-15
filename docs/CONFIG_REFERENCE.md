@@ -121,11 +121,15 @@
   - Пример: `silero`.
 
 - `whisperxApplyTimeShift` (boolean)
-  - Если `true`, WhisperX runner после выравнивания оценивает систематический "late start" (насколько начало первого слова в сегменте позже начала сегмента)
-    и при необходимости применяет небольшой отрицательный сдвиг ко всем таймкодам (в секундах).
-  - Это помогает в кейсе, когда визуально субтитры появляются на несколько кадров позже начала говорения.
-  - По умолчанию: `true`.
+  - Если `true`, WhisperX runner после выравнивания оценивает систематический "late start" и может применить глобальный отрицательный сдвиг к таймкодам.
+  - Рекомендуется держать `false` как дефолт и включать только для диагностики конкретного проекта.
+  - По умолчанию: `false`.
   - Диагностика пишется в `whisperx_runner_meta.json` (поля `onsetBiasSec`, `timeShiftSuggestedSec`, `timeShiftAppliedSec`).
+
+- `autoTimingMinGapFrames` (number)
+  - Минимальный зазор между соседними субтитрами при применении Auto Timing (в кадрах).
+  - Значение `1` означает минимум 1 кадр между концом предыдущего и началом следующего блока.
+  - По умолчанию: `1`.
 
 - `whisperxAdvancedArgsEnabled` (boolean)
   - Включает передачу расширенных параметров в ASR runner (faster-whisper decode params).
@@ -183,7 +187,8 @@
   "whisperxLanguage": "ru",
   "whisperxDevice": "cuda",
   "whisperxVadMethod": "silero",
-  "whisperxApplyTimeShift": true,
+  "whisperxApplyTimeShift": false,
+  "autoTimingMinGapFrames": 1,
 
   "whisperxAdvancedArgsEnabled": false,
   "whisperxBeamSize": 5,
@@ -218,8 +223,6 @@
 
 ## Auto Timing
 
-StartPad (ручной сдвиг начала субтитров) удален.
-
-Если визуально субтитры начинают появляться чуть позже начала речи, используем `whisperxApplyTimeShift: true`:
-- runner оценивает систематический "late start" по статистике сегментов
-- при необходимости применяет небольшой отрицательный сдвиг ко всем таймкодам (см. `whisperx_runner_meta.json`)
+- Применение идет по кадрам: `start` округляется вниз (`floor`), `end` округляется вверх (`ceil`).
+- Пересечения блоков автоматически исправляются: сначала пытаемся укоротить предыдущий блок, если нельзя — сдвигаем следующий вправо.
+- Минимальный зазор регулируется через `autoTimingMinGapFrames`.
