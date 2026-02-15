@@ -4,19 +4,21 @@
 function getSpeakerData() {
     var side = document.querySelector('input[name="side"]:checked');
     var size = document.querySelector('input[name="size"]:checked');
+    var solo = document.getElementById("chk-solo-title");
     return {
         name: document.getElementById("input-name") ? document.getElementById("input-name").value.replace(/'/g, "\\'") : "",
         job: document.getElementById("input-job") ? document.getElementById("input-job").value.replace(/'/g, "\\'") : "",
         side: side ? side.value : "Left",
         size: size ? size.value : "Default",
-        bgOffset: document.getElementById("bg-slider") ? document.getElementById("bg-slider").value : 0
+        bgOffset: document.getElementById("bg-slider") ? document.getElementById("bg-slider").value : 0,
+        soloTitle: !!(solo && solo.checked)
     };
 }
 
 function triggerSpeakerPreview() {
     var d = getSpeakerData();
     var cmd =
-    "updateSpeakerPreview(" + JSON.stringify(d.name) + "," + JSON.stringify(d.job) + "," + JSON.stringify(d.side) + "," + JSON.stringify(d.size) + "," + Number(d.bgOffset || 0) + ")";
+    "updateSpeakerPreview(" + JSON.stringify(d.name) + "," + JSON.stringify(d.job) + "," + JSON.stringify(d.side) + "," + JSON.stringify(d.size) + "," + Number(d.bgOffset || 0) + "," + (d.soloTitle ? "true" : "false") + ")";
     csInterface.evalScript(cmd);
 }
 
@@ -124,6 +126,10 @@ function initSpeakersUI() {
     radios.forEach(function (r) {
         r.addEventListener("change", triggerSpeakerPreview);
     });
+    var soloChk = document.getElementById("chk-solo-title");
+    if (soloChk) {
+        soloChk.addEventListener("change", triggerSpeakerPreview);
+    }
 
     // Кнопка добавления в базу
     attachClick("btn-add-speaker", function () {
@@ -171,7 +177,7 @@ function initSpeakersUI() {
     attachClick("btn-create-title", function () {
         var d = getSpeakerData();
         var cmd =
-            "createSpeakerTitle(" + JSON.stringify(d.name) + "," + JSON.stringify(d.job) + "," + JSON.stringify(d.side) + "," + JSON.stringify(d.size) + "," + Number(d.bgOffset || 0) + ")";
+            "createSpeakerTitle(" + JSON.stringify(d.name) + "," + JSON.stringify(d.job) + "," + JSON.stringify(d.side) + "," + JSON.stringify(d.size) + "," + Number(d.bgOffset || 0) + "," + (d.soloTitle ? "true" : "false") + ")";
         aeCall(cmd, function (out) {
             if (!out || !out.ok) {
                 var err = out && (out.error || out.result) ? (out.error || out.result) : "Unknown error";

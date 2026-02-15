@@ -688,6 +688,127 @@
         return b.index > a.index;
     }
 
+    function _refreshSubtitleBgFallback(comp) {
+        if (!comp) return false;
+
+        var BG_NAME = "subtitle_BG";
+        var BG_PREFIX = "subtitle_BG_";
+        var GAP_SEC = 1.0;
+        try {
+            var gv = Number(getConfigValue("subtitleBgGapSec", 1.0));
+            if (!isNaN(gv) && gv >= 0 && gv <= 10) GAP_SEC = gv;
+        } catch (eG) {}
+
+        var bg = null;
+        try { bg = comp.layer(BG_NAME); } catch (e0) { bg = null; }
+        if (!bg) {
+            for (var i = 1; i <= comp.numLayers; i++) {
+                var l0 = comp.layer(i);
+                if (l0 && l0.name && String(l0.name).indexOf(BG_PREFIX) === 0) {
+                    bg = l0;
+                    try { bg.name = BG_NAME; } catch (eRn) {}
+                    break;
+                }
+            }
+        }
+        if (!bg) return false;
+
+        for (var r = comp.numLayers; r >= 1; r--) {
+            var lr = comp.layer(r);
+            if (lr && lr.name && String(lr.name).indexOf(BG_PREFIX) === 0) {
+                try { lr.remove(); } catch (eRm) {}
+            }
+        }
+
+        var subs = [];
+        for (var s = 1; s <= comp.numLayers; s++) {
+            var sl = comp.layer(s);
+            if (!sl || !_isSubtitleLayerName(sl.name)) continue;
+            subs.push({
+                layer: sl,
+                start: Number(sl.inPoint) || 0,
+                end: Number(sl.outPoint) || 0
+            });
+        }
+        subs.sort(function (a, b) {
+            return (a.start === b.start) ? (a.end - b.end) : (a.start - b.start);
+        });
+
+        var groups = [];
+        if (subs.length > 0) {
+            var gs = subs[0].start;
+            var ge = subs[0].end;
+            for (var k = 1; k < subs.length; k++) {
+                var ss = subs[k].start;
+                var ee = subs[k].end;
+                if (ss - ge > GAP_SEC) {
+                    groups.push({ start: gs, end: ge });
+                    gs = ss;
+                    ge = ee;
+                } else {
+                    if (ee > ge) ge = ee;
+                }
+            }
+            groups.push({ start: gs, end: ge });
+        }
+
+        if (groups.length === 0) {
+            bg.inPoint = comp.time;
+            bg.outPoint = comp.time;
+            bg.startTime = comp.time;
+            return true;
+        }
+
+        for (var g = 0; g < groups.length; g++) {
+            var grp = groups[g];
+            var layer = bg;
+            if (g > 0) {
+                layer = bg.duplicate();
+                layer.name = BG_PREFIX + (g + 1);
+            }
+
+            layer.startTime = grp.start;
+            layer.inPoint = grp.start;
+            layer.outPoint = grp.end;
+
+            var anchor = null;
+            for (var j = 1; j <= comp.numLayers; j++) {
+                var la = comp.layer(j);
+                if (!la || !_isSubtitleLayerName(la.name)) continue;
+                if ((Number(la.inPoint) || 0) < grp.start || (Number(la.inPoint) || 0) > grp.end) continue;
+                if (!anchor || la.index > anchor.index) anchor = la;
+            }
+            if (anchor) {
+                try { layer.moveAfter(anchor); } catch (eMv) {}
+            }
+        }
+        return true;
+    }
+
+    function _refreshSubtitleBgAfterAutoTiming(comp) {
+        var ok = false;
+        try {
+            if (typeof loadModule === "function") {
+                // Reload on each apply to avoid stale/missing symbols from script eval order.
+                loadModule("subtitles.jsx");
+            }
+        } catch (eLm) {}
+
+        try {
+            if (typeof _updateSubtitleBg === "function") {
+                _updateSubtitleBg(comp);
+                ok = true;
+            }
+        } catch (eUp) {
+            ok = false;
+        }
+
+        if (!ok) {
+            try { ok = _refreshSubtitleBgFallback(comp); } catch (eFb) { ok = false; }
+        }
+        return ok;
+    }
+
     function _buildTimingChanges(comp, alignmentObj) {
         var fps = Number(comp.frameRate) || 25;
         var st = _readAlignmentSettings(alignmentObj);
@@ -905,14 +1026,8 @@
                 }
             }
 
-            // Recompute BG groups after timings changed.
-            try {
-                if (typeof _updateSubtitleBg !== "function" && typeof loadModule === "function") {
-                    // Ensure subtitles.jsx is loaded so _updateSubtitleBg is available.
-                    try { loadModule("subtitles.jsx"); } catch (eLm) {}
-                }
-                if (typeof _updateSubtitleBg === "function") _updateSubtitleBg(comp);
-            } catch (eBg) {}
+            // Recompute subtitle_BG after timings changed.
+            try { _refreshSubtitleBgAfterAutoTiming(comp); } catch (eBg) {}
 
             // Build a concise reason histogram for skipped blocks (unmatched, layer missing, invalid).
             var reasonStats = {};

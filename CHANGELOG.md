@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+### Added
+- Speaker Titles: добавлен режим `solo_title` (чекбокс). В этом режиме используется шаблон `name_title_solo`, а текст из поля «ФИО» подставляется в слой `Job_title`.
+
+### Changed
+- Auto Timing: после применения таймингов добавлен более надежный пересчет `subtitle_BG` (с fallback-алгоритмом, если модуль `subtitles.jsx` не подгрузился).
+- Head Topic: старт теперь ставится встык к предыдущему geotag (если geotag есть перед группой).
+- Head Topic: конец теперь ставится встык к первому `Sub_SYNCH_*` после начала группы (вместо конца `Sub_VOICEOVER`).
+- Head Topic: группировка `Sub_VOICEOVER` для head_topic идет по batch (`Sub_VOICEOVER_<batch>_<n>`), чтобы небольшие паузы внутри группы не рвали head_topic.
 
 ## v2.3.0 — 2026-02-15
 

@@ -99,47 +99,84 @@
         return (layer.name && layer.name.indexOf("Sub_VOICEOVER_") === 0);
     }
 
+    function _parseSubLayerNameInfo(name) {
+        var s = String(name || "");
+        var m = s.match(/^Sub_(VOICEOVER|SYNCH)_(\d+)_(\d+)$/i);
+        if (!m) return null;
+        var t = String(m[1] || "").toUpperCase();
+        var b = parseInt(m[2], 10);
+        var i = parseInt(m[3], 10);
+        if (isNaN(b) || isNaN(i)) return null;
+        return { type: t, batch: b, index: i };
+    }
+
     function _collectRegularGroups(comp) {
         // Возвращает массив групп [{start:Number, end:Number}]
-        // Логика: группируем последовательности Sub_VOICEOVER_* в порядке времени.
+        // Основной путь: группируем по batch в имени Sub_VOICEOVER_<batch>_<index>.
+        // Это не рвет группу на мелких паузах между блоками.
+        // Fallback для legacy-имен: группируем по времени с мягким порогом gap.
         var regs = [];
+        var byBatch = {};
+        var allParsed = true;
 
         // соберём все regular-слои
         for (var i = 1; i <= comp.numLayers; i++) {
             var l = comp.layer(i);
             if (_isRegularSubLayer(l)) {
+                var info = _parseSubLayerNameInfo(l.name);
+                if (!info || info.type !== "VOICEOVER") {
+                    allParsed = false;
+                }
                 regs.push({
                     layer: l,
                     start: l.inPoint,
-                    end: l.outPoint
+                    end: l.outPoint,
+                    batch: (info && info.type === "VOICEOVER") ? info.batch : null
                 });
             }
         }
 
         if (regs.length === 0) return [];
 
-        // сортировка по start времени
+        if (allParsed) {
+            for (var r = 0; r < regs.length; r++) {
+                var it = regs[r];
+                var key = String(it.batch);
+                if (!byBatch[key]) {
+                    byBatch[key] = { start: it.start, end: it.end };
+                } else {
+                    if (it.start < byBatch[key].start) byBatch[key].start = it.start;
+                    if (it.end > byBatch[key].end) byBatch[key].end = it.end;
+                }
+            }
+
+            var out = [];
+            for (var k in byBatch) {
+                if (!byBatch.hasOwnProperty(k)) continue;
+                out.push({ start: byBatch[k].start, end: byBatch[k].end });
+            }
+            out.sort(function (a, b) {
+                return (a.start === b.start) ? (a.end - b.end) : (a.start - b.start);
+            });
+            return out;
+        }
+
+        // Legacy fallback: разрываем только на заметных паузах.
         regs.sort(function (a, b) {
             return (a.start === b.start) ? (a.end - b.end) : (a.start - b.start);
         });
-
-        // группировка “подряд”
-        // Считаем, что если следующий start совпадает с текущим end (или почти совпадает) — это продолжение группы.
-        var EPS = 1.0 / 60.0; // ~1 кадр (безопасно)
+        var GAP_SEC = 1.0;
         var groups = [];
-
         var curStart = regs[0].start;
         var curEnd = regs[0].end;
 
-        for (var k = 1; k < regs.length; k++) {
-            var s = regs[k].start;
-            var e = regs[k].end;
+        for (var p = 1; p < regs.length; p++) {
+            var s = regs[p].start;
+            var e = regs[p].end;
 
-            if (s <= curEnd + EPS) {
-                // перекрытие или вплотную — расширяем
+            if (s - curEnd <= GAP_SEC) {
                 if (e > curEnd) curEnd = e;
             } else {
-                // разрыв — закрываем группу
                 groups.push({ start: curStart, end: curEnd });
                 curStart = s;
                 curEnd = e;
@@ -200,6 +237,44 @@
             if (Math.abs(l.startTime - t) <= EPS) return l;
         }
         return null;
+    }
+
+    function _isGeotagLayer(layer) {
+        if (!layer) return false;
+        var src = layer.source;
+        var srcName = (src && src.name) ? src.name : "";
+        var layerName = layer.name || "";
+        return (srcName.indexOf("geotag_") === 0) || (layerName.indexOf("geotag_") === 0);
+    }
+
+    function _findPrevGeotagOut(comp, t) {
+        var EPS = 1.0 / 60.0;
+        var best = null;
+        var bestOut = -1;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!_isGeotagLayer(l)) continue;
+            var out = Number(l.outPoint) || 0;
+            if (out > t + EPS) continue;
+            if (out > bestOut) {
+                bestOut = out;
+                best = l;
+            }
+        }
+        return best ? (Number(best.outPoint) || null) : null;
+    }
+
+    function _findFirstSynchStartAfter(comp, t) {
+        var EPS = 1.0 / 60.0;
+        var best = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !l.name || l.name.indexOf("Sub_SYNCH_") !== 0) continue;
+            var st = Number(l.inPoint) || 0;
+            if (st + EPS < t) continue;
+            if (best === null || st < best) best = st;
+        }
+        return best;
     }
 
     // =====================================================
@@ -329,6 +404,18 @@
         for (var g = 0; g < groups.length; g++) {
             var st = groups[g].start;
             var en = groups[g].end;
+            var EPS = 1.0 / 60.0;
+            var minDur = 1.0 / Math.max(1, Number(comp.frameRate) || 25);
+
+            // A) If there is a geotag right before this group, start head_topic exactly after geotag.
+            var geoOut = _findPrevGeotagOut(comp, st);
+            if (geoOut !== null && !isNaN(geoOut)) st = geoOut;
+
+            // B) Prefer end at the first Sub_SYNCH start after this head_topic start.
+            var synStart = _findFirstSynchStartAfter(comp, st);
+            if (synStart !== null && (synStart > st + EPS)) en = synStart;
+
+            if (en <= st + EPS) en = st + minDur;
 
             var l = comp.layers.add(work);
             l.name = HEAD_LAYER_PREFIX + "_" + (g + 1);

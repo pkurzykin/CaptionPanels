@@ -2,8 +2,8 @@
 // =====================================================
 // SPEAKERS: markers + preview + create title
 // Exposed globals:
-//   updateSpeakerPreview(name, job, side, size, bgOffset)
-//   createSpeakerTitle(name, job, side, size, bgOffset)
+//   updateSpeakerPreview(name, job, side, size, bgOffset, soloTitle)
+//   createSpeakerTitle(name, job, side, size, bgOffset, soloTitle)
 //   addSpeakerToDb(name, job)
 //   removeSpeakerFromDb(name, job)
 //   removePreview()
@@ -215,8 +215,24 @@
         }
     }
 
-    function _ensureTemplate() {
-        return _findCompByName("name_job_title_LR");
+    function _isTrue(v) {
+        if (v === true) return true;
+        var s = String(v || "").toLowerCase();
+        return (s === "true" || s === "1" || s === "yes" || s === "on");
+    }
+
+    function _ensureTemplate(soloTitle) {
+        return _findCompByName(_isTrue(soloTitle) ? "name_title_solo" : "name_job_title_LR");
+    }
+
+    function _applyTitleText(comp, name, job, soloTitle) {
+        if (_isTrue(soloTitle)) {
+            // In solo mode FIO goes to Job_title in name_title_solo.
+            _safeSetTextLayer(comp, "Job_title", name);
+            return;
+        }
+        _safeSetTextLayer(comp, "Name_Main", name);
+        _safeSetTextLayer(comp, "Job_title", job);
     }
 
     function _normalizeSpeakerText(txt) {
@@ -391,13 +407,13 @@
     };
 
     // Update preview (called on input/radio/slider changes)
-    updateSpeakerPreview = function (name, job, side, size, bgOffset) {
+    updateSpeakerPreview = function (name, job, side, size, bgOffset, soloTitle) {
         var comp = _ensureActiveComp();
         if (!comp) return respondErr("No active comp");
 
         _initIfNeeded(comp);
 
-        var tpl = _ensureTemplate();
+        var tpl = _ensureTemplate(soloTitle);
         if (!tpl) return respondErr("Template not found");
 
         app.beginUndoGroup("Update Speaker Preview");
@@ -407,9 +423,7 @@
         var pComp = tpl.duplicate();
         pComp.name = PREVIEW_COMP_NAME;
 
-        // apply text
-        _safeSetTextLayer(pComp, "Name_Main", name);
-        _safeSetTextLayer(pComp, "Job_title", job);
+        _applyTitleText(pComp, name, job, soloTitle);
 
         // apply controls
         _safeSetControl(pComp, side, size, bgOffset);
@@ -428,13 +442,13 @@
 
     // Create title on current marker and jump to next marker
     // Returns JSON with next marker data (optional for UI updates later)
-    createSpeakerTitle = function (name, job, side, size, bgOffset) {
+    createSpeakerTitle = function (name, job, side, size, bgOffset, soloTitle) {
         var comp = _ensureActiveComp();
         if (!comp) return respondErr("No active comp");
 
         _initIfNeeded(comp);
 
-        var tpl = _ensureTemplate();
+        var tpl = _ensureTemplate(soloTitle);
         if (!tpl) return respondErr("Template not found");
 
         app.beginUndoGroup("Create Speaker Title");
@@ -447,16 +461,18 @@
 
         // Duplicate template for final title
         var newComp = tpl.duplicate();
-        newComp.name = "name_job_title_LR_" + _getNextNumber("name_job_title_LR");
+        if (_isTrue(soloTitle)) {
+            newComp.name = "name_title_solo_" + _getNextNumber("name_title_solo");
+        } else {
+            newComp.name = "name_job_title_LR_" + _getNextNumber("name_job_title_LR");
+        }
 
         // авто-сортировка: сгенерированный титр в папку _GENERATED/Speakers
     if (typeof moveItemToFolder === "function") {
     moveItemToFolder(newComp, "_GENERATED/Speakers");
         }
 
-
-        _safeSetTextLayer(newComp, "Name_Main", name);
-        _safeSetTextLayer(newComp, "Job_title", job);
+        _applyTitleText(newComp, name, job, soloTitle);
         _safeSetControl(newComp, side, size, bgOffset);
 
         var newLayer = comp.layers.add(newComp);
