@@ -204,6 +204,9 @@ function initSpeakersUI() {
             var sizeDef = document.getElementById("size-def");
             if (sizeDef) sizeDef.checked = true;
 
+            var soloChk = document.getElementById("chk-solo-title");
+            if (soloChk) soloChk.checked = false;
+
             if (bgSliderEl) bgSliderEl.value = 0;
             if (bgValEl) bgValEl.textContent = "0";
             updateAddSpeakerBtnState();

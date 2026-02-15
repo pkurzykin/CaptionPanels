@@ -35,6 +35,8 @@ function _clearSpeakerFields(noPreview) {
     if (sideLeft) sideLeft.checked = true;
     var sizeDef = document.getElementById("size-def");
     if (sizeDef) sizeDef.checked = true;
+    var solo = document.getElementById("chk-solo-title");
+    if (solo) solo.checked = false;
     var bgSliderEl = document.getElementById("bg-slider");
     var bgValEl = document.getElementById("bg-val");
     if (bgSliderEl) bgSliderEl.value = 0;
@@ -101,6 +103,9 @@ function jsonImportAdvanceAfterCreate() {
         csInterface.evalScript("removePreview()");
         return true;
     }
+
+    // Reset controls to defaults before loading the next speaker in queue.
+    _clearSpeakerFields(true);
 
     var next = JSON_IMPORT_QUEUE[JSON_IMPORT_INDEX] || {};
     _setSpeakerFields(next.name || "", next.job || "");

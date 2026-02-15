@@ -17,6 +17,7 @@
 - Word Import: логи (`word2json_last.log`, `word2json_process_last.log`) вынесены в отдельную папку `word2jsonLogsDir` (по умолчанию — общий каталог логов в `C:\AE\CaptionPanelsData\auto_timing\logs`).
 - Auto Timing: запуск внешних команд стабилизирован через временный `.cmd`-скрипт (вместо сложного inline `cmd /C`), чтобы исключить повторяющиеся ошибки экранирования кавычек в путях с пробелами/UNC.
 - Settings/Auto Timing: добавлен `whisperxDeviceMode` (`auto/cuda/cpu`) с безопасным режимом `auto` (CUDA -> CPU fallback) для адаптации на разных рабочих станциях.
+- Speaker Titles: после `Create Title` UI снова сбрасывает контролы в дефолт (`Left`/`Default`/`BG offset 0`, `solo_title` off), в том числе при переходе к следующему спикеру из импортной очереди.
 
 ## v2.3.0 — 2026-02-15
 
