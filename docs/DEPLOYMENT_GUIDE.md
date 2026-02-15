@@ -95,7 +95,7 @@
 - `whisperxPythonPath`: `C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe`
 - `whisperxModel`: например `medium`
 - `whisperxLanguage`: `ru`
-- `whisperxDevice`: `cuda`
+- `whisperxDeviceMode`: `auto` (рекомендуется)
 - `whisperxVadMethod`: `silero`
 
 (Опционально)

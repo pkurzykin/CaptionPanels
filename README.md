@@ -46,6 +46,7 @@ legacy_cep/       архив CEP версии
 - `autoTimingOutDir` — корневая папка данных Auto Timing (если пусто — `%APPDATA%\CaptionPanels\auto_timing`)
 - `autoTimingMinGapFrames` — минимальный зазор между соседними блоками разных групп при Auto Timing (в кадрах)
 - `whisperxApplyTimeShift` — глобальный time shift (рекомендуется `false`, включать только для диагностики)
+- `whisperxDeviceMode` — режим выбора устройства для WhisperX: `auto` (рекомендуется, CUDA с fallback на CPU), `cuda`, `cpu`
 
 ## Логи
 При `enableLogs: true` логи пишутся в:

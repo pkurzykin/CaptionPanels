@@ -41,6 +41,9 @@ function _formatWhisperAutoTimingSummary(res) {
     if (r.blocksPath) msg += "\nBlocks: " + r.blocksPath;
     if (r.whisperxJson) msg += "\nWhisperX JSON: " + r.whisperxJson;
     if (r.alignmentPath) msg += "\nAlignment: " + r.alignmentPath;
+    if (r.whisperxDeviceMode) msg += "\nWhisperX device mode: " + r.whisperxDeviceMode;
+    if (r.whisperxDeviceRequested) msg += "\nWhisperX device requested: " + r.whisperxDeviceRequested;
+    if (r.whisperxDeviceUsed) msg += "\nWhisperX device used: " + r.whisperxDeviceUsed;
 
     if (r.whisperxArgs) msg += "\nWhisperX args: " + r.whisperxArgs;
     if (r.whisperxArgsIgnored && r.whisperxArgsIgnored.length) msg += "\nWhisperX ignored: " + r.whisperxArgsIgnored.join(", ");

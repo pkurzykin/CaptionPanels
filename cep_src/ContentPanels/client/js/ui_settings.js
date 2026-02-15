@@ -98,12 +98,20 @@ function _settingsLoad() {
         // 4) WhisperX (ASR)
         var wxModel = (typeof res.whisperxModel === "string" && res.whisperxModel) ? res.whisperxModel : "medium";
         var wxLang = (typeof res.whisperxLanguage === "string" && res.whisperxLanguage) ? res.whisperxLanguage : "ru";
+        var wxDeviceMode = (typeof res.whisperxDeviceMode === "string" && res.whisperxDeviceMode) ? String(res.whisperxDeviceMode).toLowerCase() : "";
+        if (wxDeviceMode !== "auto" && wxDeviceMode !== "cuda" && wxDeviceMode !== "cpu") {
+            var wxDeviceLegacy = (typeof res.whisperxDevice === "string" && res.whisperxDevice) ? String(res.whisperxDevice).toLowerCase() : "cuda";
+            wxDeviceMode = (wxDeviceLegacy === "cpu") ? "cpu" : "auto";
+        }
 
         var wxModelEl = document.getElementById("settings-whisperx-model");
         if (wxModelEl) wxModelEl.value = String(wxModel);
 
         var wxLangEl = document.getElementById("settings-whisperx-language");
         if (wxLangEl) wxLangEl.value = String(wxLang);
+
+        var wxDeviceModeEl = document.getElementById("settings-whisperx-device-mode");
+        if (wxDeviceModeEl) wxDeviceModeEl.value = String(wxDeviceMode || "auto");
 
         var wxAdvEnabled = !!res.whisperxAdvancedArgsEnabled;
         var wxAdvEl = document.getElementById("settings-whisperx-adv-enabled");
@@ -208,6 +216,12 @@ function _settingsSave() {
     wxLang = wxLang.replace(/^\s+|\s+$/g, "");
     if (!wxLang) wxLang = "ru";
 
+    var wxDeviceModeEl = document.getElementById("settings-whisperx-device-mode");
+    var wxDeviceMode = wxDeviceModeEl ? String(wxDeviceModeEl.value || "auto").toLowerCase() : "auto";
+    if (wxDeviceMode !== "auto" && wxDeviceMode !== "cuda" && wxDeviceMode !== "cpu") wxDeviceMode = "auto";
+    // Legacy key for backward compatibility with old host logic.
+    var wxDeviceLegacy = (wxDeviceMode === "cpu") ? "cpu" : "cuda";
+
     var wxAdvEl = document.getElementById("settings-whisperx-adv-enabled");
     var wxAdvEnabled = wxAdvEl ? !!wxAdvEl.checked : false;
 
@@ -240,6 +254,8 @@ function _settingsSave() {
 
         { key: "whisperxModel", value: String(wxModel || "medium") },
         { key: "whisperxLanguage", value: String(wxLang || "ru") },
+        { key: "whisperxDeviceMode", value: String(wxDeviceMode || "auto") },
+        { key: "whisperxDevice", value: String(wxDeviceLegacy) },
 
         { key: "whisperxAdvancedArgsEnabled", value: !!wxAdvEnabled },
         { key: "whisperxBeamSize", value: Number(wxBeam) },
@@ -308,4 +324,3 @@ function initSettingsUI() {
         });
     }
 }
-

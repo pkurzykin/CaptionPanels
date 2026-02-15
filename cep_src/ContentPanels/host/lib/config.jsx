@@ -293,7 +293,11 @@
             var wxModel = String(getConfigValue("whisperxModel", "medium") || "medium");
             var wxLang = String(getConfigValue("whisperxLanguage", "ru") || "ru");
             var wxDevice = String(getConfigValue("whisperxDevice", "cuda") || "cuda");
+            var wxDeviceMode = String(getConfigValue("whisperxDeviceMode", "") || "").toLowerCase();
             var wxVad = String(getConfigValue("whisperxVadMethod", "silero") || "silero");
+            if (wxDeviceMode !== "auto" && wxDeviceMode !== "cuda" && wxDeviceMode !== "cpu") {
+                wxDeviceMode = (String(wxDevice).toLowerCase() === "cpu") ? "cpu" : "auto";
+            }
 
             var wxAdvEnabled = false;
             try { wxAdvEnabled = !!getConfigValue("whisperxAdvancedArgsEnabled", false); } catch (eWx) { wxAdvEnabled = false; }
@@ -325,6 +329,7 @@
 
                 whisperxModel: wxModel,
                 whisperxLanguage: wxLang,
+                whisperxDeviceMode: wxDeviceMode,
                 whisperxDevice: wxDevice,
                 whisperxVadMethod: wxVad,
 

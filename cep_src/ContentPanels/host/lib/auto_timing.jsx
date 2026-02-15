@@ -1333,11 +1333,27 @@
             var model = "";
             var lang = "";
             var device = "";
+            var deviceMode = "";
+            var allowCpuFallback = false;
             var vad = "";
             try { model = String(getConfigValue("whisperxModel", "medium") || "medium"); } catch (eM) { model = "medium"; }
             try { lang = String(getConfigValue("whisperxLanguage", "ru") || "ru"); } catch (eL) { lang = "ru"; }
             try { device = String(getConfigValue("whisperxDevice", "cuda") || "cuda"); } catch (eD) { device = "cuda"; }
+            try { deviceMode = String(getConfigValue("whisperxDeviceMode", "") || "").toLowerCase(); } catch (eDm) { deviceMode = ""; }
             try { vad = String(getConfigValue("whisperxVadMethod", "silero") || "silero"); } catch (eV) { vad = "silero"; }
+            device = String(device || "").toLowerCase();
+            if (deviceMode !== "auto" && deviceMode !== "cuda" && deviceMode !== "cpu") {
+                // Backward-compatible fallback for old configs without whisperxDeviceMode.
+                deviceMode = (device === "cpu") ? "cpu" : "auto";
+            }
+            if (deviceMode === "cpu") {
+                device = "cpu";
+                allowCpuFallback = false;
+            } else {
+                // "auto" and "cuda" both start on CUDA, but fallback only in "auto".
+                device = "cuda";
+                allowCpuFallback = (deviceMode === "auto");
+            }
             var wxAdv = false;
             try { wxAdv = !!getConfigValue("whisperxAdvancedArgsEnabled", false); } catch (eAx) { wxAdv = false; }
             var wxApplyShift = false;
@@ -1473,6 +1489,7 @@
             var wFallbackLog = "";
             if (
                 w.exitCode !== 0 &&
+                allowCpuFallback &&
                 String(device || "").toLowerCase() === "cuda" &&
                 (_isCudaUnavailableError(w.output) || _isHardCrashExitCode(w.exitCode))
             ) {
@@ -1611,6 +1628,8 @@
                 runId: runBase,
                 blocksPath: blocksPath,
                 videoPath: videoPath,
+                whisperxDeviceMode: deviceMode,
+                whisperxDeviceRequested: device,
                 whisperxDeviceUsed: deviceUsed,
                 whisperxDir: whisperRunDir,
                 whisperxJson: whisperJson,

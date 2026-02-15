@@ -119,8 +119,15 @@
 - `whisperxLanguage` (string)
   - Пример: `ru`.
 
+- `whisperxDeviceMode` (string)
+  - Режим выбора устройства:
+    - `auto` — сначала CUDA, при проблеме автоматический fallback на CPU (рекомендуется)
+    - `cuda` — только CUDA, без fallback
+    - `cpu` — только CPU
+
 - `whisperxDevice` (string)
-  - Пример: `cuda`.
+  - Legacy-ключ совместимости (`cuda`/`cpu`).
+  - Для новых настроек используйте `whisperxDeviceMode`.
 
 - `whisperxVadMethod` (string)
   - Пример: `silero`.
@@ -191,6 +198,7 @@
   "whisperxRunnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
   "whisperxModel": "medium",
   "whisperxLanguage": "ru",
+  "whisperxDeviceMode": "auto",
   "whisperxDevice": "cuda",
   "whisperxVadMethod": "silero",
   "whisperxApplyTimeShift": false,

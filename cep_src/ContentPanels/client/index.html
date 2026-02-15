@@ -225,6 +225,15 @@
                     <input id="settings-whisperx-language" type="text" placeholder="ru" />
                 </div>
 
+                <div class="settings-row">
+                    <label for="settings-whisperx-device-mode">Device mode</label>
+                    <select id="settings-whisperx-device-mode">
+                        <option value="auto">auto (CUDA -> CPU fallback)</option>
+                        <option value="cuda">cuda only</option>
+                        <option value="cpu">cpu only</option>
+                    </select>
+                </div>
+
                 <details class="settings-details settings-details-nested">
                     <summary>Advanced params</summary>
 

@@ -27,6 +27,7 @@
   "whisperxRunnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
   "whisperxModel": "medium",
   "whisperxLanguage": "ru",
+  "whisperxDeviceMode": "auto",
   "whisperxDevice": "cuda",
   "whisperxVadMethod": "silero",
   "transcribeAlignScriptPath": "host/tools/transcribe_align/transcribe_align.py",
