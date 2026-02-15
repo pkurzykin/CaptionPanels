@@ -169,6 +169,30 @@
         return /[^\x00-\x7F]/.test(String(s || ""));
     }
 
+    function _getWord2JsonLogsDir(outDirFallback) {
+        // Prefer explicit Word logs path; fallback to shared auto_timing logs;
+        // then to captionPanelsDataRoot/auto_timing/logs; last fallback is outDir.
+        var raw = "";
+        try { raw = String(getConfigValue("word2jsonLogsDir", "") || ""); } catch (e0) { raw = ""; }
+        var dir = _resolvePathRelativeToConfig(raw);
+
+        if (!dir) {
+            try { raw = String(getConfigValue("autoTimingLogsDir", "") || ""); } catch (e1) { raw = ""; }
+            dir = _resolvePathRelativeToConfig(raw);
+        }
+
+        if (!dir) {
+            try {
+                var dataRoot = String(getConfigValue("captionPanelsDataRoot", "") || "");
+                dataRoot = _resolvePathRelativeToConfig(dataRoot);
+                if (dataRoot) dir = _normalizePath(dataRoot + "/auto_timing/logs");
+            } catch (e2) {}
+        }
+
+        if (!dir) dir = _normalizePath(outDirFallback || "");
+        return _normalizePath(dir);
+    }
+
     function _ensureHiddenRunnerScript(dirPath) {
         try {
             var dir = _normalizePath(dirPath || "");
@@ -321,8 +345,11 @@
             if (!safeBase) safeBase = "script";
 
             var outJsonPath = outDir + "/" + safeBase + "_" + _timestamp() + ".json";
-            var logPath = outDir + "/word2json_last.log";
-            var processLogPath = outDir + "/word2json_process_last.log";
+            var logsDir = _getWord2JsonLogsDir(outDir);
+            _ensureFolder(logsDir);
+
+            var logPath = logsDir + "/word2json_last.log";
+            var processLogPath = logsDir + "/word2json_process_last.log";
             var stagedInputPath = "";
 
             // Normalize to forward slashes for cmd quoting stability.
@@ -366,6 +393,7 @@
                 logText += "docx=" + String(docxPath || "") + "\n";
                 if (stagedInputPath) logText += "docxStaged=" + String(stagedInputPath || "") + "\n";
                 logText += "outDir=" + String(outDir || "") + "\n";
+                logText += "logsDir=" + String(logsDir || "") + "\n";
                 logText += "outJson=" + String(outJsonPath || "") + "\n";
                 if (run && run.processLogPath) logText += "processLog=" + String(run.processLogPath) + "\n";
                 logText += "\ncmd:\n" + String(run && run.cmd ? run.cmd : "") + "\n";

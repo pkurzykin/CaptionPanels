@@ -89,6 +89,7 @@
 ### 5.1 Word -> JSON
 - `word2jsonExePath`: `C:/AE/CaptionPanelsTools/word2json/word2json.exe`
 - `word2jsonOutDir`: `C:/AE/CaptionPanelsData/word2json`
+- `word2jsonLogsDir`: `C:/AE/CaptionPanelsData/auto_timing/logs`
 
 ### 5.2 Auto Timing (WhisperX + align)
 - `whisperxPythonPath`: `C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe`
@@ -164,3 +165,7 @@
 
 - GPU не виден:
   - драйвер NVIDIA, совместимость torch/torchaudio, CUDA
+
+- Ошибки `can't open file 'C:\\Program'` / `не является внутренней или внешней командой`:
+  - это почти всегда ошибка экранирования кавычек в `cmd /C` при путях с пробелами/UNC.
+  - правило для кода: не собирать длинный inline `cmd /C "... ..."` с вложенными кавычками; использовать временный `.cmd`-скрипт (как в текущей реализации).

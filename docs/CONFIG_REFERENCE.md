@@ -73,9 +73,14 @@
   - Рекомендация (локально, не UNC): `C:/AE/CaptionPanelsTools/word2json/word2json.exe`
 
 - `word2jsonOutDir` (string)
-  - Папка, куда пишется сгенерированный `.json` и `word2json_last.log`.
+  - Папка, куда пишется сгенерированный `.json`.
   - Рекомендация: `C:/AE/CaptionPanelsData/word2json`
   - Если пусто: сначала пробуется `captionPanelsDataRoot/word2json`, иначе `%TEMP%\CaptionPanels\word2json`.
+
+- `word2jsonLogsDir` (string)
+  - Папка для логов Word-import (`word2json_last.log`, `word2json_process_last.log`).
+  - Рекомендация: `C:/AE/CaptionPanelsData/auto_timing/logs` (единое место с логами Auto Timing).
+  - Если пусто: сначала `autoTimingLogsDir`, затем `captionPanelsDataRoot/auto_timing/logs`, затем `word2jsonOutDir`.
 
 ### auto timing (blocks / whisperx / alignment)
 - `autoTimingOutDir` (string)
@@ -175,6 +180,7 @@
 
   "word2jsonExePath": "C:/AE/CaptionPanelsTools/word2json/word2json.exe",
   "word2jsonOutDir": "C:/AE/CaptionPanelsData/word2json",
+  "word2jsonLogsDir": "C:/AE/CaptionPanelsData/auto_timing/logs",
 
   "autoTimingBlocksDir": "C:/AE/CaptionPanelsData/auto_timing/blocks",
   "autoTimingWhisperXDir": "C:/AE/CaptionPanelsData/auto_timing/whisperx",

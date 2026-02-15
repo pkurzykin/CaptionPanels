@@ -106,9 +106,10 @@ Mitigations:
   - `Edit > Preferences > Scripting & Expressions > Allow Scripts to Write Files and Access Network`
   - Without it, `system.callSystem()` can fail with `Permission denied`.
 
-- Word import creates/overwrites a debug log file (helps when AE shows an empty error):
-  - `word2jsonOutDir/word2json_last.log`
-  - If `word2jsonOutDir` is empty, default is `captionPanelsDataRoot\word2json\word2json_last.log` (if `captionPanelsDataRoot` is set), otherwise `%TEMP%\CaptionPanels\word2json\word2json_last.log`.
+- Word import creates/overwrites debug log files (helps when AE shows an empty error):
+  - `word2jsonLogsDir/word2json_last.log`
+  - `word2jsonLogsDir/word2json_process_last.log`
+  - If `word2jsonLogsDir` is empty: `autoTimingLogsDir`, then `captionPanelsDataRoot\auto_timing\logs`, then `word2jsonOutDir`.
 
 
 - Output JSON file:

@@ -42,6 +42,7 @@ legacy_cep/       архив CEP версии
 - `captionPanelsToolsRoot` — единый корень внешних утилит (рекомендуется: `C:\AE\CaptionPanelsTools`)
 - `word2jsonExePath` — путь к `word2json.exe` (Word .docx -> .json), рекомендуется: `C:\AE\CaptionPanelsTools\word2json\word2json.exe`
 - `word2jsonOutDir` — куда сохранять JSON после конвертации, рекомендуется: `C:\AE\CaptionPanelsData\word2json` (если пусто — `%TEMP%\CaptionPanels\word2json`)
+- `word2jsonLogsDir` — куда сохранять логи импорта Word, рекомендуется: `C:\AE\CaptionPanelsData\auto_timing\logs` (если пусто — берется `autoTimingLogsDir`, далее fallback в `captionPanelsDataRoot\auto_timing\logs`)
 - `autoTimingOutDir` — корневая папка данных Auto Timing (если пусто — `%APPDATA%\CaptionPanels\auto_timing`)
 - `autoTimingMinGapFrames` — минимальный зазор между соседними блоками разных групп при Auto Timing (в кадрах)
 - `whisperxApplyTimeShift` — глобальный time shift (рекомендуется `false`, включать только для диагностики)
