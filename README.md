@@ -1,7 +1,7 @@
 # CaptionPanels
 
 AEGP‑плагин для After Effects 2024+ (Windows 10/11) с UI на WebView2 и JSX‑мостом.
-Текущая версия: 2.2.0.
+Текущая версия: 2.3.0.
 
 ## Структура
 ```
@@ -30,11 +30,21 @@ legacy_cep/       архив CEP версии
 1) `%APPDATA%\CaptionPanels\config.json` (рекомендуется для смены пути без админ‑прав)
 2) `<plugin_root>/config.json`
 
+Примечание: изменения из окна Settings сохраняются в `%APPDATA%\CaptionPanels\config.json` (файл создается автоматически).
+
 Ключи:
 - `speakersDbPath` — путь к общей базе спикеров
+- `topicOptions` — список рубрик для TOPIC (выпадающий список), массив строк
 - `enableLogs` — включить диагностические логи (true/false)
 - `logsRoot` — кастомная папка для логов (если пусто — AppData)
 - `subtitleCharsPerLine` — лимит символов в строке (субтитры), по умолчанию 60
+- `captionPanelsDataRoot` — единый корень данных плагина (рекомендуется: `C:\AE\CaptionPanelsData`)
+- `captionPanelsToolsRoot` — единый корень внешних утилит (рекомендуется: `C:\AE\CaptionPanelsTools`)
+- `word2jsonExePath` — путь к `word2json.exe` (Word .docx -> .json), рекомендуется: `C:\AE\CaptionPanelsTools\word2json\word2json.exe`
+- `word2jsonOutDir` — куда сохранять JSON после конвертации, рекомендуется: `C:\AE\CaptionPanelsData\word2json` (если пусто — `%TEMP%\CaptionPanels\word2json`)
+- `autoTimingOutDir` — корневая папка данных Auto Timing (если пусто — `%APPDATA%\CaptionPanels\auto_timing`)
+- `autoTimingMinGapFrames` — минимальный зазор между соседними блоками разных групп при Auto Timing (в кадрах)
+- `whisperxApplyTimeShift` — глобальный time shift (рекомендуется `false`, включать только для диагностики)
 
 ## Логи
 При `enableLogs: true` логи пишутся в:

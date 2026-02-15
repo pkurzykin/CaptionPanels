@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "engine": "manual-test",
+    "language": "ru",
+    "media": "",
+    "note": "Synthetic timings for testing Apply Timings. Edit start/end as needed."
+  },
+  "settings": {
+    "padStartFrames": 0,
+    "padEndFrames": 2,
+    "minDurationFrames": 3
+  },
+  "blocks": [
+    {
+      "segId": "Sub_VOICEOVER_1_1",
+      "start": 10.0,
+      "end": 13.0,
+      "confidence": 1.0
+    },
+    {
+      "segId": "Sub_VOICEOVER_1_2",
+      "start": 13.5,
+      "end": 16.5,
+      "confidence": 1.0
+    },
+    {
+      "segId": "Sub_VOICEOVER_1_3",
+      "start": 17.0,
+      "end": 20.0,
+      "confidence": 1.0
+    },
+    {
+      "segId": "Sub_VOICEOVER_1_4",
+      "start": 20.5,
+      "end": 23.5,
+      "confidence": 1.0
+    },
+    {
+      "segId": "Sub_SYNCH_1_1",
+      "start": 24.0,
+      "end": 27.0,
+      "confidence": 1.0
+    },
+    {
+      "segId": "Sub_VOICEOVER_2_1",
+      "start": 27.5,
+      "end": 30.5,
+      "confidence": 1.0
+    },
+    {
+      "segId": "Sub_VOICEOVER_2_2",
+      "start": 31.0,
+      "end": 34.0,
+      "confidence": 1.0
+    },
+    {
+      "segId": "Sub_SYNCH_2_1",
+      "start": 34.5,
+      "end": 37.5,
+      "confidence": 1.0
+    }
+  ],
+  "unmatched": []
+}

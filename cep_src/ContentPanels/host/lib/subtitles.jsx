@@ -81,6 +81,17 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
             // Готовые субтитры не должны быть shy
             newL.shy = false;
 
+            // Stable ID for auto-timing. Stored in comment so it survives renames.
+            try {
+                var segId = newL.name;
+                var c = String(newL.comment || "");
+                if (c.indexOf("CP_SEGID=") === -1) {
+                    if (c && c.charAt(c.length - 1) !== "\n") c += "\n";
+                    c += "CP_SEGID=" + segId;
+                    newL.comment = c;
+                }
+            } catch (e) {}
+
             var targetIn = currentTime;
             newL.startTime = targetIn - (sourceLayer.inPoint - sourceLayer.startTime);
 
@@ -125,6 +136,14 @@ function splitTextToChunksCore(text) {
     } catch (e) {}
     var linesPerLayer = 3;
     
+    var shortWordMaxLen = 3;
+    try {
+        if (typeof getConfigValue === "function") {
+            var sw = Number(getConfigValue("subtitleShortWordMaxLen", 3));
+            if (!isNaN(sw) && sw >= 1 && sw <= 10) shortWordMaxLen = Math.round(sw);
+        }
+    } catch (e) {}
+
     // Чистим типографику перед нарезкой (общая функция из utils.jsx)
     var fixedText = (typeof fixTypographyText === "function") ? fixTypographyText(text) : text.toString();
 
@@ -136,7 +155,7 @@ function splitTextToChunksCore(text) {
 
     function _isMoveableShortWord(w) {
         if (!w) return false;
-        if (w.length <= 2) return true;
+        if (w.length <= shortWordMaxLen) return true;
         if (w.length === 3 && w === w.toUpperCase()) return true;
         return false;
     }
@@ -378,9 +397,26 @@ function _updateSubtitleBg(comp) {
     if (!comp) return;
     var BG_NAME = "subtitle_BG";
     var BG_PREFIX = "subtitle_BG_";
-    var GAP_SEC = 2.0;
+    var GAP_SEC = 1.0;
+    try {
+        if (typeof getConfigValue === "function") {
+            var v = Number(getConfigValue("subtitleBgGapSec", 1.0));
+            if (!isNaN(v) && v >= 0 && v <= 10) GAP_SEC = v;
+        }
+    } catch (eGap) {}
 
     var bg = comp.layer(BG_NAME);
+    if (!bg) {
+        // Fallback: if the base layer was duplicated/renamed, reuse the first auto BG layer as base.
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (l && l.name && String(l.name).indexOf(BG_PREFIX) === 0) {
+                bg = l;
+                try { bg.name = BG_NAME; } catch (eRn) {}
+                break;
+            }
+        }
+    }
     if (!bg) return;
 
     _removeAutoBgLayers(comp, BG_PREFIX);

@@ -10,7 +10,8 @@ var JSON_IMPORT_BRANDING = null; // { head, topic, geotags[] }
 function _setSpeakerFields(name, job, opts) {
     var nameEl = document.getElementById("input-name");
     var jobEl = document.getElementById("input-job");
-    if (nameEl) nameEl.value = String(name || "");
+    var nameVal = (typeof formatSpeakerNameForInput === "function") ? formatSpeakerNameForInput(name) : String(name || "");
+    if (nameEl) nameEl.value = String(nameVal || "");
     if (jobEl) jobEl.value = String(job || "");
 
     if (typeof updateAddSpeakerBtnState === "function") {
@@ -65,10 +66,27 @@ function jsonImportSetQueue(list, sourcePath) {
     JSON_IMPORT_ACTIVE = JSON_IMPORT_QUEUE.length > 0;
     JSON_IMPORT_SOURCE = sourcePath || "";
 
+    // Do not auto-create the first speaker preview after import.
+    // The user will explicitly start the titles flow via the "Load Speaker" button in the Speaker Titles tab.
     if (JSON_IMPORT_ACTIVE) {
-        var first = JSON_IMPORT_QUEUE[0] || {};
-        _setSpeakerFields(first.name || "", first.job || "");
+        _clearSpeakerFields(true);
+        try { csInterface.evalScript("removePreview()"); } catch (ePrev) {}
     }
+}
+
+
+function jsonImportLoadCurrentSpeakerForTitles() {
+    if (!jsonImportIsActive()) {
+        uiAlert("No speakers in queue. Import Word/JSON first.");
+        return false;
+    }
+
+    // Reset UI controls first (no preview), then fill and preview.
+    _clearSpeakerFields(true);
+
+    var cur = JSON_IMPORT_QUEUE[JSON_IMPORT_INDEX] || {};
+    _setSpeakerFields(cur.name || "", cur.job || "");
+    return true;
 }
 
 function jsonImportAdvanceAfterCreate() {
@@ -116,6 +134,7 @@ function _formatImportSummary(res) {
     msg += "\nVoiceover: " + (c.voiceover || 0);
     msg += "\nSynch: " + (c.synch || 0);
     msg += "\nСпикеров: " + (c.speakers || 0);
+    if ((c.speakers || 0) > 0) msg += "\nТитры: откройте Speaker Titles и нажмите Load Speaker";
     if (JSON_IMPORT_SOURCE) {
         msg += "\nФайл: " + JSON_IMPORT_SOURCE;
     }
@@ -141,6 +160,38 @@ function initJsonImportUI() {
             }
             uiAlert(_formatImportSummary(res));
             logUi("json.import ok");
+        });
+    });
+
+
+    attachClick("btn-load-word", function () {
+        aeCall("importWordFromDialog()", function (out) {
+            if (!out || !out.ok) {
+                var err = (out && typeof out.error !== 'undefined') ? String(out.error) : '';
+                if (String(err) === 'CANCELLED') return;
+
+                // If AE returned an empty/whitespace error, show debug payload so we can diagnose.
+                if (!err || !err.replace(/\s+/g, '')) {
+                    try {
+                        err = 'Unknown error\n\nDEBUG(out): ' + JSON.stringify(out);
+                    } catch (eDbg) {
+                        err = 'Unknown error';
+                    }
+                }
+
+                uiAlert("Ошибка импорта Word (.docx).\n" + err);
+                logUiError("word.import", err);
+                return;
+            }
+
+            var res = out.result || {};
+            var list = (res && res.speakers && res.speakers.length) ? res.speakers : [];
+            jsonImportSetQueue(list, res.source || "");
+            if (res.branding) {
+                jsonImportSetBranding(res.branding);
+            }
+            uiAlert(_formatImportSummary(res));
+            logUi("word.import ok");
         });
     });
 

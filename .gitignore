@@ -30,6 +30,11 @@ aex_bridge/**/Debug/
 aex_bridge/**/Release/
 aex_bridge/**/obj/
 
+
+# C# / dotnet (tools)
+tools/**/bin/
+tools/**/obj/
+
 # Temporary files
 *.tmp
 *.temp

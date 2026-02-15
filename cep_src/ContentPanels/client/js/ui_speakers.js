@@ -38,6 +38,8 @@ function _normalizeJobKey(s) {
     return normalizeSpeakerText(s || "").toLowerCase();
 }
 
+
+
 function _findSpeakerMatch(name, job) {
     var nKey = _normalizeNameKey(name);
     if (!nKey) return null;
@@ -77,7 +79,7 @@ function tryAutoFillSpeakerFromDb() {
         if (!match) return;
 
         _AUTO_DB_FILL_LOCK = true;
-        nameEl.value = match.name || "";
+        nameEl.value = (typeof formatSpeakerNameForInput === "function") ? formatSpeakerNameForInput(match.name || "") : (match.name || "");
         jobEl.value = match.job || "";
         _AUTO_DB_FILL_LOCK = false;
 
@@ -211,6 +213,15 @@ function initSpeakersUI() {
         csInterface.evalScript("removePreview()");
         logUi("removePreview");
         updateAddSpeakerBtnState();
+    });
+
+    // Load current speaker from import queue (manual start of preview)
+    attachClick("btn-load-speaker", function () {
+        if (typeof jsonImportLoadCurrentSpeakerForTitles === "function") {
+            if (jsonImportLoadCurrentSpeakerForTitles()) return;
+        }
+        // Fallback: just show preview for current fields
+        safeTriggerSpeakerPreview();
     });
 
     // Открыть базу

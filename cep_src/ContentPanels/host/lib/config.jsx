@@ -108,13 +108,46 @@
     }
 
     function _readConfigFile() {
-        var p = _configPath();
-        if (!p) return {};
-        var cfg = _tryReadConfig(p, "UTF-8");
-        if (cfg) return cfg;
-        cfg = _tryReadConfig(p, "UTF-16");
-        if (cfg) return cfg;
-        return {};
+        // Merge defaults (shipped config.json under extension root) with the active config path.
+        // This makes new config keys available even if the user already has an older AppData config.
+
+        var primaryPath = _configPath();
+        var primary = null;
+        if (primaryPath) {
+            primary = _tryReadConfig(primaryPath, "UTF-8");
+            if (!primary) primary = _tryReadConfig(primaryPath, "UTF-16");
+        }
+        if (!primary) primary = {};
+
+        var shipped = {};
+        try {
+            var base = _normalizePath(_resolveRootPath());
+            if (base) {
+                var shippedPath = base + "/config.json";
+                if (shippedPath && shippedPath !== primaryPath) {
+                    var s1 = _tryReadConfig(shippedPath, "UTF-8");
+                    if (!s1) s1 = _tryReadConfig(shippedPath, "UTF-16");
+                    if (s1) shipped = s1;
+                }
+            }
+        } catch (e) {
+            shipped = {};
+        }
+
+        function merge(dst, src) {
+            for (var k in src) {
+                var own = true;
+                try { own = src.hasOwnProperty(k); } catch (e2) { own = true; }
+                if (!own) continue;
+                dst[k] = src[k];
+            }
+            return dst;
+        }
+
+        var merged = {};
+        merge(merged, shipped);
+        merge(merged, primary);
+        return merged;
     }
 
     getConfig = function () {
@@ -193,8 +226,14 @@
         } catch (e) {}
     }
 
-    function _writeConfigFile(cfg) {
-        var p = _configPath();
+    function _preferredWriteConfigPath() {
+        // Always prefer the user-writable config location (AppData) for writes.
+        // This avoids trying to write into Program Files when the plugin ships with a default config.json.
+        var list = _configCandidates();
+        return (list && list.length) ? list[0] : _configPath();
+    }
+
+    function _writeConfigFileAt(p, cfg) {
         if (!p) return false;
         var f = new File(p);
         try {
@@ -210,16 +249,92 @@
         }
     }
 
+    function _writeConfigFile(cfg) {
+        var p = _configPath();
+        return _writeConfigFileAt(p, cfg);
+    }
+
     // UI helpers
     getConfigForUI = function () {
         try {
             var cfg = reloadConfig();
+
             var v = getConfigValue("subtitleCharsPerLine", 60);
             var n = Number(v);
             if (isNaN(n) || n < 20 || n > 200) n = 60;
+
+            var swMax = Number(getConfigValue("subtitleShortWordMaxLen", 3));
+            if (isNaN(swMax) || swMax < 1 || swMax > 10) swMax = 3;
+            swMax = Math.round(swMax);
+
+            var rawSp = (cfg && cfg.hasOwnProperty("speakersDbPath")) ? String(cfg["speakersDbPath"] || "") : "";
+            var resolvedSp = "";
+            try { resolvedSp = String(getSpeakersDbPath() || ""); } catch (eSp) {}
+
+            var rawTopics = getConfigValue("topicOptions", []);
+            var topics = [];
+            var seen = {};
+
+            function addTopic(s) {
+                var t = String(s || "").replace(/^\s+|\s+$/g, "");
+                if (!t) return;
+                if (seen[t]) return;
+                seen[t] = true;
+                topics.push(t);
+            }
+
+            if (rawTopics instanceof Array) {
+                for (var i = 0; i < rawTopics.length; i++) addTopic(rawTopics[i]);
+            } else if (typeof rawTopics === "string") {
+                var lines = String(rawTopics).split(/\r\n|\r|\n/);
+                for (var j = 0; j < lines.length; j++) addTopic(lines[j]);
+            }
+
+            var wxModel = String(getConfigValue("whisperxModel", "medium") || "medium");
+            var wxLang = String(getConfigValue("whisperxLanguage", "ru") || "ru");
+            var wxDevice = String(getConfigValue("whisperxDevice", "cuda") || "cuda");
+            var wxVad = String(getConfigValue("whisperxVadMethod", "silero") || "silero");
+
+            var wxAdvEnabled = false;
+            try { wxAdvEnabled = !!getConfigValue("whisperxAdvancedArgsEnabled", false); } catch (eWx) { wxAdvEnabled = false; }
+
+            function num(key, def) {
+                var v = getConfigValue(key, def);
+                var n = Number(v);
+                return isNaN(n) ? def : n;
+            }
+
+            var wxBeam = num("whisperxBeamSize", 5);
+            var wxTemp = num("whisperxTemperature", 0.0);
+            var wxNoSpeech = num("whisperxNoSpeechThreshold", 0.6);
+            var wxLogprob = num("whisperxLogprobThreshold", -1.0);
+
+            var wxCondPrev = true;
+            try { wxCondPrev = !!getConfigValue("whisperxConditionOnPreviousText", true); } catch (eC) { wxCondPrev = true; }
+
+            var wxExtraArgs = "";
+            try { wxExtraArgs = String(getConfigValue("whisperxExtraArgs", "") || ""); } catch (eX) { wxExtraArgs = ""; }
+
             return respondOk({
                 configPath: getConfigPath(),
-                subtitleCharsPerLine: n
+                subtitleCharsPerLine: n,
+                subtitleShortWordMaxLen: swMax,
+                speakersDbPath: rawSp,
+                speakersDbPathResolved: resolvedSp,
+                topicOptions: topics,
+
+                whisperxModel: wxModel,
+                whisperxLanguage: wxLang,
+                whisperxDevice: wxDevice,
+                whisperxVadMethod: wxVad,
+
+                whisperxAdvancedArgsEnabled: wxAdvEnabled,
+                whisperxBeamSize: wxBeam,
+                whisperxTemperature: wxTemp,
+                whisperxNoSpeechThreshold: wxNoSpeech,
+                whisperxLogprobThreshold: wxLogprob,
+                whisperxConditionOnPreviousText: wxCondPrev,
+                whisperxExtraArgs: wxExtraArgs
             });
         } catch (e) {
             return respondErr(e.message);
@@ -234,12 +349,17 @@
             var cfg = reloadConfig() || {};
             cfg[k] = value;
 
-            if (!_writeConfigFile(cfg)) {
-                return respondErr("Cannot write config: " + _configPath());
+            var writePath = _preferredWriteConfigPath();
+            if (!_writeConfigFileAt(writePath, cfg)) {
+                return respondErr("Cannot write config: " + writePath);
             }
 
+            // Clear caches so reads switch to the user config (AppData) once it exists.
+            _configPathCache = "";
+            _configCache = null;
+
             // keep cache in sync
-            _configCache = cfg;
+            _configCache = reloadConfig();
 
             return respondOk({
                 configPath: getConfigPath(),
@@ -250,6 +370,18 @@
             return respondErr(e.message);
         }
     };
+
+    pickSpeakersDbPath = function () {
+        try {
+            var file = File.openDialog("Выберите speakers.json", "*.json");
+            if (!file) return respondErr("CANCELLED");
+            // Return a plain string so CEP doesn't end up with "[object Object]" in UI fields.
+            return respondOk(_normalizePath(file.fsName));
+        } catch (e) {
+            return respondErr(e.message);
+        }
+    };
+
     getLogsRoot = function () {
         var v = getConfigValue("logsRoot", "");
         if (v) return v;

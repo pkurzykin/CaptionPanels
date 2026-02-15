@@ -1,0 +1,77 @@
+# word2json (DOCX -> JSON)
+
+Windows console utility that converts a styled `.docx` (Word table-based script) into our plugin JSON schema:
+
+- `meta: { title, rubric }`
+- `speakers: [ { id, name, role } ]`
+- `segments: [ { id, type, text, speakerId?, pin? } ]`
+- `tech: [ { segmentId, file, tc } ]`
+
+This tool is designed to work **quietly** (no Word UI, no COM automation). It reads `.docx` directly via Office Open XML.
+
+## Build (Windows)
+
+Requires .NET SDK (recommended: 8.0+).
+
+```bat
+cd tools\word2json\src\Word2Json
+
+dotnet restore
+
+dotnet build -c Release
+```
+
+Publish
+
+Recommended for colleagues (no .NET installation needed): **self-contained**
+
+```bat
+dotnet publish -c Release -r win-x64 --self-contained true
+```
+
+Output will be under:
+`bin\Release\net8.0\win-x64\publish\`
+
+Dev-only alternative (requires .NET 8 Runtime x64 installed on the machine): framework-dependent
+
+```bat
+dotnet publish -c Release -r win-x64 --self-contained false
+```
+
+## Usage
+
+```bat
+word2json.exe "C:\path\script.docx" --out "C:\path\script.json"
+```
+
+Options:
+- `--out <path>`: output `.json` path (optional). If omitted, JSON is written next to the `.docx`.
+  - Output directory is created automatically if needed.
+- `--pretty`: pretty-print JSON (optional).
+
+Exit codes:
+- `0` success
+- `2` bad arguments
+- `3` input file not found
+- `10` parse error
+
+## Notes
+
+- The conversion rules are based on the current VBA macro:
+  `/Volumes/work/Titles_Template_NEW2025/work/macros_word-to-JSON.txt`
+- Style names must match the document exactly (TTL, RUBRIC, VOICEOVER, SYNC, GEO, SPK_NAME, SPK_ROLE, TECH_FILE, TECH_TC, IGNORE).
+
+## Deploy (recommended)
+
+For the plugin workflow, keep external tools in a single local folder (easier to deploy and approve by IT/security):
+
+- Copy the `publish/` output to: `C:\AE\CaptionPanelsTools\word2json\`
+  - Ensure the main executable is: `C:\AE\CaptionPanelsTools\word2json\word2json.exe`
+
+Then set in the plugin `config.json` (preferably `%APPDATA%\CaptionPanels\config.json`):
+
+- `word2jsonExePath`: `C:/AE/CaptionPanelsTools/word2json/word2json.exe`
+- `word2jsonOutDir`: `C:/AE/CaptionPanelsData/word2json`
+
+The plugin will create the output folder automatically if needed.
+

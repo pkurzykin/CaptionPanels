@@ -33,7 +33,7 @@ if (!csInterface) {
     };
 }
 
-var UI_VERSION = "2.2.0";
+var UI_VERSION = "2.3.0";
 
 function buildJob(type, payload) {
     return {
@@ -72,6 +72,30 @@ function normalizeNameToOneLine(name) {
     return String(name || "").replace(/\r\n|\n|\r/g, " ").replace(/\s+/g, " ").trim();
 }
 
+
+// For speaker titles input: if name is a simple "Name Surname" (2 words), convert to 2 lines.
+// If name is already multiline or non-standard (3+ words, punctuation, etc.) keep as-is.
+function formatSpeakerNameForInput(name) {
+    var raw = String(name || "");
+
+    // Preserve multiline names (DB often stores as "Имя\nФамилия").
+    if (raw.indexOf("\n") !== -1 || raw.indexOf("\r") !== -1) return raw;
+
+    // Normalize whitespace.
+    var norm = raw.replace(/\u00A0/g, " ");
+    norm = norm.replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+    if (!norm) return raw;
+
+    var parts = norm.split(" ");
+    if (parts.length !== 2) return raw;
+
+    // Only split clean words (letters + optional hyphen), otherwise keep as-is.
+    var reWord = /^[A-Za-zА-Яа-яЁё-]+$/;
+    if (!reWord.test(parts[0]) || !reWord.test(parts[1])) return raw;
+
+    return parts[0] + "\n" + parts[1];
+}
+
 function uiAlert(msg) {
     try {
         csInterface.evalScript("alert(" + JSON.stringify(String(msg)) + ")");
@@ -95,20 +119,37 @@ function normalizeSpeakerText(txt) {
 }
 
 function parseAeResult(res) {
+    // WebView2 bridge can return a non-string result; normalize it here.
+    if (res && typeof res === "object") {
+        if (typeof res.ok !== "undefined") {
+            if (typeof res.error === "undefined") res.error = "";
+            if (typeof res.result === "undefined") res.result = "";
+            return res;
+        }
+        return { ok: true, error: "", result: res };
+    }
+
     var s = String(res || "");
     var t = s.trim();
+
     if (t && t[0] === "{") {
         try {
             var obj = JSON.parse(t);
             if (obj && typeof obj.ok !== "undefined") return obj;
         } catch (e) {}
     }
-    if (t.indexOf("Error:") === 0 || t === "Error") {
+
+    if (t.indexOf("Error:") === 0) {
+        return { ok: false, error: t.slice("Error:".length).trim(), result: "" };
+    }
+    if (t === "Error") {
         return { ok: false, error: t, result: "" };
     }
+
     if (t === "OK") {
         return { ok: true, error: "", result: t };
     }
+
     return { ok: true, error: "", result: s };
 }
 

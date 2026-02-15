@@ -2,7 +2,7 @@
 
 Goal: add a workflow where the user selects a `.docx` in the plugin UI, and the plugin automatically converts it to our JSON schema (same as `Тест_Разметка.json`) and then runs the existing "Load JSON" import logic.
 
-Status: plan only (implementation later). Development happens in a separate branch and is not rolled out to colleagues until approved by InfoSec (ИБ).
+Status: implemented on branch `feature/word-import` (not merged to `main` yet). See also `docs/WORD_IMPORT_IMPLEMENTATION.md`.
 
 ## Constraints / Assumptions
 
