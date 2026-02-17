@@ -19,6 +19,12 @@
 - Settings/Auto Timing: добавлен `whisperxDeviceMode` (`auto/cuda/cpu`) с безопасным режимом `auto` (CUDA -> CPU fallback) для адаптации на разных рабочих станциях.
 - Speaker Titles: после `Create Title` UI снова сбрасывает контролы в дефолт (`Left`/`Default`/`BG offset 0`, `solo_title` off), в том числе при переходе к следующему спикеру из импортной очереди.
 
+## v2.3.1 — 2026-02-17
+
+### Changed
+- word2json: добавлен внешний файл правил `word2json.rules.json` (styles/merge/geotag cleanup) и CLI-флаг `--rules`, чтобы менять правила парсинга без пересборки утилиты.
+- word2json: очистка geotag теперь конфигурируемая; по умолчанию удаляются префиксы вида `гео:`, `геотег:`, `гео-тег:` (в любом регистре).
+
 ## v2.3.0 — 2026-02-15
 
 ### Added

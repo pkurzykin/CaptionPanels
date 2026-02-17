@@ -48,6 +48,9 @@ Options:
 - `--out <path>`: output `.json` path (optional). If omitted, JSON is written next to the `.docx`.
   - Output directory is created automatically if needed.
 - `--pretty`: pretty-print JSON (optional).
+- `--rules <path>`: path to external parsing rules JSON (optional).
+  - If not provided, utility tries `word2json.rules.json` near `word2json.exe`.
+  - If file is missing, built-in defaults are used (same behavior as before).
 
 Exit codes:
 - `0` success
@@ -55,11 +58,28 @@ Exit codes:
 - `3` input file not found
 - `10` parse error
 
+## Rules file (no rebuild needed)
+
+You can tune parsing without recompiling:
+
+- style names;
+- segment merge behavior;
+- geotag prefix cleanup.
+
+Template file: `tools/word2json/src/Word2Json/word2json.rules.json`
+
+For production, place a copy next to the executable:
+`C:\AE\CaptionPanelsTools\word2json\word2json.rules.json`
+
+Important: geotag cleanup is style-aware and only applies to `GEO` paragraphs.  
+Default cleanup strips prefixes like `гео:`, `ГЕОТЕГ:`, `гео-тег -`, `гео тег:` (case-insensitive).
+
 ## Notes
 
 - The conversion rules are based on the current VBA macro:
   `/Volumes/work/Titles_Template_NEW2025/work/macros_word-to-JSON.txt`
-- Style names must match the document exactly (TTL, RUBRIC, VOICEOVER, SYNC, GEO, SPK_NAME, SPK_ROLE, TECH_FILE, TECH_TC, IGNORE).
+- By default, style names must match the document exactly (TTL, RUBRIC, VOICEOVER, SYNC, GEO, SPK_NAME, SPK_ROLE, TECH_FILE, TECH_TC, IGNORE).
+  - You can remap them via `word2json.rules.json`.
 
 ## Deploy (recommended)
 
@@ -74,4 +94,3 @@ Then set in the plugin `config.json` (preferably `%APPDATA%\CaptionPanels\config
 - `word2jsonOutDir`: `C:/AE/CaptionPanelsData/word2json`
 
 The plugin will create the output folder automatically if needed.
-

@@ -25,6 +25,7 @@ internal static class Program
             }
 
             string? outPath = null;
+            string? rulesPath = null;
             var pretty = false;
 
             for (var i = 1; i < args.Length; i++)
@@ -43,6 +44,15 @@ internal static class Program
                 {
                     pretty = true;
                 }
+                else if (a == "--rules")
+                {
+                    if (i + 1 >= args.Length)
+                    {
+                        Console.Error.WriteLine("Missing value after --rules");
+                        return 2;
+                    }
+                    rulesPath = args[++i];
+                }
                 else
                 {
                     Console.Error.WriteLine($"Unknown arg: {a}");
@@ -57,7 +67,8 @@ internal static class Program
                 outPath = Path.Combine(dir, name + ".json");
             }
 
-            var model = DocxParser.Parse(inputPath);
+            var rules = ParserRulesLoader.Load(rulesPath);
+            var model = DocxParser.Parse(inputPath, rules);
 
             var jsonOptions = new JsonSerializerOptions
             {
@@ -87,6 +98,6 @@ internal static class Program
 
     private static void PrintHelp()
     {
-        Console.WriteLine("word2json <input.docx> [--out <output.json>] [--pretty]");
+        Console.WriteLine("word2json <input.docx> [--out <output.json>] [--pretty] [--rules <rules.json>]");
     }
 }

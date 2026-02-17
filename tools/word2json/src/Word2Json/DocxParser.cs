@@ -6,24 +6,22 @@ namespace Word2Json;
 
 internal static class DocxParser
 {
-    // Style names (must match the Word document)
-    private const string STYLE_META_TITLE = "TTL";
-    private const string STYLE_META_RUBRIC = "RUBRIC";
-    private const string STYLE_GEO = "GEO";
-
-    private const string STYLE_SPK_NAME = "SPK_NAME";
-    private const string STYLE_SPK_ROLE = "SPK_ROLE";
-
-    private const string STYLE_TXT_VOICEOVER = "VOICEOVER";
-    private const string STYLE_TXT_SYNC = "SYNC";
-
-    private const string STYLE_TECH_FILE = "TECH_FILE";
-    private const string STYLE_TECH_TC = "TECH_TC";
-
-    private const string STYLE_IGNORE = "IGNORE";
-
     public static ScriptJson Parse(string docxPath)
     {
+        var rules = ParserRules.CreateDefault();
+        rules.Normalize();
+        return Parse(docxPath, rules);
+    }
+
+    public static ScriptJson Parse(string docxPath, ParserRules rules)
+    {
+        rules ??= ParserRules.CreateDefault();
+        rules.Normalize();
+
+        var styles = rules.Styles;
+        var mergeRules = rules.Merge;
+        var geotagCleanup = rules.GeotagCleanup;
+
         using var doc = WordprocessingDocument.Open(docxPath, false);
         var body = doc.MainDocumentPart?.Document?.Body
             ?? throw new InvalidOperationException("DOCX has no document body");
@@ -95,14 +93,14 @@ internal static class DocxParser
 
             if (openType == segType)
             {
-                if (segType == "voiceover")
+                if (segType == "voiceover" && mergeRules.Voiceover)
                 {
                     openText = JoinWithSpace(openText, txt);
                     return;
                 }
 
                 // sync: append only if same speakerId
-                if (segType == "sync" && openSpeakerId == speakerId)
+                if (segType == "sync" && mergeRules.SyncSameSpeaker && openSpeakerId == speakerId)
                 {
                     openText = JoinWithSpace(openText, txt);
                     return;
@@ -118,7 +116,7 @@ internal static class DocxParser
 
         void ProcessParagraph(Paragraph p)
         {
-            var styleName = GetParagraphStyleName(p, styleNameById);
+            var styleName = GetParagraphStyleName(p, styleNameById, styles);
 
             var rawText = GetParagraphTextWithoutStrikethrough(p);
             rawText = CleanEndMarks(rawText).Trim();
@@ -131,22 +129,22 @@ internal static class DocxParser
             }
 
             // META
-            if (styleName == STYLE_META_TITLE)
+            if (styleName == styles.MetaTitle)
             {
                 if (string.IsNullOrWhiteSpace(outJson.Meta.Title)) outJson.Meta.Title = rawText;
                 return;
             }
-            if (styleName == STYLE_META_RUBRIC)
+            if (styleName == styles.MetaRubric)
             {
                 if (string.IsNullOrWhiteSpace(outJson.Meta.Rubric)) outJson.Meta.Rubric = rawText;
                 return;
             }
 
             // IGNORE
-            if (styleName == STYLE_IGNORE) return;
+            if (styles.IsIgnoreStyle(styleName)) return;
 
             // SPEAKER NAME
-            if (styleName == STYLE_SPK_NAME)
+            if (styleName == styles.SpeakerName)
             {
                 FlushOpenSegment();
 
@@ -172,7 +170,7 @@ internal static class DocxParser
             }
 
             // SPEAKER ROLE
-            if (styleName == STYLE_SPK_ROLE)
+            if (styleName == styles.SpeakerRole)
             {
                 if (!string.IsNullOrWhiteSpace(currentSpeakerId) && speakerKeyToIndex.TryGetValue(currentSpeakerKey, out var idx))
                 {
@@ -207,9 +205,13 @@ internal static class DocxParser
             }
 
             // GEO
-            if (styleName == STYLE_GEO)
+            if (styleName == styles.Geotag)
             {
                 FlushOpenSegment();
+
+                var geotagText = NormalizeGeotagText(rawText, geotagCleanup);
+                if (string.IsNullOrWhiteSpace(geotagText))
+                    return;
 
                 segCounter++;
                 var segId = $"seg_{segCounter}";
@@ -217,7 +219,7 @@ internal static class DocxParser
                 {
                     Id = segId,
                     Type = "geotag",
-                    Text = rawText,
+                    Text = geotagText,
                     Pin = (!geoSeen) ? "start" : null
                 };
                 geoSeen = true;
@@ -228,7 +230,7 @@ internal static class DocxParser
             }
 
             // TECH FILE / TC (attach to lastSegmentId)
-            if (styleName == STYLE_TECH_FILE || styleName == STYLE_TECH_TC)
+            if (styleName == styles.TechFile || styleName == styles.TechTc)
             {
                 if (!string.IsNullOrWhiteSpace(lastSegmentId))
                 {
@@ -239,7 +241,7 @@ internal static class DocxParser
                         outJson.Tech.Add(tech);
                     }
 
-                    if (styleName == STYLE_TECH_FILE)
+                    if (styleName == styles.TechFile)
                     {
                         tech.File = ExtractFileNameOnly(rawText);
                     }
@@ -253,13 +255,13 @@ internal static class DocxParser
             }
 
             // CONTENT
-            if (styleName == STYLE_TXT_VOICEOVER)
+            if (styleName == styles.Voiceover)
             {
                 OpenOrAppend("voiceover", "", rawText);
                 return;
             }
 
-            if (styleName == STYLE_TXT_SYNC)
+            if (styleName == styles.Sync)
             {
                 // If speaker is missing, export sync without speakerId (same as VBA intention).
                 OpenOrAppend("sync", currentSpeakerId, rawText);
@@ -318,7 +320,7 @@ internal static class DocxParser
         return map;
     }
 
-    private static string GetParagraphStyleName(Paragraph p, Dictionary<string, string> styleNameById)
+    private static string GetParagraphStyleName(Paragraph p, Dictionary<string, string> styleNameById, StyleRules styles)
     {
         var styleId = p.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
         if (string.IsNullOrWhiteSpace(styleId)) return "";
@@ -326,20 +328,10 @@ internal static class DocxParser
         styleNameById.TryGetValue(styleId, out var resolvedName);
 
         // Our contract is based on style names, but to be robust we accept both id and name.
-        if (IsKnownStyle(resolvedName)) return resolvedName!;
-        if (IsKnownStyle(styleId)) return styleId;
+        if (styles.IsKnownStyle(resolvedName)) return resolvedName!;
+        if (styles.IsKnownStyle(styleId)) return styleId;
 
         return "";
-    }
-
-    private static bool IsKnownStyle(string? s)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return false;
-        return s is STYLE_META_TITLE or STYLE_META_RUBRIC or STYLE_GEO
-            or STYLE_SPK_NAME or STYLE_SPK_ROLE
-            or STYLE_TXT_VOICEOVER or STYLE_TXT_SYNC
-            or STYLE_TECH_FILE or STYLE_TECH_TC
-            or STYLE_IGNORE;
     }
     private static string GetParagraphTextWithoutStrikethrough(Paragraph p)
     {
@@ -434,5 +426,43 @@ internal static class DocxParser
         var pos = Math.Max(pos1, pos2);
 
         return pos >= 0 ? t[(pos + 1)..] : t;
+    }
+
+    private static string NormalizeGeotagText(string rawText, GeotagCleanupRules rules)
+    {
+        var text = NormalizeSpaces(rawText);
+        if (string.IsNullOrWhiteSpace(text))
+            return "";
+
+        if (rules == null || !rules.StripPrefixes || rules.PrefixPatterns.Count == 0)
+            return text;
+
+        var regexOptions = System.Text.RegularExpressions.RegexOptions.CultureInvariant;
+        if (rules.IgnoreCase)
+            regexOptions |= System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+
+        var changed = true;
+        var iteration = 0;
+        while (changed && iteration < 8)
+        {
+            iteration++;
+            changed = false;
+
+            foreach (var pattern in rules.PrefixPatterns)
+            {
+                var effectivePattern = pattern;
+                if (rules.StripOnlyAtStart && !effectivePattern.StartsWith("^", StringComparison.Ordinal))
+                    effectivePattern = @"^\s*(?:" + effectivePattern + ")";
+
+                var updated = System.Text.RegularExpressions.Regex.Replace(text, effectivePattern, "", regexOptions);
+                if (!string.Equals(updated, text, StringComparison.Ordinal))
+                {
+                    text = updated.TrimStart();
+                    changed = true;
+                }
+            }
+        }
+
+        return NormalizeSpaces(text);
     }
 }

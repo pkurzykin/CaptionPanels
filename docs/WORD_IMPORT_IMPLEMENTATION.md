@@ -21,14 +21,16 @@ Tech:
 What it does:
 - Reads `.docx` **directly** (Office Open XML). **Does not start Word**.
 - Traverses content in document order, **table-aware**: `tbl -> tr -> tc -> p`.
-- Uses **ONLY paragraph style names** to classify content (must match exactly):
+- Uses paragraph style names to classify content. By default:
   - META: `TTL`, `RUBRIC`
   - SEGMENTS: `VOICEOVER`, `SYNC`, `GEO`
   - SPEAKERS: `SPK_NAME`, `SPK_ROLE`
   - TECH (kept in JSON, plugin can ignore for now): `TECH_FILE`, `TECH_TC`
   - Other: `IGNORE`
+- Rules can now be overridden without rebuild via `word2json.rules.json` (next to `word2json.exe`) or `--rules <path>`.
 - Removes strikethrough fragments.
 - Applies the same space/punctuation cleanup logic as the current VBA macro.
+- Geotag cleanup supports configurable prefix stripping (e.g. `гео:`, `геотег:`, `гео-тег:`).
 - Outputs JSON in the plugin schema:
   - `meta: { title, rubric }`
   - `speakers: [...]`

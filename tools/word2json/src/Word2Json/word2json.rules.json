@@ -1,0 +1,28 @@
+{
+  "styles": {
+    "metaTitle": "TTL",
+    "metaRubric": "RUBRIC",
+    "geotag": "GEO",
+    "speakerName": "SPK_NAME",
+    "speakerRole": "SPK_ROLE",
+    "voiceover": "VOICEOVER",
+    "sync": "SYNC",
+    "techFile": "TECH_FILE",
+    "techTc": "TECH_TC",
+    "ignore": ["IGNORE"]
+  },
+  "merge": {
+    "voiceover": true,
+    "syncSameSpeaker": true
+  },
+  "geotagCleanup": {
+    "stripPrefixes": true,
+    "stripOnlyAtStart": true,
+    "ignoreCase": true,
+    "prefixPatterns": [
+      "гео\\s*[:：\\-–—]?\\s*",
+      "гео\\s*[\\-–—]?\\s*тег\\s*[:：\\-–—]?\\s*",
+      "геотег\\s*[:：\\-–—]?\\s*"
+    ]
+  }
+}
