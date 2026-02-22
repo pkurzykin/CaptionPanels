@@ -280,9 +280,7 @@ function initJsonImportUI() {
         }
 
         var stopProgress = _startWordImportProgress("Rebuild Subtitles");
-        var cmd = "rebuildSubtitlesFromJsonFile(" + JSON.stringify(String(JSON_IMPORT_SOURCE)) + ")";
-
-        aeCall(cmd, function (out) {
+        callHost("rebuildSubtitlesFromJsonFile", [String(JSON_IMPORT_SOURCE)], { module: "import" }, function (out) {
             if (!out || !out.ok) {
                 try { stopProgress(false); } catch (ePr0) {}
                 var err = (out && typeof out.error !== "undefined") ? String(out.error) : "";
@@ -308,7 +306,7 @@ function initJsonImportUI() {
 
 
     attachClick("btn-load-word", function () {
-        aeCall("pickWordFileForImport()", function (pick) {
+        callHost("pickWordFileForImport", [], { module: "import" }, function (pick) {
             if (!pick || !pick.ok) {
                 var pickErr = (pick && typeof pick.error !== "undefined") ? String(pick.error) : "";
                 if (pickErr === "CANCELLED") return;
@@ -332,7 +330,7 @@ function initJsonImportUI() {
 
             // Load Word flow: align work area end to selected/first video layer length.
             // Non-blocking for import; if no video layer, we just log.
-            aeCall("setWorkAreaEndToVideoLayer()", function (waOut) {
+            callHost("setWorkAreaEndToVideoLayer", [], { module: "import" }, function (waOut) {
                 if (!waOut || !waOut.ok) {
                     var waErr = waOut && waOut.error ? String(waOut.error) : "Unknown error";
                     logUiError("word.workArea", waErr);
@@ -342,8 +340,7 @@ function initJsonImportUI() {
             });
 
             var stopProgress = _startWordImportProgress("Load Word");
-            var cmd = "importWordFromFile(" + JSON.stringify(String(pickedPath)) + ")";
-            aeCall(cmd, function (out) {
+            callHost("importWordFromFile", [String(pickedPath)], { module: "import" }, function (out) {
                 if (!out || !out.ok) {
                     try { stopProgress(false); } catch (ePr0) {}
                     var err = (out && typeof out.error !== 'undefined') ? String(out.error) : '';

@@ -202,6 +202,60 @@ function aeCall(cmd, cb) {
     });
 }
 
+var __hostRequestSeq = 1;
+
+function _buildHostCallScript(fnName, args) {
+    var fn = String(fnName || "").replace(/^\s+|\s+$/g, "");
+    if (!fn) throw new Error("Empty host function name");
+
+    var a = (args instanceof Array) ? args : (typeof args === "undefined" ? [] : [args]);
+    var parts = [];
+    for (var i = 0; i < a.length; i++) {
+        parts.push(JSON.stringify(a[i]));
+    }
+    return fn + "(" + parts.join(",") + ")";
+}
+
+// Phase-1 host wrapper (roadmap 1.1): keeps old aeCall behavior,
+// but attaches request metadata for deterministic diagnostics.
+function callHost(fnName, args, opts, cb) {
+    var o = opts || {};
+    var requestId = "req_" + (__hostRequestSeq++);
+    var startedAt = Date.now();
+    var script = "";
+
+    try {
+        if (o.rawScript) {
+            script = String(o.rawScript);
+        } else {
+            script = _buildHostCallScript(fnName, args);
+        }
+    } catch (eBuild) {
+        var fail = {
+            ok: false,
+            error: "callHost build error: " + (eBuild && eBuild.message ? eBuild.message : String(eBuild)),
+            result: "",
+            requestId: requestId,
+            ts: new Date(startedAt).toISOString(),
+            module: String(o.module || ""),
+            fn: String(fnName || "")
+        };
+        if (typeof cb === "function") cb(fail);
+        return Promise.resolve(fail);
+    }
+
+    return aeCall(script).then(function (out) {
+        var res = out || { ok: false, error: "Unknown host response", result: "" };
+        res.requestId = requestId;
+        res.ts = new Date(startedAt).toISOString();
+        res.module = String(o.module || "");
+        res.fn = String(fnName || "");
+        res.durationMs = Date.now() - startedAt;
+        if (typeof cb === "function") cb(res);
+        return res;
+    });
+}
+
 function attachClick(id, fn) {
     var el = document.getElementById(id);
     if (el) el.onclick = fn;

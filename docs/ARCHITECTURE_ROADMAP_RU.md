@@ -36,6 +36,8 @@
 **Зачем**
 - меньше «магии строк», проще дебажить, меньше “тихих” поломок.
 
+Статус: **IN PROGRESS** (добавлен UI helper `callHost(...)` с `requestId/ts/module/fn`; идет поэтапная миграция вызовов).
+
 ### 1.2. Нормальная диагностика (observability)
 **Что делаем**
 - Логи:
@@ -154,3 +156,5 @@
 3) [DONE] Добавить в настройки выбор модели ASR (small/medium/large-v3) + параметры (beam/temperature и т.д.).
 4) [DONE] Улучшить aligner: tolerant-matching + fallback-логика для пропусков.
 5) [DONE] Упаковать tools-бандл для офлайн-деплоя (whisperx env + models cache + ffmpeg portable) + `docs/DEPLOYMENT_GUIDE.md`.
+6) [DONE] Почистить устаревшие draft-планы в `docs/` и оставить только актуальные implementation/reference-документы.
+7) [DONE] Добавить `docs/TROUBLESHOOTING.md` с типовыми ошибками и быстрыми проверками.

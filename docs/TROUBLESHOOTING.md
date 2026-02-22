@@ -1,0 +1,96 @@
+# Troubleshooting (RU)
+
+Короткий справочник по типовым проблемам CaptionPanels.
+
+## 1) `word2json.exe not found`
+
+Проверь в активном конфиге:
+- `captionPanelsToolsRoot`
+- `word2jsonExePath`
+
+Рекомендуемые значения:
+- `captionPanelsToolsRoot = C:/CaptionPanelsLocal/CaptionPanelTools`
+- `word2jsonExePath = C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
+
+Если в логах видно старые пути `C:/AE/...`, перезагрузи панель (`Reload`): runtime делает авто-нормализацию legacy-путей.
+
+## 2) Word import не видит `.docx` по UNC/кириллице
+
+Симптомы:
+- `Input not found` в `word2json_process_last.log`
+- кракозябры в пути
+
+Что уже реализовано:
+- перед запуском `word2json` входной `.docx` staging-ится в локальный временный путь.
+
+Если проблема осталась:
+- проверь доступ к исходному файлу и права на локальный temp;
+- проверь, что в AE включено `Allow Scripts to Write Files and Access Network`.
+
+## 3) WhisperX падает из-за кавычек/`cmd`-строки
+
+Симптомы:
+- `... is not recognized as an internal or external command`
+- `can't open file 'C:\\Program'`
+
+Что уже реализовано:
+- запуск внешних команд через временный `.cmd`-скрипт;
+- escape аргументов и стабильный сбор exit code.
+
+Если снова появилось:
+- приложи два файла из `auto_timing/logs`:
+  - `whisperx_runner_*.log`
+  - `whisperx_runner_*.out.txt`
+
+## 4) WhisperX не стартует: `Python not found`
+
+Проверь:
+- `whisperxPythonPath`
+- `captionPanelsToolsRoot`
+
+Рекомендуемо:
+- `whisperxPythonPath = C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
+
+## 5) `ffmpeg` не найден
+
+Проверь:
+- `ffmpegExePath`
+
+Рекомендуемо:
+- `ffmpegExePath = C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
+
+Системный `PATH` менять не нужно.
+
+## 6) После Auto Timing визуально "ломается" `subtitle_BG`
+
+Проверь:
+- что применяешь тайминги в активной целевой композиции;
+- что в композиции есть базовый слой `subtitle_BG`.
+
+В проекте есть fallback-пересчет `subtitle_BG`, но если исходный BG-слой удален полностью, его нужно восстановить из шаблона.
+
+## 7) JSON после `Load Word` пишется не туда
+
+Проверь:
+- активный `config.json` (обычно `%APPDATA%/CaptionPanels/config.json`);
+- значение `word2jsonOutDir`.
+
+Рекомендуемо:
+- `word2jsonOutDir = C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
+
+## 8) Общая проверка окружения (Windows)
+
+Минимум:
+- AE 2024+
+- Доступ к `C:\CaptionPanelsLocal\CaptionPanelTools\...`
+- Доступ к `C:\CaptionPanelsLocal\CaptionPanelsData\...`
+- Для Auto Timing: рабочий Python venv WhisperX + CUDA/CPU режим по конфигу
+
+## Где смотреть логи
+
+- Word import:
+  - `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/word2json_last.log`
+  - `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/word2json_process_last.log`
+- Auto timing:
+  - `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/whisperx_runner_*.log`
+  - `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/align_*.out.txt`

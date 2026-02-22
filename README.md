@@ -54,4 +54,8 @@ legacy_cep/       архив CEP версии
 Если задан `logsRoot`, то логи пишутся в `<logsRoot>\logs\`.
 
 ## Документация
-Подробности и мост: `aex_bridge/README.md`.
+- Общее по плагину и bridge: `aex_bridge/README.md`
+- Ключи конфига: `docs/CONFIG_REFERENCE.md`
+- Деплой на рабочие ПК: `docs/DEPLOYMENT_GUIDE.md`
+- Диагностика типовых ошибок: `docs/TROUBLESHOOTING.md`
+- Дорожная карта: `docs/ARCHITECTURE_ROADMAP_RU.md`

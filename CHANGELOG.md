@@ -27,6 +27,8 @@
 - Word Import: по кнопке `Load Word` автоматически выставляется `Work Area End` по длине выбранного/первого видео-слоя в активной композиции.
 - UI/Import: добавлена кнопка `Rebuild Subtitles` — пересоздает субтитры из уже загруженного JSON (после смены настроек переноса/лимитов), с очисткой текущих `Sub_VOICEOVER_*`/`Sub_SYNCH_*` и сохранением таймлайн-якоря по первому старому субтитру.
 - UI: кнопка `Rebuild Subtitles` перенесена из шапки в раздел `Subtitles / Info` (блок `Subtitles Tools`).
+- Docs: удалены устаревшие draft-планы (`AUTO_TIMING_PLAN.md`, `TRANSCRIBE_UTILITY_PLAN.md`, `WORD_IMPORT_PLAN.md`, `RELEASE_REPO_PLAN.md`), добавлен `docs/TROUBLESHOOTING.md`.
+- UI Bridge: добавлен helper `callHost(...)` с метаданными `requestId/ts/module/fn` (поэтапный переход с прямых `aeCall` на единый протокол вызовов).
 
 ## v2.3.1 — 2026-02-17
 
