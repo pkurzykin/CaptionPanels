@@ -109,6 +109,26 @@
 - временно отключи `offlineOnly`, запусти Auto Timing один раз с интернетом для прогрева cache;
 - затем снова включи `offlineOnly`.
 
+## 11) `Auto Timing preflight failed`
+
+Симптом:
+- перед стартом Auto Timing появляется ошибка `preflight failed` со списком `Fix these items`.
+
+Что делать:
+- открой `Diagnostics` и проверь `deploymentChecks`;
+- исправь пункты уровня `FAIL` (обычно пути к tool/data, отсутствующий `python.exe`/`word2json.exe`, или отсутствие model cache при `offlineOnly=true`);
+- после исправления повтори запуск.
+
+## 12) Как быстро проверить offline bundle перед переносом
+
+Симптом:
+- после копирования на рабочий ПК часть утилит/путей не находится.
+
+Что делать:
+- на машине подготовки запусти:
+  - `powershell -ExecutionPolicy Bypass -File .\tools\deploy\verify_offline_bundle.ps1 -BundleRoot <PATH_TO_BUNDLE> -RequireModelCache`
+- исправь все пункты с `FAIL` и только потом переноси bundle.
+
 ## Где смотреть логи
 
 - Word import:

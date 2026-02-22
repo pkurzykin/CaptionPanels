@@ -505,6 +505,32 @@
         }
     }
 
+    function _writeApplyReportJson(dirPath, comp, applyResult, extra) {
+        try {
+            var baseDir = _normalizePath(dirPath);
+            if (!baseDir) return "";
+            _ensureFolder(baseDir);
+
+            var outPath = _normalizePath(baseDir + "/apply_report.json");
+            var payload = {
+                schemaVersion: 1,
+                generatedAt: _timestamp(),
+                comp: {
+                    name: comp && comp.name ? String(comp.name || "") : "",
+                    fps: comp ? (Number(comp.frameRate) || 0) : 0,
+                    duration: comp ? (Number(comp.duration) || 0) : 0
+                },
+                apply: (applyResult && typeof applyResult === "object") ? applyResult : {},
+                context: (extra && typeof extra === "object") ? extra : {}
+            };
+
+            if (!_writeJsonFile(outPath, payload)) return "";
+            return outPath;
+        } catch (e) {
+            return "";
+        }
+    }
+
     function _getCaptionPanelsDataRoot() {
         var raw = "";
         try { raw = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (e) {}
@@ -791,6 +817,48 @@
         var obj = _parseJsonSafe(txt);
         if (!obj) throw new Error("Invalid JSON: " + _normalizePath(filePath));
         return obj;
+    }
+
+    function _runAutoTimingPreflight() {
+        var result = {
+            ok: true,
+            failLines: [],
+            warnLines: [],
+            checks: []
+        };
+
+        try {
+            if (typeof getDeploymentChecks !== "function") return result;
+
+            var raw = getDeploymentChecks();
+            var parsed = _parseJsonSafe(String(raw || ""));
+            if (!parsed || !parsed.ok) {
+                // Do not hard-stop if diagnostics module is unavailable.
+                result.warnLines.push("preflight check is unavailable");
+                return result;
+            }
+
+            var payload = (parsed.result && typeof parsed.result === "object") ? parsed.result : {};
+            var checks = (payload.checks instanceof Array) ? payload.checks : [];
+            result.checks = checks;
+
+            for (var i = 0; i < checks.length; i++) {
+                var c = checks[i] || {};
+                var level = String(c.level || "").toLowerCase();
+                var name = String(c.name || "check");
+                var details = String(c.details || "");
+                var line = "- " + name + (details ? (": " + details) : "");
+
+                if (level === "fail") result.failLines.push(line);
+                else if (level === "warn") result.warnLines.push(line);
+            }
+
+            if (result.failLines.length) result.ok = false;
+            return result;
+        } catch (e) {
+            result.warnLines.push("preflight exception: " + String((e && e.message) ? e.message : e));
+            return result;
+        }
     }
 
     function _asNum(v) {
@@ -1385,6 +1453,16 @@
             // Always use fresh config (paths/model can be changed via config.json).
             try { if (typeof reloadConfig === "function") reloadConfig(); } catch (eCfg) {}
 
+            var preflight = _runAutoTimingPreflight();
+            if (!preflight.ok) {
+                var preMsg = "Auto Timing preflight failed.";
+                if (preflight.failLines && preflight.failLines.length) {
+                    preMsg += "\n\nFix these items:";
+                    for (var pf = 0; pf < preflight.failLines.length; pf++) preMsg += "\n" + preflight.failLines[pf];
+                }
+                return respondErr(preMsg);
+            }
+
             var stamp = _timestamp();
 
             // Logs
@@ -1815,6 +1893,15 @@
                 return _failWithRun("apply", "Apply timings failed. " + am, { reason: "apply_failed" });
             }
 
+            var applyReportPath = _writeApplyReportJson(alignRunDir, comp, applyObj.result, {
+                mode: "full_auto_timing",
+                runId: runBase,
+                alignmentPath: _normalizePath(alignmentPath),
+                blocksPath: _normalizePath(blocksPath),
+                whisperxJson: _normalizePath(whisperJson),
+                sourceVideo: _normalizePath(videoPath)
+            });
+
             try {
                 if (runRef && typeof cpRunFinalize === "function") {
                     cpRunFinalize(runRef, "completed", {
@@ -1822,12 +1909,17 @@
                         outputs: {
                             blocksPath: _normalizePath(blocksPath),
                             whisperxJson: _normalizePath(whisperJson),
-                            alignmentPath: _normalizePath(alignmentPath)
+                            alignmentPath: _normalizePath(alignmentPath),
+                            applyReportPath: _normalizePath(applyReportPath || "")
                         },
                         result: {
                             total: Number((applyObj.result && applyObj.result.total) || 0),
                             applied: Number((applyObj.result && applyObj.result.applied) || 0),
-                            missingCount: Number((applyObj.result && applyObj.result.missingCount) || 0)
+                            missingCount: Number((applyObj.result && applyObj.result.missingCount) || 0),
+                            unmatchedCount: Number((applyObj.result && applyObj.result.unmatchedCount) || 0),
+                            invalidCount: Number((applyObj.result && applyObj.result.invalidCount) || 0),
+                            errorCount: Number((applyObj.result && applyObj.result.errorCount) || 0),
+                            reasonStats: (applyObj.result && applyObj.result.reasonStats) ? applyObj.result.reasonStats : {}
                         }
                     });
                 }
@@ -1845,6 +1937,7 @@
                 whisperxJson: whisperJson,
                 alignmentDir: alignRunDir,
                 alignmentPath: alignmentPath,
+                applyReportPath: applyReportPath,
                 whisperxLog: w.logPath,
                 whisperxFallbackLog: wFallbackLog,
                 alignLog: a.logPath,
@@ -1855,6 +1948,7 @@
                 whisperxTimeShiftAppliedSec: wxTimeShiftAppliedSec,
                 whisperxTimeShiftSuggestedSec: wxTimeShiftSuggestedSec,
                 whisperxOnsetBiasSec: wxOnsetBiasSec,
+                preflightWarnings: preflight.warnLines || [],
                 apply: applyObj.result
             });
         } catch (e) {
@@ -1892,6 +1986,16 @@
             if (!comp || !(comp instanceof CompItem)) return respondErr("No active comp");
 
             try { if (typeof reloadConfig === "function") reloadConfig(); } catch (eCfg) {}
+
+            var preflight = _runAutoTimingPreflight();
+            if (!preflight.ok) {
+                var preMsg = "Re-run Alignment preflight failed.";
+                if (preflight.failLines && preflight.failLines.length) {
+                    preMsg += "\n\nFix these items:";
+                    for (var pf = 0; pf < preflight.failLines.length; pf++) preMsg += "\n" + preflight.failLines[pf];
+                }
+                return respondErr(preMsg);
+            }
 
             var latest = null;
             try {
@@ -2038,6 +2142,15 @@
                 return _fail("apply", "Apply timings failed. " + am, runRef, runManifestPath, { reason: "apply_failed" });
             }
 
+            var applyReportPath = _writeApplyReportJson(alignRunDir, comp, applyObj.result, {
+                mode: "rerun_alignment",
+                runId: runBase,
+                sourceRunId: sourceRunId,
+                alignmentPath: _normalizePath(alignmentPath),
+                blocksPath: _normalizePath(blocksPath),
+                whisperxJson: _normalizePath(whisperxJson)
+            });
+
             try {
                 if (runRef && typeof cpRunFinalize === "function") {
                     cpRunFinalize(runRef, "completed", {
@@ -2045,13 +2158,18 @@
                         outputs: {
                             blocksPath: _normalizePath(blocksPath),
                             whisperxJson: _normalizePath(whisperxJson),
-                            alignmentPath: _normalizePath(alignmentPath)
+                            alignmentPath: _normalizePath(alignmentPath),
+                            applyReportPath: _normalizePath(applyReportPath || "")
                         },
                         result: {
                             sourceRunId: sourceRunId,
                             total: Number((applyObj.result && applyObj.result.total) || 0),
                             applied: Number((applyObj.result && applyObj.result.applied) || 0),
-                            missingCount: Number((applyObj.result && applyObj.result.missingCount) || 0)
+                            missingCount: Number((applyObj.result && applyObj.result.missingCount) || 0),
+                            unmatchedCount: Number((applyObj.result && applyObj.result.unmatchedCount) || 0),
+                            invalidCount: Number((applyObj.result && applyObj.result.invalidCount) || 0),
+                            errorCount: Number((applyObj.result && applyObj.result.errorCount) || 0),
+                            reasonStats: (applyObj.result && applyObj.result.reasonStats) ? applyObj.result.reasonStats : {}
                         }
                     });
                 }
@@ -2064,7 +2182,9 @@
                 blocksPath: blocksPath,
                 whisperxJson: whisperxJson,
                 alignmentPath: alignmentPath,
+                applyReportPath: applyReportPath,
                 alignLog: a.logPath,
+                preflightWarnings: preflight.warnLines || [],
                 apply: applyObj.result
             });
         } catch (e) {

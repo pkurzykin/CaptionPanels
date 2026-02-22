@@ -131,6 +131,28 @@
 Важно:
 - это кэш в профиле пользователя (на каждом ПК/у каждого пользователя путь свой).
 
+### 6.3 Рекомендуемый способ переноса (offline bundle)
+
+Используй скрипты из `tools/deploy`:
+
+1) Сборка bundle:
+- `powershell -ExecutionPolicy Bypass -File .\tools\deploy\make_offline_bundle.ps1 -OutDir D:\CaptionPanels_OfflineBundle`
+
+Что получаем:
+- `D:\CaptionPanels_OfflineBundle\CaptionPanelsLocal\CaptionPanelTools\...`
+- `D:\CaptionPanels_OfflineBundle\CaptionPanelsLocal\CaptionPanelsData\...`
+- `D:\CaptionPanels_OfflineBundle\bundle_summary.json`
+
+По умолчанию скрипт копирует:
+- все tools;
+- data-skeleton;
+- `CaptionPanelsData\models` (если папка есть).
+
+2) Проверка bundle:
+- `powershell -ExecutionPolicy Bypass -File .\tools\deploy\verify_offline_bundle.ps1 -BundleRoot D:\CaptionPanels_OfflineBundle -RequireModelCache`
+
+Если есть `FAIL`, сначала исправь bundle, потом переноси на рабочий ПК.
+
 ---
 
 ## 7) FFmpeg (если на работе его нет)

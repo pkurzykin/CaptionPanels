@@ -42,6 +42,7 @@ function _formatWhisperAutoTimingSummary(res) {
     if (r.runManifestPath) msg += "\nRun manifest: " + r.runManifestPath;
     if (r.whisperxJson) msg += "\nWhisperX JSON: " + r.whisperxJson;
     if (r.alignmentPath) msg += "\nAlignment: " + r.alignmentPath;
+    if (r.applyReportPath) msg += "\nApply report: " + r.applyReportPath;
     if (r.whisperxDeviceMode) msg += "\nWhisperX device mode: " + r.whisperxDeviceMode;
     if (r.whisperxDeviceRequested) msg += "\nWhisperX device requested: " + r.whisperxDeviceRequested;
     if (r.whisperxDeviceUsed) msg += "\nWhisperX device used: " + r.whisperxDeviceUsed;
@@ -53,6 +54,12 @@ function _formatWhisperAutoTimingSummary(res) {
     if (typeof r.whisperxTimeShiftSuggestedSec !== "undefined") msg += "\nTime shift suggested (sec): " + r.whisperxTimeShiftSuggestedSec;
     if (r.whisperxOnsetBiasSec && typeof r.whisperxOnsetBiasSec === "object") {
         msg += "\nOnset bias (sec): median=" + (r.whisperxOnsetBiasSec.median || 0) + " p90=" + (r.whisperxOnsetBiasSec.p90 || 0) + " n=" + (r.whisperxOnsetBiasSec.count || 0);
+    }
+    if (r.preflightWarnings && r.preflightWarnings.length) {
+        msg += "\nPreflight warnings:";
+        for (var wi = 0; wi < r.preflightWarnings.length; wi++) {
+            msg += "\n" + String(r.preflightWarnings[wi] || "");
+        }
     }
 
     if (typeof a.total !== "undefined") msg += "\nTotal: " + (a.total || 0);
@@ -85,6 +92,7 @@ function _formatRerunAlignmentSummary(res) {
     if (r.blocksPath) msg += "\nBlocks: " + r.blocksPath;
     if (r.whisperxJson) msg += "\nWhisperX JSON: " + r.whisperxJson;
     if (r.alignmentPath) msg += "\nAlignment: " + r.alignmentPath;
+    if (r.applyReportPath) msg += "\nApply report: " + r.applyReportPath;
 
     if (typeof a.total !== "undefined") msg += "\nTotal: " + (a.total || 0);
     if (typeof a.applied !== "undefined") msg += "\nApplied: " + (a.applied || 0);
@@ -96,6 +104,12 @@ function _formatRerunAlignmentSummary(res) {
     if (a.reasonStats) {
         msg += "\n\nSkipped reasons:";
         msg += _formatReasonStats(a.reasonStats, 10);
+    }
+    if (r.preflightWarnings && r.preflightWarnings.length) {
+        msg += "\nPreflight warnings:";
+        for (var wi = 0; wi < r.preflightWarnings.length; wi++) {
+            msg += "\n" + String(r.preflightWarnings[wi] || "");
+        }
     }
     if (r.alignLog) msg += "\nalign log: " + r.alignLog;
     return msg;

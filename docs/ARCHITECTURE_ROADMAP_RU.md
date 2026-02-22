@@ -87,7 +87,7 @@
   - применение таймингов
   - построение/обновление BG
 
-Статус: **IN PROGRESS** (добавлен run-registry и `run.json` манифесты для `word_import`/`auto_timing`, вывод последних run в Diagnostics).
+Статус: **DONE** (run-registry + `run.json` манифесты для `word_import`/`auto_timing`, preflight-gate перед Auto Timing, вывод последних run в Diagnostics).
 
 ### 2.2. Вынос вычислений
 **Что делаем**
@@ -95,7 +95,7 @@
 - Следующий шаг: улучшить aligner и сделать “re-run alignment” без повторного ASR.
 - Возможный будущий вынос: часть логики типографики/разметки (если понадобится).
 
-Статус: **IN PROGRESS** (добавлен fast-path `Re-run Alignment` без повторного WhisperX: переиспользуем `blocks + whisperx.json` из последнего завершенного run).
+Статус: **IN PROGRESS** (добавлен fast-path `Re-run Alignment` без повторного WhisperX, preflight-gate перед запуском и `apply_report.json` в run-артефактах для повторяемого дебага).
 
 ### 2.2.5. FFmpeg как portable‑утилита (без PATH)
 **Проблема**
@@ -122,7 +122,7 @@
 - Док: `docs/DEPLOYMENT_GUIDE.md` (как поставить на рабочий ПК: папки, права, пути).
 - Док для ИБ: список исполняемых файлов и что они делают (без “черных ящиков”).
 
-Статус: **IN PROGRESS** (добавлен runtime-флаг `offlineOnly` в Settings/runner: при включении запрещены сетевые скачивания и используются только локальные модели).
+Статус: **IN PROGRESS** (добавлен runtime-флаг `offlineOnly` + deploy-скрипты `make_offline_bundle.ps1`/`verify_offline_bundle.ps1`; осталось подтверждение на «чистой» рабочей машине без интернета).
 
 ---
 

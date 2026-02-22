@@ -42,6 +42,10 @@
 - ASR/Settings: добавлен флаг `offlineOnly` (`Offline only (no model download)`), который передается в WhisperX runner.
 - WhisperX runner: добавлена поддержка `--offline_only` (без сетевых загрузок, только локальный cache моделей) с явными подсказками в тексте ошибок.
 - Diagnostics: добавлен блок `deploymentChecks` (быстрая проверка tool/data/cache состояния, включая offline-ready проверки для ASR cache).
+- Auto Timing / Re-run Alignment: добавлен автоматический preflight-gate (проверка deployment checks перед запуском; при `FAIL` запуск блокируется с понятным списком причин).
+- Auto Timing / Re-run Alignment: после `apply` сохраняется `apply_report.json` в run-папку, путь пишется в `run.json` и выводится в итоговом алерте (для повторяемого дебага по пропускам).
+- Diagnostics: `latestRuns.*` теперь показывает ключевые outputs (`blocksPath/whisperxJson/alignmentPath/applyReportPath`) и apply-статистику (`total/applied/missing/...`).
+- Deploy: `make_offline_bundle.ps1` расширен (копирование `CaptionPanelsData/models`, генерация `bundle_summary.json`), добавлен `verify_offline_bundle.ps1` для проверки офлайн-бандла перед переносом.
 
 ## v2.3.1 — 2026-02-17
 
