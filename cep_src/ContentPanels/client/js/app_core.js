@@ -203,6 +203,14 @@ function aeCall(cmd, cb) {
 }
 
 var __hostRequestSeq = 1;
+var __hostCallHistory = [];
+
+function getHostCallHistory(limit) {
+    var n = Number(limit);
+    if (isNaN(n) || n <= 0) n = 20;
+    var start = Math.max(0, __hostCallHistory.length - n);
+    return __hostCallHistory.slice(start);
+}
 
 function _buildHostCallScript(fnName, args) {
     var fn = String(fnName || "").replace(/^\s+|\s+$/g, "");
@@ -255,6 +263,20 @@ function callHost(fnName, args, opts, cb) {
             if (done) return;
             done = true;
             if (timer) clearTimeout(timer);
+            try {
+                __hostCallHistory.push({
+                    requestId: String(res.requestId || ""),
+                    ts: String(res.ts || ""),
+                    module: String(res.module || ""),
+                    fn: String(res.fn || ""),
+                    ok: !!res.ok,
+                    error: String(res.error || ""),
+                    durationMs: Number(res.durationMs || 0)
+                });
+                if (__hostCallHistory.length > 100) {
+                    __hostCallHistory.splice(0, __hostCallHistory.length - 100);
+                }
+            } catch (eHist) {}
             if (typeof cb === "function") cb(res);
             resolve(res);
         }

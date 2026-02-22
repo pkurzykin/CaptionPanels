@@ -11,6 +11,7 @@
         <button id="btn-load-word">📄 Load Word</button>
         <button id="btn-deep-clean">🧹 FixTypography</button>
         <button id="btn-reload">⟳ Reload</button>
+        <button id="btn-diagnostics">🧪 Diagnostics</button>
         <button id="btn-settings">⚙ Settings</button>
     </div>
 
@@ -310,6 +311,23 @@
 </div>
 <!-- ===== /Task Progress Modal ===== -->
 
+<!-- ===== Diagnostics Modal ===== -->
+<div id="diag-overlay" class="modal-overlay" style="display:none;">
+    <div class="modal-window diag-window">
+        <div class="modal-header">
+            <div class="modal-title">Diagnostics</div>
+            <button id="btn-diag-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-footer" style="display:flex; gap:8px; justify-content:space-between;">
+                <button id="btn-diag-refresh" class="secondary-btn" style="margin:0; flex:1;">Refresh</button>
+            </div>
+            <pre id="diag-content" class="diag-content">Loading...</pre>
+        </div>
+    </div>
+</div>
+<!-- ===== /Diagnostics Modal ===== -->
+
 
     <div class="ui-version">v<span id="ui-version">2.3.3</span></div>
 
@@ -326,6 +344,7 @@
     <script src="js/ui_typography.js"></script>
     <script src="js/ui_branding.js"></script>
     <script src="js/ui_settings.js"></script>
+    <script src="js/ui_diagnostics.js"></script>
     <script src="js/host_loader.js"></script>
     <script src="js/main.js"></script>
 </body>

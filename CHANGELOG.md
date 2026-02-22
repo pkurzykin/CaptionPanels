@@ -30,6 +30,7 @@
 - Docs: удалены устаревшие draft-планы (`AUTO_TIMING_PLAN.md`, `TRANSCRIBE_UTILITY_PLAN.md`, `WORD_IMPORT_PLAN.md`, `RELEASE_REPO_PLAN.md`), добавлен `docs/TROUBLESHOOTING.md`.
 - UI Bridge: добавлен helper `callHost(...)` с метаданными `requestId/ts/module/fn` (поэтапный переход с прямых `aeCall` на единый протокол вызовов).
 - UI Bridge: все основные UI-модули (`import`, `settings`, `topics`, `speakers`, `speakers_db`, `typography`, `auto_timing`, `branding`, `host_loader`, `subtitles`) переведены на `callHost(...)`; добавлены таймауты вызовов для более предсказуемых ошибок в UI.
+- Diagnostics: добавлено окно `Diagnostics` (минимальный экран наблюдаемости) с snapshot текущих путей/существования утилит/последних логов и историей последних host-вызовов (`requestId`, `module`, `fn`, `durationMs`).
 
 ## v2.3.1 — 2026-02-17
 

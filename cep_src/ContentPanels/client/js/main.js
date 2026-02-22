@@ -9,6 +9,7 @@ window.onload = function() {
         "response.jsx",
         "config.jsx",
         "logger.jsx",
+        "diagnostics.jsx",
         "utils.jsx",
         "cleanup.jsx",
         "subtitles.jsx",
@@ -61,6 +62,7 @@ window.onload = function() {
     _safeInit("initBrandingUI");
     _safeInit("initJsonImportUI");
     _safeInit("initSettingsUI");
+    _safeInit("initDiagnosticsUI");
 
     var reloadBtn = document.getElementById("btn-reload");
     if (reloadBtn) {

@@ -578,6 +578,26 @@ input[type="range"] { width: 100%; cursor: pointer; margin-top: 5px; }
 }
 /* ===== /Task Progress Modal ===== */
 
+/* ===== Diagnostics Modal ===== */
+.diag-window {
+    max-width: 900px;
+}
+
+.diag-content {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 11px;
+    color: #fff;
+    background: #1f1f1f;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 8px;
+    max-height: 62vh;
+    overflow: auto;
+}
+/* ===== /Diagnostics Modal ===== */
+
 /* ===== Clear (X) buttons for inputs ===== */
 .clearable {
     position: relative;
