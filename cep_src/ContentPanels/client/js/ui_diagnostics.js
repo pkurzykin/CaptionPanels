@@ -41,8 +41,10 @@ function _diagBuildText(snapshot, history) {
     addKV("word2jsonExePath", paths.word2jsonExePath || "");
     addKV("whisperxPythonPath", paths.whisperxPythonPath || "");
     addKV("ffmpegExePath", paths.ffmpegExePath || "");
+    addKV("modelsRoot", paths.modelsRoot || "");
     var asr = s.asr || {};
     addKV("whisperxOfflineOnly", asr.whisperxOfflineOnly ? "true" : "false");
+    addKV("whisperxModel", asr.whisperxModel || "");
     lines.push("");
 
     var exists = s.exists || {};
@@ -50,6 +52,21 @@ function _diagBuildText(snapshot, history) {
     for (var k in exists) {
         if (!exists.hasOwnProperty(k)) continue;
         lines.push("  - " + k + ": " + (exists[k] ? "yes" : "no"));
+    }
+    lines.push("");
+
+    var checks = (s.deploymentChecks instanceof Array) ? s.deploymentChecks : [];
+    lines.push("deploymentChecks:");
+    if (!checks.length) {
+        lines.push("  (empty)");
+    } else {
+        for (var ci = 0; ci < checks.length; ci++) {
+            var c = checks[ci] || {};
+            var mark = c.ok ? "OK" : String(c.level || "warn").toUpperCase();
+            var line = "  - [" + mark + "] " + String(c.name || "");
+            if (c.details) line += " | " + String(c.details || "");
+            lines.push(line);
+        }
     }
     lines.push("");
 

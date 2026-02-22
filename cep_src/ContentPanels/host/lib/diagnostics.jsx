@@ -62,6 +62,40 @@
         } catch (e) { return false; }
     }
 
+    function _folderHasFiles(path) {
+        try {
+            var p = _normalizePath(path);
+            if (!p) return false;
+            var d = new Folder(p);
+            if (!d.exists) return false;
+            var list = d.getFiles();
+            return !!(list && list.length);
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function _folderContainsName(path, token) {
+        try {
+            var p = _normalizePath(path);
+            var t = String(token || "").toLowerCase();
+            if (!p || !t) return false;
+            var d = new Folder(p);
+            if (!d.exists) return false;
+            var list = d.getFiles();
+            if (!list || !list.length) return false;
+            for (var i = 0; i < list.length; i++) {
+                var it = list[i];
+                var n = "";
+                try { n = String(it.name || "").toLowerCase(); } catch (eN) { n = ""; }
+                if (n && n.indexOf(t) !== -1) return true;
+            }
+            return false;
+        } catch (e) {
+            return false;
+        }
+    }
+
     function _runSummary(kind, criteria) {
         try {
             var r = null;
@@ -164,6 +198,43 @@
             var ffmpeg = _normalizePath(_resolvePathRelativeToConfig(String(_val("ffmpegExePath", "") || "")));
             var wxOfflineOnly = false;
             try { wxOfflineOnly = !!_val("whisperxOfflineOnly", false); } catch (eOff) { wxOfflineOnly = false; }
+            var wxModel = "";
+            try { wxModel = String(_val("whisperxModel", "medium") || "medium"); } catch (eModel) { wxModel = "medium"; }
+            var modelsRoot = _normalizePath(dataRoot + "/models");
+            var fwCacheRoot = _normalizePath(modelsRoot + "/faster-whisper");
+            var hfHubRoot = _normalizePath(modelsRoot + "/huggingface/hub");
+
+            var checks = [];
+            function addCheck(name, ok, level, details) {
+                checks.push({
+                    name: String(name || ""),
+                    ok: !!ok,
+                    level: String(level || (ok ? "ok" : "warn")),
+                    details: String(details || "")
+                });
+            }
+
+            var hasWordExe = _fileExists(wordExe);
+            var hasWxPy = _fileExists(wxPy);
+            var hasFfmpeg = _fileExists(ffmpeg);
+            var hasDataRoot = _folderExists(dataRoot);
+            var hasToolsRoot = _folderExists(toolsRoot);
+            var hasFwCacheDir = _folderExists(fwCacheRoot);
+            var hasFwModel = hasFwCacheDir && _folderContainsName(fwCacheRoot, String(wxModel || "").toLowerCase());
+            var hasHubCache = _folderExists(hfHubRoot) && _folderHasFiles(hfHubRoot);
+
+            addCheck("word2json.exe", hasWordExe, hasWordExe ? "ok" : "fail", hasWordExe ? "" : "word2json executable not found");
+            addCheck("whisperx python", hasWxPy, hasWxPy ? "ok" : "fail", hasWxPy ? "" : "whisperx python.exe not found");
+            addCheck("ffmpeg.exe", hasFfmpeg, hasFfmpeg ? "ok" : "warn", hasFfmpeg ? "" : "ffmpeg not found (audio load may fail)");
+            addCheck("data root", hasDataRoot, hasDataRoot ? "ok" : "fail", hasDataRoot ? "" : "data root folder does not exist");
+            addCheck("tools root", hasToolsRoot, hasToolsRoot ? "ok" : "fail", hasToolsRoot ? "" : "tools root folder does not exist");
+
+            if (wxOfflineOnly) {
+                addCheck("offline ASR model cache", hasFwModel, hasFwModel ? "ok" : "fail",
+                    hasFwModel ? "" : ("model cache for '" + wxModel + "' not found under " + fwCacheRoot));
+                addCheck("offline align cache", hasHubCache, hasHubCache ? "ok" : "warn",
+                    hasHubCache ? "" : ("huggingface hub cache is empty: " + hfHubRoot));
+            }
 
             var latest = {
                 word2jsonLastLog: _normalizePath(wordLogs + "/word2json_last.log"),
@@ -183,10 +254,14 @@
                 paths: {
                     word2jsonExePath: wordExe,
                     whisperxPythonPath: wxPy,
-                    ffmpegExePath: ffmpeg
+                    ffmpegExePath: ffmpeg,
+                    modelsRoot: modelsRoot,
+                    fasterWhisperCacheRoot: fwCacheRoot,
+                    huggingfaceHubRoot: hfHubRoot
                 },
                 asr: {
-                    whisperxOfflineOnly: wxOfflineOnly
+                    whisperxOfflineOnly: wxOfflineOnly,
+                    whisperxModel: wxModel
                 },
                 exists: {
                     configPath: _fileExists(cfgPath),
@@ -199,6 +274,7 @@
                     whisperxPythonPath: _fileExists(wxPy),
                     ffmpegExePath: _fileExists(ffmpeg)
                 },
+                deploymentChecks: checks,
                 latestLogs: latest
                 ,
                 latestRuns: {
