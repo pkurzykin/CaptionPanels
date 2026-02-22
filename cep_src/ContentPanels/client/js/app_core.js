@@ -244,15 +244,45 @@ function callHost(fnName, args, opts, cb) {
         return Promise.resolve(fail);
     }
 
-    return aeCall(script).then(function (out) {
-        var res = out || { ok: false, error: "Unknown host response", result: "" };
-        res.requestId = requestId;
-        res.ts = new Date(startedAt).toISOString();
-        res.module = String(o.module || "");
-        res.fn = String(fnName || "");
-        res.durationMs = Date.now() - startedAt;
-        if (typeof cb === "function") cb(res);
-        return res;
+    var timeoutMs = Number(o.timeoutMs);
+    if (isNaN(timeoutMs) || timeoutMs < 0) timeoutMs = 0;
+
+    return new Promise(function (resolve) {
+        var done = false;
+        var timer = null;
+
+        function finish(res) {
+            if (done) return;
+            done = true;
+            if (timer) clearTimeout(timer);
+            if (typeof cb === "function") cb(res);
+            resolve(res);
+        }
+
+        if (timeoutMs > 0) {
+            timer = setTimeout(function () {
+                finish({
+                    ok: false,
+                    error: "Host call timeout (" + timeoutMs + " ms)",
+                    result: "",
+                    requestId: requestId,
+                    ts: new Date(startedAt).toISOString(),
+                    module: String(o.module || ""),
+                    fn: String(fnName || ""),
+                    durationMs: Date.now() - startedAt
+                });
+            }, timeoutMs);
+        }
+
+        aeCall(script).then(function (out) {
+            var res = out || { ok: false, error: "Unknown host response", result: "" };
+            res.requestId = requestId;
+            res.ts = new Date(startedAt).toISOString();
+            res.module = String(o.module || "");
+            res.fn = String(fnName || "");
+            res.durationMs = Date.now() - startedAt;
+            finish(res);
+        });
     });
 }
 

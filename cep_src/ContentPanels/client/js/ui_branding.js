@@ -18,7 +18,7 @@ function initBrandingUI() {
         }
 
         function _runHost(cmd, logTag) {
-            return aeCall(cmd).then(function (out) {
+            return callHost("", [], { module: "branding", rawScript: cmd, timeoutMs: 20000 }).then(function (out) {
                 if (!out || !out.ok) {
                     var err = out && out.error ? String(out.error) : "Unknown error";
                     throw new Error(err);
@@ -46,7 +46,7 @@ function initBrandingUI() {
 
         // Recompute subtitle_BG after all branding layers are placed.
         chain = chain.then(function () {
-            return aeCall("refreshSubtitleBgForActiveComp()");
+            return callHost("refreshSubtitleBgForActiveComp", [], { module: "branding", timeoutMs: 15000 });
         }).then(function (bgOut) {
             if (!bgOut || !bgOut.ok) {
                 var bgErr = bgOut && bgOut.error ? String(bgOut.error) : "Unknown error";

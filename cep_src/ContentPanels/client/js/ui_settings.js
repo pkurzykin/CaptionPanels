@@ -54,7 +54,7 @@ function _settingsParseLinesToList(txt) {
 }
 
 function _settingsLoad() {
-    aeCall("getConfigForUI()", function (out) {
+    callHost("getConfigForUI", [], { module: "settings", timeoutMs: 10000 }, function (out) {
         if (!out || !out.ok) {
             uiAlert("Settings: failed to read config.json\n" + (out ? (out.error || out.result) : "Unknown"));
             return;
@@ -147,7 +147,7 @@ function _settingsLoad() {
 }
 
 function _settingsBrowseSpeakersDb() {
-    aeCall("pickSpeakersDbPath()", function (out) {
+    callHost("pickSpeakersDbPath", [], { module: "settings", timeoutMs: 15000 }, function (out) {
         if (!out || !out.ok) {
             var err = out && out.error ? String(out.error) : "Unknown error";
             if (err == "CANCELLED") return;
@@ -277,8 +277,7 @@ function _settingsSave() {
         }
 
         var it = items[i];
-        var cmd = "setConfigValue(" + JSON.stringify(String(it.key)) + "," + JSON.stringify(it.value) + ")";
-        aeCall(cmd, function (out) {
+        callHost("setConfigValue", [String(it.key), it.value], { module: "settings", timeoutMs: 10000 }, function (out) {
             if (!out || !out.ok) {
                 uiAlert("Settings: failed to save.\n" + (out ? (out.error || out.result) : "Unknown"));
                 return;

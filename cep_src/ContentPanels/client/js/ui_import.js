@@ -72,7 +72,9 @@ function jsonImportSetQueue(list, sourcePath) {
     // The user will explicitly start the titles flow via the "Load Speaker" button in the Speaker Titles tab.
     if (JSON_IMPORT_ACTIVE) {
         _clearSpeakerFields(true);
-        try { csInterface.evalScript("removePreview()"); } catch (ePrev) {}
+        try {
+            callHost("removePreview", [], { module: "import", timeoutMs: 5000 }, function () {});
+        } catch (ePrev) {}
     }
 }
 
@@ -100,7 +102,7 @@ function jsonImportAdvanceAfterCreate() {
         JSON_IMPORT_QUEUE = [];
         JSON_IMPORT_INDEX = 0;
         _clearSpeakerFields(true);
-        csInterface.evalScript("removePreview()");
+        callHost("removePreview", [], { module: "import", timeoutMs: 5000 }, function () {});
         return true;
     }
 
@@ -252,7 +254,7 @@ function _startWordImportProgress(title) {
 
 function initJsonImportUI() {
     attachClick("btn-load-json", function () {
-        aeCall("importJsonFromDialog()", function (out) {
+        callHost("importJsonFromDialog", [], { module: "import", timeoutMs: 0 }, function (out) {
             if (!out || !out.ok) {
                 var err = out && out.error ? out.error : "Unknown error";
                 if (String(err) === "CANCELLED") return;

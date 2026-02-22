@@ -102,8 +102,7 @@ function renderDbList(filterText) {
 
                 ensureSpeakersDbLoaded(function (ok) {
                     if (!ok) return;
-                    var cmd = "removeSpeakerFromDb(" + JSON.stringify(sp.name || "") + "," + JSON.stringify(sp.job || "") + ")";
-                    aeCall(cmd, function (out) {
+                    callHost("removeSpeakerFromDb", [sp.name || "", sp.job || ""], { module: "speakersDb", timeoutMs: 15000 }, function (out) {
                         var res = out.result || "";
                         if (out.ok && res === "OK") {
                             // удаляем из локального массива
@@ -161,7 +160,7 @@ function loadSpeakersDbThenOpen() {
 
 function ensureSpeakersDbLoaded(cb) {
     if (SPEAKERS_DB_LOADED) return cb(true);
-    aeCall("getSpeakersDbJson()", function (out) {
+    callHost("getSpeakersDbJson", [], { module: "speakersDb", timeoutMs: 15000 }, function (out) {
         if (!out.ok) {
             var msg = out.error || out.result || "Unknown error";
             console.log("DB load error:", msg);

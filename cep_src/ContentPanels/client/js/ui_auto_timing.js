@@ -139,58 +139,6 @@ function _formatTimingsApplySummary(res) {
     return msg;
 }
 
-// Local parser that does NOT depend on app_core.js parseAeResult().
-// This makes the button robust even if the bridge returns objects.
-function _parseHostResponse(res) {
-    if (res && typeof res === "object") {
-        if (typeof res.ok !== "undefined") {
-            if (typeof res.error === "undefined") res.error = "";
-            if (typeof res.result === "undefined") res.result = "";
-            return res;
-        }
-        return { ok: true, error: "", result: res };
-    }
-
-    var s = String(res || "");
-    var t = s.trim();
-
-    if (t && t[0] === "{") {
-        try {
-            var obj = JSON.parse(t);
-            if (obj && typeof obj.ok !== "undefined") return obj;
-        } catch (e) {}
-    }
-
-    if (t.indexOf("Error:") === 0) {
-        return { ok: false, error: t.slice("Error:".length).trim(), result: "" };
-    }
-    if (t === "Error") {
-        return { ok: false, error: t, result: "" };
-    }
-
-    if (t === "OK") {
-        return { ok: true, error: "", result: t };
-    }
-
-    return { ok: true, error: "", result: s };
-}
-
-function _evalAeRaw(cmd, cb) {
-    try {
-        csInterface.evalScript(cmd, function (res) {
-            cb(res);
-        });
-    } catch (e) {
-        cb("Error: " + (e && e.message ? e.message : String(e)));
-    }
-}
-
-function _evalAe(cmd, cb) {
-    _evalAeRaw(cmd, function (raw) {
-        cb(_parseHostResponse(raw), raw);
-    });
-}
-
 function _startAutoTimingProgress() {
     var dots = 0;
     var t0 = Date.now();
@@ -246,7 +194,7 @@ function initAutoTimingUI() {
 
         var stopProgress = _startAutoTimingProgress();
 
-        _evalAe("autoTimingRunWhisperXAndApply()", function (out, raw) {
+        callHost("autoTimingRunWhisperXAndApply", [], { module: "autoTiming", timeoutMs: 0 }, function (out) {
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = prevText;
