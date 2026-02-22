@@ -456,3 +456,22 @@ function _hideSubtitleTemplates(comp) {
     if (ita) ita.shy = true;
     try { comp.hideShyLayers = true; } catch (e) {}
 }
+
+// Public helper: force subtitle_BG recalculation for active comp.
+refreshSubtitleBgForActiveComp = function () {
+    try {
+        var comp = app.project.activeItem;
+        if (!comp || !(comp instanceof CompItem)) {
+            return respondErr("No active comp");
+        }
+
+        app.beginUndoGroup("Refresh Subtitle BG");
+        _updateSubtitleBg(comp);
+        app.endUndoGroup();
+
+        return respondOk("OK");
+    } catch (e) {
+        try { app.endUndoGroup(); } catch (e2) {}
+        return respondErr(e && e.message ? e.message : String(e));
+    }
+};

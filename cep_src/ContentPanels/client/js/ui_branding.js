@@ -17,21 +17,47 @@ function initBrandingUI() {
             pendingGeo = jsonImportConsumeBrandingGeotags() || [];
         }
 
+        function _runHost(cmd, logTag) {
+            return aeCall(cmd).then(function (out) {
+                if (!out || !out.ok) {
+                    var err = out && out.error ? String(out.error) : "Unknown error";
+                    throw new Error(err);
+                }
+                if (logTag) logUi(logTag);
+                return out;
+            });
+        }
+
+        var chain = Promise.resolve();
+
         if (pendingGeo.length > 0) {
             var cmdGeoList = "createGeotagsAtTimes(" + JSON.stringify(pendingGeo) + ")";
-            csInterface.evalScript(cmdGeoList);
-            logUi("createGeotagsAtTimes");
+            chain = chain.then(function () { return _runHost(cmdGeoList, "createGeotagsAtTimes"); });
         } else if (geo) {
             var cmdGeo = "createGeotag(" + JSON.stringify(geo) + ")";
-            csInterface.evalScript(cmdGeo);
-            logUi("createGeotag");
+            chain = chain.then(function () { return _runHost(cmdGeo, "createGeotag"); });
         }
 
         // 2) HEAD_TOPIC
         if (head || topic) {
             var cmdHead = "applyHeadTopicToRegular(" + JSON.stringify(head) + "," + JSON.stringify(topic) + ")";
-            csInterface.evalScript(cmdHead);
-            logUi("applyHeadTopicToRegular");
+            chain = chain.then(function () { return _runHost(cmdHead, "applyHeadTopicToRegular"); });
         }
+
+        // Recompute subtitle_BG after all branding layers are placed.
+        chain = chain.then(function () {
+            return aeCall("refreshSubtitleBgForActiveComp()");
+        }).then(function (bgOut) {
+            if (!bgOut || !bgOut.ok) {
+                var bgErr = bgOut && bgOut.error ? String(bgOut.error) : "Unknown error";
+                logUiError("branding.subtitleBg", bgErr);
+            } else {
+                logUi("refreshSubtitleBgForActiveComp");
+            }
+        }).catch(function (e) {
+            var msg = e && e.message ? e.message : String(e);
+            uiAlert("Create Branding error.\n" + msg);
+            logUiError("branding.create", msg);
+        });
     });
 }

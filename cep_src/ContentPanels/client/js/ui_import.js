@@ -297,6 +297,17 @@ function initJsonImportUI() {
                 return;
             }
 
+            // Load Word flow: align work area end to selected/first video layer length.
+            // Non-blocking for import; if no video layer, we just log.
+            aeCall("setWorkAreaEndToVideoLayer()", function (waOut) {
+                if (!waOut || !waOut.ok) {
+                    var waErr = waOut && waOut.error ? String(waOut.error) : "Unknown error";
+                    logUiError("word.workArea", waErr);
+                } else {
+                    logUi("setWorkAreaEndToVideoLayer");
+                }
+            });
+
             var stopProgress = _startWordImportProgress();
             var cmd = "importWordFromFile(" + JSON.stringify(String(pickedPath)) + ")";
             aeCall(cmd, function (out) {

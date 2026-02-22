@@ -270,6 +270,52 @@
         return /[^\x00-\x7F]/.test(String(s || ""));
     }
 
+    function _isVideoFilePath(pathValue) {
+        var p = _normalizePath(pathValue).toLowerCase();
+        return /\.(mp4|mov|mxf|avi|mkv|wmv|webm|m4v)$/i.test(p);
+    }
+
+    function _getLayerFilePath(layer) {
+        try {
+            if (!layer) return "";
+            var src = layer.source;
+            if (!src || !(src instanceof FootageItem)) return "";
+            var f = null;
+            try { f = src.file; } catch (e1) { f = null; }
+            if (!f) {
+                try { f = src.mainSource && src.mainSource.file ? src.mainSource.file : null; } catch (e2) { f = null; }
+            }
+            if (f && f.exists) return _normalizePath(f.fsName);
+        } catch (e) {}
+        return "";
+    }
+
+    function _findVideoLayerForWorkArea(comp) {
+        if (!comp) return null;
+
+        // 1) Prefer selected video footage layer.
+        try {
+            var selected = comp.selectedLayers;
+            if (selected && selected.length) {
+                for (var i = 0; i < selected.length; i++) {
+                    var lp = _getLayerFilePath(selected[i]);
+                    if (_isVideoFilePath(lp)) return selected[i];
+                }
+            }
+        } catch (e1) {}
+
+        // 2) Fallback: first video footage layer on timeline.
+        try {
+            for (var j = 1; j <= comp.numLayers; j++) {
+                var l = comp.layer(j);
+                var p = _getLayerFilePath(l);
+                if (_isVideoFilePath(p)) return l;
+            }
+        } catch (e2) {}
+
+        return null;
+    }
+
     function _getWord2JsonLogsDir(outDirFallback) {
         // Prefer explicit Word logs path; fallback to shared auto_timing logs;
         // then to captionPanelsDataRoot/auto_timing/logs; last fallback is outDir.
@@ -378,6 +424,42 @@
         var file = File.openDialog("Выберите Word (.docx)", "*.docx");
         if (!file) return respondErr("CANCELLED");
         return importWordFromFile(file.fsName);
+    };
+
+    setWorkAreaEndToVideoLayer = function () {
+        try {
+            var comp = app.project.activeItem;
+            if (!comp || !(comp instanceof CompItem)) return respondErr("No active comp");
+
+            var layer = _findVideoLayerForWorkArea(comp);
+            if (!layer) return respondErr("No video layer found");
+
+            var end = Number(layer.outPoint);
+            if (isNaN(end) || end <= 0) return respondErr("Invalid video layer timing");
+            if (end > comp.duration) end = comp.duration;
+
+            var frameDur = 1.0 / Math.max(1, Number(comp.frameRate) || 25);
+            var start = Number(comp.workAreaStart);
+            if (isNaN(start) || start < 0) start = 0;
+            if (start >= end - frameDur) {
+                start = Number(layer.inPoint);
+                if (isNaN(start) || start < 0) start = 0;
+                if (start >= end - frameDur) start = Math.max(0, end - frameDur);
+                comp.workAreaStart = start;
+            }
+
+            var dur = end - start;
+            if (dur < frameDur) dur = frameDur;
+            comp.workAreaDuration = dur;
+
+            return respondOk({
+                layerName: String(layer.name || ""),
+                workAreaStart: Number(comp.workAreaStart),
+                workAreaEnd: Number(comp.workAreaStart + comp.workAreaDuration)
+            });
+        } catch (e) {
+            return respondErr(e && e.message ? e.message : String(e));
+        }
     };
 
     importWordFromFile = function (docxPath) {

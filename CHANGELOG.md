@@ -23,6 +23,8 @@
 - Auto Timing: усилен резолвер пути к Python (`whisperxPythonPath`) с fallback на `captionPanelsToolsRoot` и диагностикой `Checked:` по проверенным путям.
 - Config: порядок поиска `config.json` скорректирован в пользу user-level `%APPDATA%` (Roaming) перед machine-level `ProgramData`, чтобы исключить неожиданный захват старого глобального конфига.
 - Config/Runtime: добавлена совместимость со старыми путями (`C:/AE/...`, `CaptionPanelsTools`, `C:/Temp/CaptionPanels/word2json`) — значения автоматически нормализуются к `C:/CaptionPanelsLocal/CaptionPanelsData` и `C:/CaptionPanelsLocal/CaptionPanelTools`.
+- Branding: по кнопке `Create Branding` добавлен последовательный запуск (geotag -> head_topic -> пересчет `subtitle_BG`), чтобы `subtitle_BG` обновлялся после расстановки плашек.
+- Word Import: по кнопке `Load Word` автоматически выставляется `Work Area End` по длине выбранного/первого видео-слоя в активной композиции.
 
 ## v2.3.1 — 2026-02-17
 

@@ -33,7 +33,7 @@ if (!csInterface) {
     };
 }
 
-var UI_VERSION = "2.3.1";
+var UI_VERSION = "2.3.2";
 
 function buildJob(type, payload) {
     return {
