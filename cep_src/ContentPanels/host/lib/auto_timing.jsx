@@ -1494,6 +1494,8 @@
             }
             var wxAdv = false;
             try { wxAdv = !!getConfigValue("whisperxAdvancedArgsEnabled", false); } catch (eAx) { wxAdv = false; }
+            var wxOfflineOnly = false;
+            try { wxOfflineOnly = !!getConfigValue("whisperxOfflineOnly", false); } catch (eOff) { wxOfflineOnly = false; }
             var wxApplyShift = false;
             try { wxApplyShift = !!getConfigValue("whisperxApplyTimeShift", false); } catch (eSh) { wxApplyShift = false; }
 
@@ -1626,6 +1628,10 @@
 
             if (cacheDir) {
                 whisperBody += ' --cache_dir "' + _toCmdWinPath(_normalizePath(cacheDir)) + '"';
+            }
+
+            if (wxOfflineOnly) {
+                whisperBody += " --offline_only";
             }
 
             if (wxApplyShift) {
@@ -1844,6 +1850,7 @@
                 alignLog: a.logPath,
                 whisperxArgs: wxArgs,
                 whisperxArgsIgnored: wxIgnored,
+                whisperxOfflineOnly: wxOfflineOnly,
                 whisperxApplyTimeShift: wxApplyShift,
                 whisperxTimeShiftAppliedSec: wxTimeShiftAppliedSec,
                 whisperxTimeShiftSuggestedSec: wxTimeShiftSuggestedSec,

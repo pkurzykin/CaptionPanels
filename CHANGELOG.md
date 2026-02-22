@@ -39,6 +39,8 @@
 - Branding: пересчет `subtitle_BG` после `Create Branding` усилен fallback-вызовом (raw-script), чтобы избежать тихого пропуска пересчета при сбоях host-вызова.
 - Re-run Alignment: теперь выбирает последний завершенный `auto_timing` run с валидными `blocksPath`+`whisperxJson` (а не просто последний run), чтобы не падать после неуспешного прогона.
 - Diagnostics: добавлен `latestRuns.autoTimingCompleted` для быстрого контроля, какой run используется для Re-run Alignment.
+- ASR/Settings: добавлен флаг `offlineOnly` (`Offline only (no model download)`), который передается в WhisperX runner.
+- WhisperX runner: добавлена поддержка `--offline_only` (без сетевых загрузок, только локальный cache моделей) с явными подсказками в тексте ошибок.
 
 ## v2.3.1 — 2026-02-17
 

@@ -162,6 +162,8 @@
             var wordExe = _normalizePath(_resolvePathRelativeToConfig(String(_val("word2jsonExePath", "") || "")));
             var wxPy = _normalizePath(_resolvePathRelativeToConfig(String(_val("whisperxPythonPath", "") || "")));
             var ffmpeg = _normalizePath(_resolvePathRelativeToConfig(String(_val("ffmpegExePath", "") || "")));
+            var wxOfflineOnly = false;
+            try { wxOfflineOnly = !!_val("whisperxOfflineOnly", false); } catch (eOff) { wxOfflineOnly = false; }
 
             var latest = {
                 word2jsonLastLog: _normalizePath(wordLogs + "/word2json_last.log"),
@@ -182,6 +184,9 @@
                     word2jsonExePath: wordExe,
                     whisperxPythonPath: wxPy,
                     ffmpegExePath: ffmpeg
+                },
+                asr: {
+                    whisperxOfflineOnly: wxOfflineOnly
                 },
                 exists: {
                     configPath: _fileExists(cfgPath),

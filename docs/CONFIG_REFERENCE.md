@@ -71,6 +71,9 @@
 - `asr.runnerScriptPath` (string) — путь к `run_whisperx.py`.
 - `asr.model` / `asr.language` / `asr.deviceMode` / `asr.device` / `asr.vadMethod`
   - базовые параметры запуска WhisperX.
+- `asr.offlineOnly` (boolean)
+  - если `true`, runner запрещает сетевые скачивания моделей и использует только локальный cache.
+  - если нужной модели нет локально — запуск завершится ошибкой с подсказкой.
 - `asr.applyTimeShift` (boolean)
   - включает экспериментальный глобальный time-shift.
 - `asr.minGapFrames` (number)
@@ -120,6 +123,7 @@
     "deviceMode": "auto",
     "device": "cuda",
     "vadMethod": "silero",
+    "offlineOnly": false,
     "applyTimeShift": false,
     "minGapFrames": 1,
     "advancedArgsEnabled": false,

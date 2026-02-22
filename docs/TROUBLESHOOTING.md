@@ -95,6 +95,20 @@
 - сначала выполни полный `Auto Timing (WhisperX)` хотя бы один раз;
 - в `Diagnostics` должен появиться `latestRuns.autoTimingCompleted` со статусом `completed`.
 
+## 10) Ошибка WhisperX в offline режиме
+
+Симптом:
+- `Transcribe failed ... offline_only=true ... model is not cached locally`
+- или `Alignment failed ... offline_only=true ... align model is already cached locally`
+
+Проверь:
+- в Settings параметр `Offline only (no model download)`;
+- наличие локальных моделей в `C:/CaptionPanelsLocal/CaptionPanelsData/models`.
+
+Если модели не закэшированы:
+- временно отключи `offlineOnly`, запусти Auto Timing один раз с интернетом для прогрева cache;
+- затем снова включи `offlineOnly`.
+
 ## Где смотреть логи
 
 - Word import:

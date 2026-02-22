@@ -113,6 +113,9 @@ function _settingsLoad() {
         var wxDeviceModeEl = document.getElementById("settings-whisperx-device-mode");
         if (wxDeviceModeEl) wxDeviceModeEl.value = String(wxDeviceMode || "auto");
 
+        var wxOfflineEl = document.getElementById("settings-whisperx-offline-only");
+        if (wxOfflineEl) wxOfflineEl.checked = !!res.whisperxOfflineOnly;
+
         var wxAdvEnabled = !!res.whisperxAdvancedArgsEnabled;
         var wxAdvEl = document.getElementById("settings-whisperx-adv-enabled");
         if (wxAdvEl) wxAdvEl.checked = wxAdvEnabled;
@@ -225,6 +228,9 @@ function _settingsSave() {
     var wxAdvEl = document.getElementById("settings-whisperx-adv-enabled");
     var wxAdvEnabled = wxAdvEl ? !!wxAdvEl.checked : false;
 
+    var wxOfflineEl = document.getElementById("settings-whisperx-offline-only");
+    var wxOfflineOnly = wxOfflineEl ? !!wxOfflineEl.checked : false;
+
     var wxBeamEl = document.getElementById("settings-whisperx-beam");
     var wxBeam = _settingsParseInt(wxBeamEl ? wxBeamEl.value : "", 5);
     if (wxBeam < 1) wxBeam = 1;
@@ -256,6 +262,7 @@ function _settingsSave() {
         { key: "whisperxLanguage", value: String(wxLang || "ru") },
         { key: "whisperxDeviceMode", value: String(wxDeviceMode || "auto") },
         { key: "whisperxDevice", value: String(wxDeviceLegacy) },
+        { key: "whisperxOfflineOnly", value: !!wxOfflineOnly },
 
         { key: "whisperxAdvancedArgsEnabled", value: !!wxAdvEnabled },
         { key: "whisperxBeamSize", value: Number(wxBeam) },

@@ -97,6 +97,7 @@
 - `asr.language`: `ru`
 - `asr.deviceMode`: `auto` (рекомендуется)
 - `asr.vadMethod`: `silero`
+- `asr.offlineOnly`: `false` (или `true` для полностью офлайн-запуска без скачиваний)
 
 (Опционально)
 - `asr.advancedArgsEnabled` и параметры качества (beam/temperature/...)

@@ -36,6 +36,7 @@
         whisperxDeviceMode: "asr.deviceMode",
         whisperxDevice: "asr.device",
         whisperxVadMethod: "asr.vadMethod",
+        whisperxOfflineOnly: "asr.offlineOnly",
         whisperxApplyTimeShift: "asr.applyTimeShift",
         autoTimingMinGapFrames: "asr.minGapFrames",
         whisperxAdvancedArgsEnabled: "asr.advancedArgsEnabled",
@@ -575,6 +576,8 @@
             var wxDevice = String(getConfigValue("whisperxDevice", "cuda") || "cuda");
             var wxDeviceMode = String(getConfigValue("whisperxDeviceMode", "") || "").toLowerCase();
             var wxVad = String(getConfigValue("whisperxVadMethod", "silero") || "silero");
+            var wxOfflineOnly = false;
+            try { wxOfflineOnly = !!getConfigValue("whisperxOfflineOnly", false); } catch (eOff) { wxOfflineOnly = false; }
             if (wxDeviceMode !== "auto" && wxDeviceMode !== "cuda" && wxDeviceMode !== "cpu") {
                 wxDeviceMode = (String(wxDevice).toLowerCase() === "cpu") ? "cpu" : "auto";
             }
@@ -612,6 +615,7 @@
                 whisperxDeviceMode: wxDeviceMode,
                 whisperxDevice: wxDevice,
                 whisperxVadMethod: wxVad,
+                whisperxOfflineOnly: wxOfflineOnly,
 
                 whisperxAdvancedArgsEnabled: wxAdvEnabled,
                 whisperxBeamSize: wxBeam,

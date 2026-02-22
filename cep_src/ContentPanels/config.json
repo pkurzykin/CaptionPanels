@@ -42,6 +42,7 @@
     "deviceMode": "auto",
     "device": "cuda",
     "vadMethod": "silero",
+    "offlineOnly": false,
     "applyTimeShift": false,
     "minGapFrames": 1,
     "advancedArgsEnabled": false,

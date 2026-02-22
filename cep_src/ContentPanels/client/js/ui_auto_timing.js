@@ -45,6 +45,7 @@ function _formatWhisperAutoTimingSummary(res) {
     if (r.whisperxDeviceMode) msg += "\nWhisperX device mode: " + r.whisperxDeviceMode;
     if (r.whisperxDeviceRequested) msg += "\nWhisperX device requested: " + r.whisperxDeviceRequested;
     if (r.whisperxDeviceUsed) msg += "\nWhisperX device used: " + r.whisperxDeviceUsed;
+    if (typeof r.whisperxOfflineOnly !== "undefined") msg += "\nWhisperX offline only: " + (r.whisperxOfflineOnly ? "true" : "false");
 
     if (r.whisperxArgs) msg += "\nWhisperX args: " + r.whisperxArgs;
     if (r.whisperxArgsIgnored && r.whisperxArgsIgnored.length) msg += "\nWhisperX ignored: " + r.whisperxArgsIgnored.join(", ");

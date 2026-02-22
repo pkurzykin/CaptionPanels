@@ -41,6 +41,8 @@ function _diagBuildText(snapshot, history) {
     addKV("word2jsonExePath", paths.word2jsonExePath || "");
     addKV("whisperxPythonPath", paths.whisperxPythonPath || "");
     addKV("ffmpegExePath", paths.ffmpegExePath || "");
+    var asr = s.asr || {};
+    addKV("whisperxOfflineOnly", asr.whisperxOfflineOnly ? "true" : "false");
     lines.push("");
 
     var exists = s.exists || {};
