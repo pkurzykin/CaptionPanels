@@ -265,9 +265,33 @@ def _filter_kwargs(func, kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], List[s
     """Return (accepted_kwargs, ignored_keys) based on func signature."""
     try:
         sig = inspect.signature(func)
-        params = set(sig.parameters.keys())
+        params = sig.parameters
     except Exception:
         # If we can't introspect, pass everything through.
+        return kwargs, []
+
+    # If callable accepts **kwargs, do not filter anything.
+    # This avoids false "ignored args" on versions where C-extension wrappers
+    # expose generic signatures like (*args, **kwargs).
+    try:
+        for p in params.values():
+            if p.kind == inspect.Parameter.VAR_KEYWORD:
+                return kwargs, []
+    except Exception:
+        return kwargs, []
+
+    # If signature is fully generic (*args / **kwargs-like), keep kwargs as-is.
+    # Some builds expose only positional/variadic names and filtering would drop
+    # valid runtime kwargs such as language/device.
+    try:
+        concrete = []
+        for p in params.values():
+            if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+                if p.name not in ("self", "cls"):
+                    concrete.append(p.name)
+        if not concrete:
+            return kwargs, []
+    except Exception:
         return kwargs, []
 
     accepted: Dict[str, Any] = {}
