@@ -153,10 +153,72 @@
         return minTime;
     }
 
+    function _isSubtitleLayerName(name) {
+        var n = String(name || "");
+        return (n.indexOf("Sub_VOICEOVER_") === 0 || n.indexOf("Sub_SYNCH_") === 0);
+    }
+
+    function _findFirstSubtitleStart(comp) {
+        var best = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !_isSubtitleLayerName(l.name)) continue;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) continue;
+            if (best === null || st < best) best = st;
+        }
+        return best;
+    }
+
+    function _removeSubtitleLayers(comp) {
+        for (var i = comp.numLayers; i >= 1; i--) {
+            var l = comp.layer(i);
+            if (!l || !_isSubtitleLayerName(l.name)) continue;
+            try { l.remove(); } catch (e) {}
+        }
+    }
+
     importJsonFromDialog = function () {
         var file = File.openDialog("Выберите JSON", "*.json");
         if (!file) return _jsonErr("CANCELLED");
         return importJsonFromFile(file.fsName);
+    };
+
+    // Rebuild subtitles from an already generated JSON:
+    // - keeps timeline anchor at the first existing subtitle start (if present),
+    // - removes current subtitle layers,
+    // - re-runs standard importJsonFromFile pipeline.
+    rebuildSubtitlesFromJsonFile = function (path) {
+        try {
+            if (!app || !app.project) return _jsonErr("No active project");
+            var comp = app.project.activeItem;
+            if (!comp || !(comp instanceof CompItem)) return _jsonErr("No active comp");
+
+            var p = String(path || "");
+            if (!p) return _jsonErr("Empty JSON path");
+            var f = new File(p);
+            if (!f.exists) return _jsonErr("JSON not found: " + p);
+
+            var anchor = _findFirstSubtitleStart(comp);
+            if (anchor === null) anchor = Number(comp.time) || 0;
+
+            app.beginUndoGroup("Rebuild Subtitles From JSON");
+            _removeSubtitleLayers(comp);
+            comp.time = anchor;
+            app.endUndoGroup();
+
+            return importJsonFromFile(p);
+        } catch (e) {
+            try { app.endUndoGroup(); } catch (e2) {}
+            var msg = "";
+            try {
+                msg = (e && (e.message || e.description)) ? (e.message || e.description) : String(e);
+            } catch (e3) {
+                msg = "Unknown error";
+            }
+            if (!msg) msg = "Unknown error";
+            return _jsonErr(msg);
+        }
     };
 
     importJsonFromFile = function (path) {

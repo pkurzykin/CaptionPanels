@@ -25,6 +25,8 @@
 - Config/Runtime: добавлена совместимость со старыми путями (`C:/AE/...`, `CaptionPanelsTools`, `C:/Temp/CaptionPanels/word2json`) — значения автоматически нормализуются к `C:/CaptionPanelsLocal/CaptionPanelsData` и `C:/CaptionPanelsLocal/CaptionPanelTools`.
 - Branding: по кнопке `Create Branding` добавлен последовательный запуск (geotag -> head_topic -> пересчет `subtitle_BG`), чтобы `subtitle_BG` обновлялся после расстановки плашек.
 - Word Import: по кнопке `Load Word` автоматически выставляется `Work Area End` по длине выбранного/первого видео-слоя в активной композиции.
+- UI/Import: добавлена кнопка `Rebuild Subtitles` — пересоздает субтитры из уже загруженного JSON (после смены настроек переноса/лимитов), с очисткой текущих `Sub_VOICEOVER_*`/`Sub_SYNCH_*` и сохранением таймлайн-якоря по первому старому субтитру.
+- UI: кнопка `Rebuild Subtitles` перенесена из шапки в раздел `Subtitles / Info` (блок `Subtitles Tools`).
 
 ## v2.3.1 — 2026-02-17
 

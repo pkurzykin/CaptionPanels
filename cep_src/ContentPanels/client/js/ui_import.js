@@ -209,10 +209,10 @@ function _formatImportSummary(res) {
     return msg;
 }
 
-function _startWordImportProgress() {
+function _startWordImportProgress(title) {
     var t0 = Date.now();
     var dots = 0;
-    showTaskProgress("Load Word", "Starting import...");
+    showTaskProgress(String(title || "Load Word"), "Starting import...");
     updateTaskProgress(5, "Starting import...");
 
     var timer = setInterval(function () {
@@ -273,6 +273,39 @@ function initJsonImportUI() {
         });
     });
 
+    attachClick("btn-rebuild-subs", function () {
+        if (!JSON_IMPORT_SOURCE) {
+            uiAlert("No source JSON found.\nLoad Word/JSON first.");
+            return;
+        }
+
+        var stopProgress = _startWordImportProgress("Rebuild Subtitles");
+        var cmd = "rebuildSubtitlesFromJsonFile(" + JSON.stringify(String(JSON_IMPORT_SOURCE)) + ")";
+
+        aeCall(cmd, function (out) {
+            if (!out || !out.ok) {
+                try { stopProgress(false); } catch (ePr0) {}
+                var err = (out && typeof out.error !== "undefined") ? String(out.error) : "";
+                if (!err || !err.replace(/\s+/g, "")) err = "Unknown error";
+                uiAlert("Rebuild Subtitles failed.\n" + err);
+                logUiError("subs.rebuild", err);
+                return;
+            }
+
+            try { stopProgress(true); } catch (ePr1) {}
+            var res = _normalizeImportResult(out.result);
+            var list = (res && res.speakers && res.speakers.length) ? res.speakers : [];
+            jsonImportSetQueue(list, res.source || JSON_IMPORT_SOURCE || "");
+            if (res && res.source) JSON_IMPORT_SOURCE = String(res.source);
+            var branding = _resolveBrandingFromImportResult(res);
+            if (branding) {
+                jsonImportSetBranding(branding);
+            }
+            uiAlert(_formatImportSummary(res));
+            logUi("subs.rebuild ok");
+        });
+    });
+
 
     attachClick("btn-load-word", function () {
         aeCall("pickWordFileForImport()", function (pick) {
@@ -308,7 +341,7 @@ function initJsonImportUI() {
                 }
             });
 
-            var stopProgress = _startWordImportProgress();
+            var stopProgress = _startWordImportProgress("Load Word");
             var cmd = "importWordFromFile(" + JSON.stringify(String(pickedPath)) + ")";
             aeCall(cmd, function (out) {
                 if (!out || !out.ok) {
