@@ -45,15 +45,18 @@ function initBrandingUI() {
         }
 
         // Recompute subtitle_BG after all branding layers are placed.
+        // Keep a raw-script fallback to avoid silent regressions if named host calls break.
         chain = chain.then(function () {
             return callHost("refreshSubtitleBgForActiveComp", [], { module: "branding", timeoutMs: 15000 });
         }).then(function (bgOut) {
-            if (!bgOut || !bgOut.ok) {
-                var bgErr = bgOut && bgOut.error ? String(bgOut.error) : "Unknown error";
-                logUiError("branding.subtitleBg", bgErr);
-            } else {
+            if (bgOut && bgOut.ok) {
                 logUi("refreshSubtitleBgForActiveComp");
+                return;
             }
+
+            var bgErr = bgOut && bgOut.error ? String(bgOut.error) : "Unknown error";
+            logUiError("branding.subtitleBg", bgErr);
+            return _runHost("refreshSubtitleBgForActiveComp()", "refreshSubtitleBgForActiveComp(raw-fallback)");
         }).catch(function (e) {
             var msg = e && e.message ? e.message : String(e);
             uiAlert("Create Branding error.\n" + msg);

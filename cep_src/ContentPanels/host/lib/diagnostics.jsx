@@ -62,10 +62,15 @@
         } catch (e) { return false; }
     }
 
-    function _runSummary(kind) {
+    function _runSummary(kind, criteria) {
         try {
-            if (typeof cpRunGetLatest !== "function") return null;
-            var r = cpRunGetLatest(kind);
+            var r = null;
+            if (criteria && typeof cpRunFindLatest === "function") {
+                r = cpRunFindLatest(kind, criteria);
+            }
+            if (!r && typeof cpRunGetLatest === "function") {
+                r = cpRunGetLatest(kind);
+            }
             if (!r || typeof r !== "object") return null;
             return {
                 kind: String(r.kind || kind || ""),
@@ -193,7 +198,11 @@
                 ,
                 latestRuns: {
                     wordImport: _runSummary("word_import"),
-                    autoTiming: _runSummary("auto_timing")
+                    autoTiming: _runSummary("auto_timing"),
+                    autoTimingCompleted: _runSummary("auto_timing", {
+                        status: ["completed"],
+                        hasOutputs: ["blocksPath", "whisperxJson"]
+                    })
                 }
             });
         } catch (e) {

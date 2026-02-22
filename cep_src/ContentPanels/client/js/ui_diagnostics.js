@@ -76,6 +76,7 @@ function _diagBuildText(snapshot, history) {
     }
     addRun("wordImport", runs.wordImport);
     addRun("autoTiming", runs.autoTiming);
+    addRun("autoTimingCompleted", runs.autoTimingCompleted);
     lines.push("");
 
     lines.push("host calls (latest):");

@@ -6,6 +6,7 @@
 //   cpRunUpdate(ref, patch)
 //   cpRunFinalize(ref, status, payload)
 //   cpRunGetLatest(kind)
+//   cpRunFindLatest(kind, criteria)
 // =====================================================
 
 (function () {
@@ -279,5 +280,86 @@
             return null;
         }
     };
-})();
 
+    cpRunFindLatest = function (kind, criteria) {
+        try {
+            var c = (criteria && typeof criteria === "object") ? criteria : {};
+            var root = new Folder(_runsRoot(kind));
+            if (!root.exists) return null;
+
+            var dirs = root.getFiles(function (f) { return f instanceof Folder; });
+            if (!dirs || !dirs.length) return null;
+
+            var statusList = [];
+            if (typeof c.status === "string" && c.status) {
+                statusList.push(String(c.status));
+            } else if (c.status instanceof Array) {
+                for (var si = 0; si < c.status.length; si++) {
+                    var sv = String(c.status[si] || "");
+                    if (sv) statusList.push(sv);
+                }
+            }
+
+            var requiredOutputs = [];
+            if (c.hasOutputs instanceof Array) {
+                for (var oi = 0; oi < c.hasOutputs.length; oi++) {
+                    var ov = String(c.hasOutputs[oi] || "");
+                    if (ov) requiredOutputs.push(ov);
+                }
+            }
+
+            var best = null;
+            var bestTime = -1;
+
+            for (var i = 0; i < dirs.length; i++) {
+                var d = dirs[i];
+                if (!(d instanceof Folder)) continue;
+
+                var manifestPath = _normalizePath(d.fsName + "/run.json");
+                var mf = new File(manifestPath);
+                if (!mf.exists) continue;
+
+                var obj = _parseJsonSafe(_readTextFile(manifestPath));
+                if (!obj || typeof obj !== "object") continue;
+
+                if (statusList.length) {
+                    var st = String(obj.status || "");
+                    var statusOk = false;
+                    for (var sj = 0; sj < statusList.length; sj++) {
+                        if (st === statusList[sj]) {
+                            statusOk = true;
+                            break;
+                        }
+                    }
+                    if (!statusOk) continue;
+                }
+
+                if (requiredOutputs.length) {
+                    var outs = (obj.outputs && typeof obj.outputs === "object") ? obj.outputs : {};
+                    var outOk = true;
+                    for (var okIdx = 0; okIdx < requiredOutputs.length; okIdx++) {
+                        var key = requiredOutputs[okIdx];
+                        var v = String(outs[key] || "");
+                        if (!v) {
+                            outOk = false;
+                            break;
+                        }
+                    }
+                    if (!outOk) continue;
+                }
+
+                var t = 0;
+                try { t = mf.modified ? mf.modified.getTime() : 0; } catch (eT) { t = 0; }
+                if (!best || t > bestTime) {
+                    obj._path = manifestPath;
+                    best = obj;
+                    bestTime = t;
+                }
+            }
+
+            return best;
+        } catch (e) {
+            return null;
+        }
+    };
+})();

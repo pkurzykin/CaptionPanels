@@ -1888,7 +1888,13 @@
 
             var latest = null;
             try {
-                if (typeof cpRunGetLatest === "function") latest = cpRunGetLatest("auto_timing");
+                if (typeof cpRunFindLatest === "function") {
+                    latest = cpRunFindLatest("auto_timing", {
+                        status: ["completed"],
+                        hasOutputs: ["blocksPath", "whisperxJson"]
+                    });
+                }
+                if (!latest && typeof cpRunGetLatest === "function") latest = cpRunGetLatest("auto_timing");
             } catch (eLatest) { latest = null; }
             if (!latest || typeof latest !== "object") {
                 return respondErr("No previous auto_timing run found. Run full Auto Timing first.");
@@ -1900,10 +1906,10 @@
             var whisperxJson = _normalizePath(String(outputs.whisperxJson || ""));
 
             if (!blocksPath || !(new File(blocksPath)).exists) {
-                return respondErr("Re-run Alignment: blocksPath is missing in latest run.");
+                return respondErr("Re-run Alignment: blocksPath is missing in latest completed run.");
             }
             if (!whisperxJson || !(new File(whisperxJson)).exists) {
-                return respondErr("Re-run Alignment: whisperxJson is missing in latest run.");
+                return respondErr("Re-run Alignment: whisperxJson is missing in latest completed run.");
             }
 
             var stamp = _timestamp();

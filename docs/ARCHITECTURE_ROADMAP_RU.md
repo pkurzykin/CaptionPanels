@@ -95,7 +95,7 @@
 - Следующий шаг: улучшить aligner и сделать “re-run alignment” без повторного ASR.
 - Возможный будущий вынос: часть логики типографики/разметки (если понадобится).
 
-Статус: **IN PROGRESS** (добавлен fast-path `Re-run Alignment` без повторного WhisperX: переиспользуем `blocks + whisperx.json` из последнего run).
+Статус: **IN PROGRESS** (добавлен fast-path `Re-run Alignment` без повторного WhisperX: переиспользуем `blocks + whisperx.json` из последнего завершенного run).
 
 ### 2.2.5. FFmpeg как portable‑утилита (без PATH)
 **Проблема**

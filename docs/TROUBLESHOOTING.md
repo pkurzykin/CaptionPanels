@@ -89,11 +89,11 @@
 ## 9) `Re-run Alignment` не запускается
 
 Симптом:
-- ошибка про отсутствие `blocksPath` или `whisperxJson` в latest run.
+- ошибка про отсутствие `blocksPath` или `whisperxJson` в latest completed run.
 
 Проверь:
 - сначала выполни полный `Auto Timing (WhisperX)` хотя бы один раз;
-- в `Diagnostics` должен появиться `latestRuns.autoTiming` со статусом `completed`.
+- в `Diagnostics` должен появиться `latestRuns.autoTimingCompleted` со статусом `completed`.
 
 ## Где смотреть логи
 

@@ -36,6 +36,9 @@
 - Diagnostics: добавлен блок `latestRuns` (последний `word_import` / `auto_timing` с `runId/status/stage/path`).
 - Auto Timing: в итоговом алерте выводится путь к `runManifest`.
 - Auto Timing: добавлена кнопка `Re-run Alignment` (align+apply без повторного ASR), использует артефакты последнего `auto_timing` run (`blocksPath`, `whisperxJson`).
+- Branding: пересчет `subtitle_BG` после `Create Branding` усилен fallback-вызовом (raw-script), чтобы избежать тихого пропуска пересчета при сбоях host-вызова.
+- Re-run Alignment: теперь выбирает последний завершенный `auto_timing` run с валидными `blocksPath`+`whisperxJson` (а не просто последний run), чтобы не падать после неуспешного прогона.
+- Diagnostics: добавлен `latestRuns.autoTimingCompleted` для быстрого контроля, какой run используется для Re-run Alignment.
 
 ## v2.3.1 — 2026-02-17
 
