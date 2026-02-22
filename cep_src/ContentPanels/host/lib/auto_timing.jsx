@@ -617,6 +617,12 @@
             addCandidate(toolRoots[i] + "/whisperx/python.exe");
         }
 
+        // Legacy direct locations (kept for backward compatibility).
+        addCandidate("C:/AE/whisperx/.venv/Scripts/python.exe");
+        addCandidate("C:/AE/whisperx/venv/Scripts/python.exe");
+        addCandidate("C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe");
+        addCandidate("C:/CaptionPanelsLocal/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe");
+
         for (var j = 0; j < candidates.length; j++) {
             var p = candidates[j];
             checked.push(p);
@@ -812,6 +818,17 @@
         return null;
     }
 
+    function _formatSchemaErrors(report) {
+        if (!report || !(report.errors instanceof Array) || !report.errors.length) return "";
+        var lines = [];
+        var limit = 8;
+        for (var i = 0; i < report.errors.length && i < limit; i++) {
+            lines.push("- " + String(report.errors[i] || ""));
+        }
+        if (report.errors.length > limit) lines.push("- ...");
+        return lines.join("\n");
+    }
+
     function _readJsonFile(filePath) {
         var txt = _readFileText(filePath);
         var obj = _parseJsonSafe(txt);
@@ -841,6 +858,15 @@
             var payload = (parsed.result && typeof parsed.result === "object") ? parsed.result : {};
             var checks = (payload.checks instanceof Array) ? payload.checks : [];
             result.checks = checks;
+            var whisperCheckOk = false;
+            for (var wi = 0; wi < checks.length; wi++) {
+                var wc = checks[wi] || {};
+                var wName = String(wc.name || "").toLowerCase();
+                if (wName === "whisperx python" && !!wc.ok) {
+                    whisperCheckOk = true;
+                    break;
+                }
+            }
 
             for (var i = 0; i < checks.length; i++) {
                 var c = checks[i] || {};
@@ -848,6 +874,14 @@
                 var name = String(c.name || "check");
                 var details = String(c.details || "");
                 var line = "- " + name + (details ? (": " + details) : "");
+                var nameLc = name.toLowerCase();
+
+                // Auto Timing does not require word2json availability.
+                if (nameLc === "word2json.exe" && level === "fail") level = "warn";
+
+                // Auto Timing can run even if tools root check fails, as long as
+                // whisperx python was resolved via direct/legacy path.
+                if (nameLc === "tools root" && level === "fail" && whisperCheckOk) level = "warn";
 
                 if (level === "fail") result.failLines.push(line);
                 else if (level === "warn") result.warnLines.push(line);
@@ -1264,6 +1298,15 @@
             if (!p) return respondErr("alignmentPath is empty");
 
             var alignmentObj = _readJsonFile(p);
+            if (typeof cpValidateAlignmentPayload === "function") {
+                var previewSchema = cpValidateAlignmentPayload(alignmentObj);
+                if (previewSchema && previewSchema.ok === false) {
+                    var previewDetails = _formatSchemaErrors(previewSchema);
+                    var previewMsg = "alignment.json schema validation failed.";
+                    if (previewDetails) previewMsg += "\n" + previewDetails;
+                    return respondErr(previewMsg);
+                }
+            }
             var res = _buildTimingChanges(comp, alignmentObj);
 
             // Keep preview small (UI can ask for full later)
@@ -1299,6 +1342,15 @@
             if (!p) return respondErr("alignmentPath is empty");
 
             var alignmentObj = _readJsonFile(p);
+            if (typeof cpValidateAlignmentPayload === "function") {
+                var applySchema = cpValidateAlignmentPayload(alignmentObj);
+                if (applySchema && applySchema.ok === false) {
+                    var applyDetails = _formatSchemaErrors(applySchema);
+                    var applyMsg = "alignment.json schema validation failed.";
+                    if (applyDetails) applyMsg += "\n" + applyDetails;
+                    return respondErr(applyMsg);
+                }
+            }
             var res = _buildTimingChanges(comp, alignmentObj);
 
             app.beginUndoGroup("CaptionPanels: Apply Auto Timing");
@@ -1415,6 +1467,16 @@
                 },
                 blocks: blocks
             };
+
+            if (typeof cpValidateBlocksPayload === "function") {
+                var blocksSchema = cpValidateBlocksPayload(payload);
+                if (blocksSchema && blocksSchema.ok === false) {
+                    var blocksDetails = _formatSchemaErrors(blocksSchema);
+                    var blocksMsg = "blocks.json schema validation failed.";
+                    if (blocksDetails) blocksMsg += "\n" + blocksDetails;
+                    return respondErr(blocksMsg);
+                }
+            }
 
             if (!_writeJsonFile(outPath, payload)) {
                 return respondErr("Cannot write blocks.json: " + outPath);

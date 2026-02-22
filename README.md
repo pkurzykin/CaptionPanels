@@ -1,7 +1,7 @@
 # CaptionPanels
 
 AEGP‑плагин для After Effects 2024+ (Windows 10/11) с UI на WebView2 и JSX‑мостом.
-Текущая версия: 2.3.3.
+Текущая версия: 2.4.0.
 
 ## Структура
 ```
@@ -58,4 +58,5 @@ legacy_cep/       архив CEP версии
 - Ключи конфига: `docs/CONFIG_REFERENCE.md`
 - Деплой на рабочие ПК: `docs/DEPLOYMENT_GUIDE.md`
 - Диагностика типовых ошибок: `docs/TROUBLESHOOTING.md`
+- Схемы JSON и runtime-валидация: `docs/SCHEMAS_REFERENCE_RU.md`
 - Дорожная карта: `docs/ARCHITECTURE_ROADMAP_RU.md`

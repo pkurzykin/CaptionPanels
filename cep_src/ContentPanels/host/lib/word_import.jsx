@@ -131,6 +131,11 @@
             addCandidate(toolRoots[i] + "/word2json/word2json.exe");
         }
 
+        // Legacy direct locations (kept for backward compatibility).
+        addCandidate("C:/AE/word2json/word2json.exe");
+        addCandidate("C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe");
+        addCandidate("C:/CaptionPanelsLocal/CaptionPanelsTools/word2json/word2json.exe");
+
         for (var j = 0; j < candidates.length; j++) {
             var p = candidates[j];
             checked.push(p);

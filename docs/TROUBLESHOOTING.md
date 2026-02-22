@@ -129,6 +129,21 @@
   - `powershell -ExecutionPolicy Bypass -File .\tools\deploy\verify_offline_bundle.ps1 -BundleRoot <PATH_TO_BUNDLE> -RequireModelCache`
 - исправь все пункты с `FAIL` и только потом переноси bundle.
 
+## 13) `... schema validation failed ...`
+
+Симптом:
+- при импорте/автотайминге появляется ошибка вида:
+  - `Import JSON schema validation failed`
+  - `blocks.json schema validation failed`
+  - `alignment.json schema validation failed`
+
+Что делать:
+- сверить файл с соответствующей схемой из `docs/schemas/`:
+  - `import.schema.json`
+  - `blocks.schema.json`
+  - `alignment.schema.json`
+- исправить обязательные поля (`segId/start/end/type/text`) и повторить запуск.
+
 ## Где смотреть логи
 
 - Word import:

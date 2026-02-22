@@ -3,6 +3,7 @@
 ## Unreleased
 ### Added
 - Speaker Titles: добавлен режим `solo_title` (чекбокс). В этом режиме используется шаблон `name_title_solo`, а текст из поля «ФИО» подставляется в слой `Job_title`.
+- Stage 3.2: добавлены формальные JSON-схемы в `docs/schemas/` (`import`, `blocks`, `alignment`) и справка `docs/SCHEMAS_REFERENCE_RU.md`.
 
 ### Changed
 - Auto Timing: после применения таймингов добавлен более надежный пересчет `subtitle_BG` (с fallback-алгоритмом, если модуль `subtitles.jsx` не подгрузился).
@@ -47,6 +48,10 @@
 - Diagnostics: `latestRuns.*` теперь показывает ключевые outputs (`blocksPath/whisperxJson/alignmentPath/applyReportPath`) и apply-статистику (`total/applied/missing/...`).
 - Deploy: `make_offline_bundle.ps1` расширен (копирование `CaptionPanelsData/models`, генерация `bundle_summary.json`), добавлен `verify_offline_bundle.ps1` для проверки офлайн-бандла перед переносом.
 - Roadmap: этап 2 архитектурного плана закрыт (2.2 и 2.3), зафиксированы результаты QA/офлайн-проверок в документации.
+- Auto Timing preflight: проверка наличия `word2json.exe` больше не блокирует Auto Timing (для этого шага это не критично).
+- Tool path resolver: добавлены legacy fallback-пути для `word2json.exe` и `whisperx` python (`C:/AE/...`) для совместимости со старыми раскладками.
+- Runtime validation: импорт JSON и auto-timing теперь явно валидируют payload по схеме до выполнения (ошибки формата не проходят «тихо»).
+- Diagnostics: в блоке `latestRuns` теперь показываются outputs/result-метрики (включая `applyReportPath`, `applied/total/missing/...`).
 
 ## v2.3.1 — 2026-02-17
 

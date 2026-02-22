@@ -86,12 +86,24 @@ function _diagBuildText(snapshot, history) {
             lines.push("  " + label + ": (empty)");
             return;
         }
+        var o = (r.outputs && typeof r.outputs === "object") ? r.outputs : {};
+        var st = (r.result && typeof r.result === "object") ? r.result : {};
         lines.push("  " + label + ":");
         lines.push("    runId: " + String(r.runId || ""));
         lines.push("    status: " + String(r.status || ""));
         lines.push("    stage: " + String(r.stage || ""));
         lines.push("    updatedAt: " + String(r.updatedAt || ""));
         lines.push("    path: " + String(r.path || ""));
+        if (o.blocksPath) lines.push("    blocksPath: " + String(o.blocksPath));
+        if (o.whisperxJson) lines.push("    whisperxJson: " + String(o.whisperxJson));
+        if (o.alignmentPath) lines.push("    alignmentPath: " + String(o.alignmentPath));
+        if (o.applyReportPath) lines.push("    applyReportPath: " + String(o.applyReportPath));
+        if (typeof st.total !== "undefined") lines.push("    total: " + String(st.total || 0));
+        if (typeof st.applied !== "undefined") lines.push("    applied: " + String(st.applied || 0));
+        if (typeof st.missingCount !== "undefined") lines.push("    missingCount: " + String(st.missingCount || 0));
+        if (typeof st.unmatchedCount !== "undefined") lines.push("    unmatchedCount: " + String(st.unmatchedCount || 0));
+        if (typeof st.invalidCount !== "undefined") lines.push("    invalidCount: " + String(st.invalidCount || 0));
+        if (typeof st.errorCount !== "undefined") lines.push("    errorCount: " + String(st.errorCount || 0));
     }
     addRun("wordImport", runs.wordImport);
     addRun("autoTiming", runs.autoTiming);

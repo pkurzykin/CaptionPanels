@@ -198,13 +198,86 @@
         return _normalizePath(d);
     }
 
+    function _buildToolsRootCandidates() {
+        var out = [];
+        var seen = {};
+
+        function add(p) {
+            var n = _normalizePath(p);
+            if (!n) return;
+            if (seen[n]) return;
+            seen[n] = true;
+            out.push(n);
+        }
+
+        var root = _toolsRoot();
+        add(root);
+
+        if (root) {
+            if (/\/CaptionPanelsTools$/i.test(root)) {
+                add(root.replace(/\/CaptionPanelsTools$/i, "/CaptionPanelTools"));
+            } else if (/\/CaptionPanelTools$/i.test(root)) {
+                add(root.replace(/\/CaptionPanelTools$/i, "/CaptionPanelsTools"));
+            } else {
+                add(root + "/CaptionPanelTools");
+                add(root + "/CaptionPanelsTools");
+            }
+        }
+
+        try {
+            var parent = _dirName(_dataRoot());
+            if (parent) {
+                add(parent + "/CaptionPanelTools");
+                add(parent + "/CaptionPanelsTools");
+            }
+        } catch (e0) {}
+
+        add("C:/CaptionPanelsLocal/CaptionPanelTools");
+        add("C:/CaptionPanelsLocal/CaptionPanelsTools");
+        add("C:/AE/CaptionPanelTools");
+        add("C:/AE/CaptionPanelsTools");
+        return out;
+    }
+
+    function _resolveToolPath(configPath, subPaths) {
+        var candidates = [];
+        var seen = {};
+
+        function add(p) {
+            var n = _normalizePath(p);
+            if (!n) return;
+            if (seen[n]) return;
+            seen[n] = true;
+            candidates.push(n);
+        }
+
+        add(_resolvePathRelativeToConfig(String(configPath || "")));
+        var roots = _buildToolsRootCandidates();
+        for (var i = 0; i < roots.length; i++) {
+            for (var j = 0; j < subPaths.length; j++) add(roots[i] + "/" + String(subPaths[j] || ""));
+        }
+        for (var k = 0; k < candidates.length; k++) {
+            var p = candidates[k];
+            if (_fileExists(p)) return p;
+        }
+        return _normalizePath(String(candidates.length ? candidates[0] : ""));
+    }
+
     function _buildDeploymentChecks() {
         var dataRoot = _dataRoot();
         var toolsRoot = _toolsRoot();
 
-        var wordExe = _normalizePath(_resolvePathRelativeToConfig(String(_val("word2jsonExePath", "") || "")));
-        var wxPy = _normalizePath(_resolvePathRelativeToConfig(String(_val("whisperxPythonPath", "") || "")));
-        var ffmpeg = _normalizePath(_resolvePathRelativeToConfig(String(_val("ffmpegExePath", "") || "")));
+        var wordExe = _resolveToolPath(String(_val("word2jsonExePath", "") || ""), [
+            "word2json/word2json.exe"
+        ]);
+        var wxPy = _resolveToolPath(String(_val("whisperxPythonPath", "") || ""), [
+            "whisperx/.venv/Scripts/python.exe",
+            "whisperx/venv/Scripts/python.exe",
+            "whisperx/python.exe"
+        ]);
+        var ffmpeg = _resolveToolPath(String(_val("ffmpegExePath", "") || ""), [
+            "ffmpeg/ffmpeg.exe"
+        ]);
 
         var wxOfflineOnly = false;
         try { wxOfflineOnly = !!_val("whisperxOfflineOnly", false); } catch (eOff) { wxOfflineOnly = false; }
@@ -234,9 +307,9 @@
         var hasFwModel = hasFwCacheDir && _folderContainsName(fwCacheRoot, String(wxModel || "").toLowerCase());
         var hasHubCache = _folderExists(hfHubRoot) && _folderHasFiles(hfHubRoot);
 
-        addCheck("word2json.exe", hasWordExe, hasWordExe ? "ok" : "fail", hasWordExe ? "" : "word2json executable not found");
-        addCheck("whisperx python", hasWxPy, hasWxPy ? "ok" : "fail", hasWxPy ? "" : "whisperx python.exe not found");
-        addCheck("ffmpeg.exe", hasFfmpeg, hasFfmpeg ? "ok" : "warn", hasFfmpeg ? "" : "ffmpeg not found (audio load may fail)");
+        addCheck("word2json.exe", hasWordExe, hasWordExe ? "ok" : "fail", hasWordExe ? "" : ("word2json executable not found: " + wordExe));
+        addCheck("whisperx python", hasWxPy, hasWxPy ? "ok" : "fail", hasWxPy ? "" : ("whisperx python.exe not found: " + wxPy));
+        addCheck("ffmpeg.exe", hasFfmpeg, hasFfmpeg ? "ok" : "warn", hasFfmpeg ? "" : ("ffmpeg not found (audio load may fail): " + ffmpeg));
         addCheck("data root", hasDataRoot, hasDataRoot ? "ok" : "fail", hasDataRoot ? "" : "data root folder does not exist");
         addCheck("tools root", hasToolsRoot, hasToolsRoot ? "ok" : "fail", hasToolsRoot ? "" : "tools root folder does not exist");
 

@@ -11,6 +11,7 @@ window.onload = function() {
         "logger.jsx",
         "run_registry.jsx",
         "diagnostics.jsx",
+        "schema_validation.jsx",
         "utils.jsx",
         "cleanup.jsx",
         "subtitles.jsx",

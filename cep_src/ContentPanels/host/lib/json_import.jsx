@@ -59,6 +59,17 @@
         "},\"error\":\"\"}";
     }
 
+    function _formatSchemaErrors(report) {
+        if (!report || !(report.errors instanceof Array) || report.errors.length === 0) return "";
+        var lines = [];
+        var limit = 8;
+        for (var i = 0; i < report.errors.length && i < limit; i++) {
+            lines.push("- " + String(report.errors[i] || ""));
+        }
+        if (report.errors.length > limit) lines.push("- ...");
+        return lines.join("\n");
+    }
+
     function _readJsonFile(path) {
         var f = new File(path);
         if (!f.exists) throw new Error("File not found: " + path);
@@ -233,6 +244,16 @@
             var root = _normalizeRoot(data);
             if (root.kind === "legacy") {
                 return _jsonErr("Legacy JSON schema is not supported");
+            }
+
+            if (typeof cpValidateImportPayload === "function") {
+                var schemaReport = cpValidateImportPayload(data);
+                if (schemaReport && schemaReport.ok === false) {
+                    var details = _formatSchemaErrors(schemaReport);
+                    var errMsg = "Import JSON schema validation failed.";
+                    if (details) errMsg += "\n" + details;
+                    return _jsonErr(errMsg);
+                }
             }
 
             var startTime = comp.time;
