@@ -87,6 +87,8 @@
   - применение таймингов
   - построение/обновление BG
 
+Статус: **IN PROGRESS** (добавлен run-registry и `run.json` манифесты для `word_import`/`auto_timing`, вывод последних run в Diagnostics).
+
 ### 2.2. Вынос вычислений
 **Что делаем**
 - WhisperX/align — уже внешние.

@@ -31,6 +31,7 @@
 Чтобы на рабочих ПК всё было предсказуемо и не требовало прав администратора / правки `PATH`:
 - Данные/артефакты: `C:\CaptionPanelsLocal\CaptionPanelsData\...`
 - Внешние утилиты: `C:\CaptionPanelsLocal\CaptionPanelTools\...`
+- Run manifests (pipeline): `C:\CaptionPanelsLocal\CaptionPanelsData\runs\<kind>\<runId>\run.json`
 
 ## Ключи (reference, секционный формат)
 

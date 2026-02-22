@@ -60,6 +60,24 @@ function _diagBuildText(snapshot, history) {
     addKV("  alignOutLog", logs.alignOutLog || "");
     lines.push("");
 
+    var runs = s.latestRuns || {};
+    lines.push("latestRuns:");
+    function addRun(label, r) {
+        if (!r || typeof r !== "object") {
+            lines.push("  " + label + ": (empty)");
+            return;
+        }
+        lines.push("  " + label + ":");
+        lines.push("    runId: " + String(r.runId || ""));
+        lines.push("    status: " + String(r.status || ""));
+        lines.push("    stage: " + String(r.stage || ""));
+        lines.push("    updatedAt: " + String(r.updatedAt || ""));
+        lines.push("    path: " + String(r.path || ""));
+    }
+    addRun("wordImport", runs.wordImport);
+    addRun("autoTiming", runs.autoTiming);
+    lines.push("");
+
     lines.push("host calls (latest):");
     if (!h.length) {
         lines.push("  (empty)");

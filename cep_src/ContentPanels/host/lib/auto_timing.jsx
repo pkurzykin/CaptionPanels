@@ -1374,6 +1374,9 @@
     // - run alignment
     // - apply timings
     autoTimingRunWhisperXAndApply = function () {
+        var _failWithRun = function (stage, text) {
+            return respondErr(String(text || "Auto Timing failed"));
+        };
         try {
             if (!app || !app.project) return respondErr("No active project");
             var comp = app.project.activeItem;
@@ -1395,12 +1398,12 @@
             try { expObj = _parseJsonSafe(String(expRaw || "")); } catch (eParse) { expObj = null; }
             if (!expObj || !expObj.ok) {
                 var em = expObj && expObj.error ? String(expObj.error) : String(expRaw || "Export blocks failed");
-                return respondErr("Export blocks failed. " + em);
+                return _failWithRun("export_blocks", "Export blocks failed. " + em, { reason: "export_blocks_failed" });
             }
 
             var blocksPath = "";
             try { blocksPath = expObj.result && expObj.result.path ? String(expObj.result.path) : ""; } catch (eP) {}
-            if (!blocksPath) return respondErr("Export blocks: empty path");
+            if (!blocksPath) return _failWithRun("export_blocks", "Export blocks: empty path", { reason: "empty_blocks_path" });
 
             // 2) Detect video
             var videoPath = _detectVideoFileFromComp(comp);
@@ -1412,6 +1415,46 @@
 
             // Shared run folder name (safe)
             var runBase = _sanitizeFileBase(comp.name || "comp") + "_" + stamp;
+            var runRef = null;
+            var runManifestPath = "";
+
+            try {
+                if (typeof cpRunCreate === "function") {
+                    runRef = cpRunCreate("auto_timing", {
+                        runId: runBase,
+                        inputs: {
+                            compName: String(comp.name || ""),
+                            videoPath: _normalizePath(videoPath),
+                            fps: Number(comp.frameRate) || 0
+                        },
+                        meta: {
+                            configPath: String(getConfigPath ? getConfigPath() : "")
+                        }
+                    });
+                    if (runRef && runRef.manifestPath) runManifestPath = String(runRef.manifestPath || "");
+                    if (runRef && typeof cpRunUpdate === "function") {
+                        cpRunUpdate(runRef, {
+                            stage: "whisperx",
+                            outputs: { blocksPath: _normalizePath(blocksPath) }
+                        });
+                    }
+                }
+            } catch (eRunCreate) {}
+
+            _failWithRun = function (stage, text, extra) {
+                var msg = String(text || "Auto Timing failed");
+                if (runManifestPath) msg += "\nrunManifest=" + runManifestPath;
+                try {
+                    if (runRef && typeof cpRunFinalize === "function") {
+                        cpRunFinalize(runRef, "failed", {
+                            stage: String(stage || "failed"),
+                            error: String(text || ""),
+                            result: (extra && typeof extra === "object") ? extra : {}
+                        });
+                    }
+                } catch (eRunFail) {}
+                return respondErr(msg);
+            };
 
             // 3) Run WhisperX
             var pyResolved = _resolveWhisperPythonPath();
@@ -1419,7 +1462,7 @@
             if (!py) {
                 var triedPy = "";
                 try { triedPy = pyResolved.checked && pyResolved.checked.length ? ("\nChecked:\n- " + pyResolved.checked.join("\n- ")) : ""; } catch (eTpy) { triedPy = ""; }
-                return respondErr("Python not found. Check whisperxPythonPath/captionPanelsToolsRoot." + triedPy);
+                return _failWithRun("whisperx", "Python not found. Check whisperxPythonPath/captionPanelsToolsRoot." + triedPy, { reason: "python_not_found" });
             }
 
             var pyExe = "\"" + _toCmdWinPath(_normalizePath(py)) + "\"";
@@ -1539,7 +1582,7 @@
             } catch (eFf) {}
 
             var whisperBaseDir = _getAutoTimingWhisperXDir();
-            if (!whisperBaseDir) return respondErr("autoTimingWhisperXDir is empty");
+            if (!whisperBaseDir) return _failWithRun("whisperx", "autoTimingWhisperXDir is empty", { reason: "empty_whisperx_dir" });
             var whisperRunDir = _normalizePath(whisperBaseDir + "/" + runBase);
             _ensureFolder(whisperRunDir);
 
@@ -1549,7 +1592,7 @@
             if (!runnerRaw) runnerRaw = "host/tools/whisperx_runner/run_whisperx.py";
             var runnerPath = _resolvePathRelativeToRoot(runnerRaw);
             runnerPath = _normalizePath(runnerPath);
-            if (!(new File(runnerPath)).exists) return respondErr("WhisperX runner not found: " + runnerPath);
+            if (!(new File(runnerPath)).exists) return _failWithRun("whisperx", "WhisperX runner not found: " + runnerPath, { reason: "runner_not_found" });
 
             // Deterministic model cache root (offline-friendly)
             var cacheDir = "";
@@ -1565,7 +1608,7 @@
             if (_hasNonAscii(videoPathNorm)) {
                 var inputFile = _normalizePath(whisperRunDir + "/video_input_path.txt");
                 if (!_writeTextFile(inputFile, videoPathNorm + "\n")) {
-                    return respondErr("Cannot write WhisperX input path file: " + inputFile);
+                    return _failWithRun("whisperx", "Cannot write WhisperX input path file: " + inputFile, { reason: "input_file_write_failed" });
                 }
                 inputArg = ' --input_file "' + _toCmdWinPath(inputFile) + '"';
             } else {
@@ -1652,7 +1695,12 @@
                 var tail = _readTailSafe(w.logPath, 2400);
                 if (tail) msg += "\n\n---- whisperx output (tail) ----\n" + tail;
 
-                return respondErr(msg);
+                return _failWithRun("whisperx", msg, {
+                    reason: "whisperx_failed",
+                    whisperxLog: String(w.logPath || ""),
+                    whisperxMetaLog: String(w.metaPath || ""),
+                    exitCode: Number(w.exitCode) || 0
+                });
             }
 
             // Read runner meta (if present) to report which args were applied/ignored.
@@ -1680,13 +1728,25 @@
             if (!whisperJson) {
                 var msg2 = "WhisperX runner did not produce JSON in: " + whisperRunDir;
                 if (w.logPath) msg2 += "\nlog=" + w.logPath;
-                return respondErr(msg2);
+                return _failWithRun("whisperx", msg2, { reason: "missing_whisperx_json" });
             }
+            try {
+                if (runRef && typeof cpRunUpdate === "function") {
+                    cpRunUpdate(runRef, {
+                        stage: "align",
+                        outputs: {
+                            whisperxDir: _normalizePath(whisperRunDir),
+                            whisperxJson: _normalizePath(whisperJson),
+                            whisperxLog: _normalizePath(String(w.logPath || ""))
+                        }
+                    });
+                }
+            } catch (eRunWhisper) {}
 
             // 4) Run alignment
 
             var alignBaseDir = _getAutoTimingAlignmentDir();
-            if (!alignBaseDir) return respondErr("autoTimingAlignmentDir is empty");
+            if (!alignBaseDir) return _failWithRun("align", "autoTimingAlignmentDir is empty", { reason: "empty_alignment_dir" });
             var alignRunDir = _normalizePath(alignBaseDir + "/" + runBase);
             _ensureFolder(alignRunDir);
 
@@ -1695,7 +1755,7 @@
             if (!scriptRaw) scriptRaw = "host/tools/transcribe_align/transcribe_align.py";
             var scriptPath = _resolvePathRelativeToRoot(scriptRaw);
             scriptPath = _normalizePath(scriptPath);
-            if (!(new File(scriptPath)).exists) return respondErr("transcribe_align.py not found: " + scriptPath);
+            if (!(new File(scriptPath)).exists) return _failWithRun("align", "transcribe_align.py not found: " + scriptPath, { reason: "align_script_not_found" });
 
             var minGapFrames = 1;
             try {
@@ -1714,15 +1774,31 @@
             if (a.exitCode !== 0) {
                 var msg3 = "Alignment failed (exit=" + a.exitCode + ")";
                 if (a.logPath) msg3 += "\nlog=" + a.logPath;
-                return respondErr(msg3);
+                return _failWithRun("align", msg3, {
+                    reason: "align_failed",
+                    alignLog: String(a.logPath || ""),
+                    exitCode: Number(a.exitCode) || 0
+                });
             }
 
             var alignmentPath = _normalizePath(alignRunDir + "/alignment.json");
             if (!(new File(alignmentPath)).exists) {
                 var msg4 = "alignment.json not found: " + alignmentPath;
                 if (a.logPath) msg4 += "\nlog=" + a.logPath;
-                return respondErr(msg4);
+                return _failWithRun("align", msg4, { reason: "missing_alignment_json" });
             }
+            try {
+                if (runRef && typeof cpRunUpdate === "function") {
+                    cpRunUpdate(runRef, {
+                        stage: "apply",
+                        outputs: {
+                            alignmentDir: _normalizePath(alignRunDir),
+                            alignmentPath: _normalizePath(alignmentPath),
+                            alignLog: _normalizePath(String(a.logPath || ""))
+                        }
+                    });
+                }
+            } catch (eRunAlign) {}
 
             // 5) Apply timings
             var applyRaw = autoTimingApply(alignmentPath);
@@ -1730,11 +1806,30 @@
             try { applyObj = _parseJsonSafe(String(applyRaw || "")); } catch (eA) { applyObj = null; }
             if (!applyObj || !applyObj.ok) {
                 var am = applyObj && applyObj.error ? String(applyObj.error) : String(applyRaw || "Apply failed");
-                return respondErr("Apply timings failed. " + am);
+                return _failWithRun("apply", "Apply timings failed. " + am, { reason: "apply_failed" });
             }
+
+            try {
+                if (runRef && typeof cpRunFinalize === "function") {
+                    cpRunFinalize(runRef, "completed", {
+                        stage: "done",
+                        outputs: {
+                            blocksPath: _normalizePath(blocksPath),
+                            whisperxJson: _normalizePath(whisperJson),
+                            alignmentPath: _normalizePath(alignmentPath)
+                        },
+                        result: {
+                            total: Number((applyObj.result && applyObj.result.total) || 0),
+                            applied: Number((applyObj.result && applyObj.result.applied) || 0),
+                            missingCount: Number((applyObj.result && applyObj.result.missingCount) || 0)
+                        }
+                    });
+                }
+            } catch (eRunDone) {}
 
             return respondOk({
                 runId: runBase,
+                runManifestPath: runManifestPath,
                 blocksPath: blocksPath,
                 videoPath: videoPath,
                 whisperxDeviceMode: deviceMode,
@@ -1756,7 +1851,12 @@
                 apply: applyObj.result
             });
         } catch (e) {
-            return respondErr(e.message);
+            var msgFatal = "";
+            try { msgFatal = (e && (e.message || e.description)) ? (e.message || e.description) : String(e); } catch (e2) { msgFatal = "Unknown error"; }
+            if (!msgFatal) msgFatal = "Unknown error";
+            return (typeof _failWithRun === "function")
+                ? _failWithRun("fatal", msgFatal, { reason: "exception" })
+                : respondErr(msgFatal);
         }
     };
 

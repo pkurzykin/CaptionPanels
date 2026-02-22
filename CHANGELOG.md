@@ -32,6 +32,9 @@
 - UI Bridge: все основные UI-модули (`import`, `settings`, `topics`, `speakers`, `speakers_db`, `typography`, `auto_timing`, `branding`, `host_loader`, `subtitles`) переведены на `callHost(...)`; добавлены таймауты вызовов для более предсказуемых ошибок в UI.
 - Diagnostics: добавлено окно `Diagnostics` (минимальный экран наблюдаемости) с snapshot текущих путей/существования утилит/последних логов и историей последних host-вызовов (`requestId`, `module`, `fn`, `durationMs`).
 - Config: добавлена секционная структура (`speakers/logging/subtitle/paths/asr/transcribe`) в `config.json`; runtime теперь автоматически синхронизирует новые секции со старыми flat-ключами для обратной совместимости.
+- Job/Run pipeline (phase 2.1, in progress): добавлен `host/lib/run_registry.jsx` и run-манифесты `run.json` для `word_import` и `auto_timing` в `C:/CaptionPanelsLocal/CaptionPanelsData/runs/...`.
+- Diagnostics: добавлен блок `latestRuns` (последний `word_import` / `auto_timing` с `runId/status/stage/path`).
+- Auto Timing: в итоговом алерте выводится путь к `runManifest`.
 
 ## v2.3.1 — 2026-02-17
 

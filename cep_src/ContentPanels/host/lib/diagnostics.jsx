@@ -62,6 +62,25 @@
         } catch (e) { return false; }
     }
 
+    function _runSummary(kind) {
+        try {
+            if (typeof cpRunGetLatest !== "function") return null;
+            var r = cpRunGetLatest(kind);
+            if (!r || typeof r !== "object") return null;
+            return {
+                kind: String(r.kind || kind || ""),
+                runId: String(r.runId || ""),
+                status: String(r.status || ""),
+                stage: String(r.stage || ""),
+                createdAt: String(r.createdAt || ""),
+                updatedAt: String(r.updatedAt || ""),
+                path: _normalizePath(String(r._path || (r.paths && r.paths.manifestPath) || ""))
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
     function _newestFileByMask(dirPath, mask) {
         try {
             var d = new Folder(_normalizePath(dirPath));
@@ -171,6 +190,11 @@
                     ffmpegExePath: _fileExists(ffmpeg)
                 },
                 latestLogs: latest
+                ,
+                latestRuns: {
+                    wordImport: _runSummary("word_import"),
+                    autoTiming: _runSummary("auto_timing")
+                }
             });
         } catch (e) {
             return respondErr(e && e.message ? e.message : String(e));

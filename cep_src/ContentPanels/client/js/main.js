@@ -9,6 +9,7 @@ window.onload = function() {
         "response.jsx",
         "config.jsx",
         "logger.jsx",
+        "run_registry.jsx",
         "diagnostics.jsx",
         "utils.jsx",
         "cleanup.jsx",

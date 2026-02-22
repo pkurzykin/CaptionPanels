@@ -94,3 +94,6 @@
 - Auto timing:
   - `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/whisperx_runner_*.log`
   - `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/align_*.out.txt`
+- Run manifests:
+  - `C:/CaptionPanelsLocal/CaptionPanelsData/runs/word_import/<runId>/run.json`
+  - `C:/CaptionPanelsLocal/CaptionPanelsData/runs/auto_timing/<runId>/run.json`

@@ -39,6 +39,7 @@ function _formatWhisperAutoTimingSummary(res) {
     var msg = "WhisperX Auto Timing done.";
     if (r.videoPath) msg += "\nVideo: " + r.videoPath;
     if (r.blocksPath) msg += "\nBlocks: " + r.blocksPath;
+    if (r.runManifestPath) msg += "\nRun manifest: " + r.runManifestPath;
     if (r.whisperxJson) msg += "\nWhisperX JSON: " + r.whisperxJson;
     if (r.alignmentPath) msg += "\nAlignment: " + r.alignmentPath;
     if (r.whisperxDeviceMode) msg += "\nWhisperX device mode: " + r.whisperxDeviceMode;
