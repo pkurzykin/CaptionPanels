@@ -1860,6 +1860,208 @@
         }
     };
 
+    // Fast path:
+    // - reuse latest successful/usable blocks + whisperx.json
+    // - rerun only align + apply
+    autoTimingRerunAlignmentAndApply = function () {
+        var _fail = function (stage, text, runRef, runManifestPath, extra) {
+            var msg = String(text || "Re-run Alignment failed");
+            if (runManifestPath) msg += "\nrunManifest=" + runManifestPath;
+            try {
+                if (runRef && typeof cpRunFinalize === "function") {
+                    cpRunFinalize(runRef, "failed", {
+                        stage: String(stage || "failed"),
+                        error: String(text || ""),
+                        result: (extra && typeof extra === "object") ? extra : {}
+                    });
+                }
+            } catch (eRunFail) {}
+            return respondErr(msg);
+        };
+
+        try {
+            if (!app || !app.project) return respondErr("No active project");
+            var comp = app.project.activeItem;
+            if (!comp || !(comp instanceof CompItem)) return respondErr("No active comp");
+
+            try { if (typeof reloadConfig === "function") reloadConfig(); } catch (eCfg) {}
+
+            var latest = null;
+            try {
+                if (typeof cpRunGetLatest === "function") latest = cpRunGetLatest("auto_timing");
+            } catch (eLatest) { latest = null; }
+            if (!latest || typeof latest !== "object") {
+                return respondErr("No previous auto_timing run found. Run full Auto Timing first.");
+            }
+
+            var sourceRunId = String(latest.runId || "");
+            var outputs = (latest.outputs && typeof latest.outputs === "object") ? latest.outputs : {};
+            var blocksPath = _normalizePath(String(outputs.blocksPath || ""));
+            var whisperxJson = _normalizePath(String(outputs.whisperxJson || ""));
+
+            if (!blocksPath || !(new File(blocksPath)).exists) {
+                return respondErr("Re-run Alignment: blocksPath is missing in latest run.");
+            }
+            if (!whisperxJson || !(new File(whisperxJson)).exists) {
+                return respondErr("Re-run Alignment: whisperxJson is missing in latest run.");
+            }
+
+            var stamp = _timestamp();
+            var runBase = _sanitizeFileBase(comp.name || "comp") + "_" + stamp + "_align";
+
+            var runRef = null;
+            var runManifestPath = "";
+            try {
+                if (typeof cpRunCreate === "function") {
+                    runRef = cpRunCreate("auto_timing", {
+                        runId: runBase,
+                        inputs: {
+                            sourceRunId: sourceRunId,
+                            compName: String(comp.name || ""),
+                            blocksPath: blocksPath,
+                            whisperxJson: whisperxJson,
+                            fps: Number(comp.frameRate) || 0
+                        },
+                        meta: {
+                            mode: "rerun_alignment",
+                            configPath: String(getConfigPath ? getConfigPath() : "")
+                        }
+                    });
+                    if (runRef && runRef.manifestPath) runManifestPath = String(runRef.manifestPath || "");
+                }
+            } catch (eRunCreate) {}
+
+            var logsDir = _getAutoTimingLogsDir();
+            if (!logsDir) return _fail("align", "autoTimingLogsDir is empty", runRef, runManifestPath, { reason: "empty_logs_dir" });
+            _ensureFolder(logsDir);
+
+            var pyResolved = _resolveWhisperPythonPath();
+            var py = String(pyResolved.path || "");
+            if (!py) {
+                var triedPy = "";
+                try { triedPy = pyResolved.checked && pyResolved.checked.length ? ("\nChecked:\n- " + pyResolved.checked.join("\n- ")) : ""; } catch (eTpy) { triedPy = ""; }
+                return _fail("align", "Python not found. Check whisperxPythonPath/captionPanelsToolsRoot." + triedPy, runRef, runManifestPath, { reason: "python_not_found" });
+            }
+            var pyExe = "\"" + _toCmdWinPath(_normalizePath(py)) + "\"";
+
+            var alignBaseDir = _getAutoTimingAlignmentDir();
+            if (!alignBaseDir) return _fail("align", "autoTimingAlignmentDir is empty", runRef, runManifestPath, { reason: "empty_alignment_dir" });
+            var alignRunDir = _normalizePath(alignBaseDir + "/" + runBase);
+            _ensureFolder(alignRunDir);
+
+            var scriptRaw = "";
+            try { scriptRaw = String(getConfigValue("transcribeAlignScriptPath", "") || ""); } catch (eS) { scriptRaw = ""; }
+            if (!scriptRaw) scriptRaw = "host/tools/transcribe_align/transcribe_align.py";
+            var scriptPath = _resolvePathRelativeToRoot(scriptRaw);
+            scriptPath = _normalizePath(scriptPath);
+            if (!(new File(scriptPath)).exists) {
+                return _fail("align", "transcribe_align.py not found: " + scriptPath, runRef, runManifestPath, { reason: "align_script_not_found" });
+            }
+
+            var minGapFrames = 1;
+            try {
+                var mg = Number(getConfigValue("autoTimingMinGapFrames", 1));
+                if (!isNaN(mg) && mg >= 0) minGapFrames = mg;
+            } catch (eMg) { minGapFrames = 1; }
+
+            try {
+                if (runRef && typeof cpRunUpdate === "function") {
+                    cpRunUpdate(runRef, {
+                        stage: "align",
+                        outputs: {
+                            blocksPath: blocksPath,
+                            whisperxJson: whisperxJson
+                        }
+                    });
+                }
+            } catch (eRunUpdate0) {}
+
+            var lang = "";
+            try { lang = String(getConfigValue("whisperxLanguage", "ru") || "ru"); } catch (eL) { lang = "ru"; }
+
+            var alignBody = pyExe + ' "' + _toCmdWinPath(scriptPath) + '"' +
+                ' --blocks "' + _toCmdWinPath(_normalizePath(blocksPath)) + '"' +
+                ' --whisperx-json "' + _toCmdWinPath(_normalizePath(whisperxJson)) + '"' +
+                ' --out-dir "' + _toCmdWinPath(_normalizePath(alignRunDir)) + '"' +
+                ' --lang ' + lang +
+                ' --min-gap-frames ' + String(minGapFrames);
+
+            var a = _runCmdBody(alignBody, "align_rerun", logsDir, stamp);
+            if (a.exitCode !== 0) {
+                var msg3 = "Alignment failed (exit=" + a.exitCode + ")";
+                if (a.logPath) msg3 += "\nlog=" + a.logPath;
+                return _fail("align", msg3, runRef, runManifestPath, {
+                    reason: "align_failed",
+                    alignLog: String(a.logPath || ""),
+                    exitCode: Number(a.exitCode) || 0
+                });
+            }
+
+            var alignmentPath = _normalizePath(alignRunDir + "/alignment.json");
+            if (!(new File(alignmentPath)).exists) {
+                var msg4 = "alignment.json not found: " + alignmentPath;
+                if (a.logPath) msg4 += "\nlog=" + a.logPath;
+                return _fail("align", msg4, runRef, runManifestPath, { reason: "missing_alignment_json" });
+            }
+
+            try {
+                if (runRef && typeof cpRunUpdate === "function") {
+                    cpRunUpdate(runRef, {
+                        stage: "apply",
+                        outputs: {
+                            alignmentDir: _normalizePath(alignRunDir),
+                            alignmentPath: _normalizePath(alignmentPath),
+                            alignLog: _normalizePath(String(a.logPath || ""))
+                        }
+                    });
+                }
+            } catch (eRunUpdate1) {}
+
+            var applyRaw = autoTimingApply(alignmentPath);
+            var applyObj = null;
+            try { applyObj = _parseJsonSafe(String(applyRaw || "")); } catch (eA) { applyObj = null; }
+            if (!applyObj || !applyObj.ok) {
+                var am = applyObj && applyObj.error ? String(applyObj.error) : String(applyRaw || "Apply failed");
+                return _fail("apply", "Apply timings failed. " + am, runRef, runManifestPath, { reason: "apply_failed" });
+            }
+
+            try {
+                if (runRef && typeof cpRunFinalize === "function") {
+                    cpRunFinalize(runRef, "completed", {
+                        stage: "done",
+                        outputs: {
+                            blocksPath: _normalizePath(blocksPath),
+                            whisperxJson: _normalizePath(whisperxJson),
+                            alignmentPath: _normalizePath(alignmentPath)
+                        },
+                        result: {
+                            sourceRunId: sourceRunId,
+                            total: Number((applyObj.result && applyObj.result.total) || 0),
+                            applied: Number((applyObj.result && applyObj.result.applied) || 0),
+                            missingCount: Number((applyObj.result && applyObj.result.missingCount) || 0)
+                        }
+                    });
+                }
+            } catch (eRunDone) {}
+
+            return respondOk({
+                runId: runBase,
+                sourceRunId: sourceRunId,
+                runManifestPath: runManifestPath,
+                blocksPath: blocksPath,
+                whisperxJson: whisperxJson,
+                alignmentPath: alignmentPath,
+                alignLog: a.logPath,
+                apply: applyObj.result
+            });
+        } catch (e) {
+            var msg = "";
+            try { msg = (e && (e.message || e.description)) ? (e.message || e.description) : String(e); } catch (e2) { msg = "Unknown error"; }
+            if (!msg) msg = "Unknown error";
+            return respondErr(msg);
+        }
+    };
+
     // Ensure globals are visible when scripts are loaded via eval() inside loadModule().
     try {
         if ($ && $.global) {
@@ -1870,6 +2072,7 @@
             $.global.autoTimingApply = autoTimingApply;
             $.global.autoTimingApplyFromDialog = autoTimingApplyFromDialog;
             $.global.autoTimingRunWhisperXAndApply = autoTimingRunWhisperXAndApply;
+            $.global.autoTimingRerunAlignmentAndApply = autoTimingRerunAlignmentAndApply;
         }
     } catch (eG) {}
 })();

@@ -35,6 +35,7 @@
 - Job/Run pipeline (phase 2.1, in progress): добавлен `host/lib/run_registry.jsx` и run-манифесты `run.json` для `word_import` и `auto_timing` в `C:/CaptionPanelsLocal/CaptionPanelsData/runs/...`.
 - Diagnostics: добавлен блок `latestRuns` (последний `word_import` / `auto_timing` с `runId/status/stage/path`).
 - Auto Timing: в итоговом алерте выводится путь к `runManifest`.
+- Auto Timing: добавлена кнопка `Re-run Alignment` (align+apply без повторного ASR), использует артефакты последнего `auto_timing` run (`blocksPath`, `whisperxJson`).
 
 ## v2.3.1 — 2026-02-17
 
