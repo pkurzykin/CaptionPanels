@@ -4,9 +4,9 @@
 # Этот скрипт НЕ является "инсталлятором" — он просто копирует файлы.
 #
 # Что копируем:
-# - C:\AE\CaptionPanelsTools\word2json\...
-# - C:\AE\CaptionPanelsTools\whisperx\...
-# - (опционально) C:\AE\CaptionPanelsTools\ffmpeg\ffmpeg.exe
+# - C:\CaptionPanelsLocal\CaptionPanelTools\word2json\...
+# - C:\CaptionPanelsLocal\CaptionPanelTools\whisperx\...
+# - (опционально) C:\CaptionPanelsLocal\CaptionPanelTools\ffmpeg\ffmpeg.exe
 # - (опционально) кэши моделей из профиля пользователя
 #
 # Пример:
@@ -16,8 +16,8 @@ param(
   [Parameter(Mandatory=$true)]
   [string]$OutDir,
 
-  [string]$ToolsRoot = "C:\\AE\\CaptionPanelsTools",
-  [string]$DataRoot  = "C:\\AE\\CaptionPanelsData",
+  [string]$ToolsRoot = "C:\\CaptionPanelsLocal\\CaptionPanelTools",
+  [string]$DataRoot  = "C:\\CaptionPanelsLocal\\CaptionPanelsData",
 
   [switch]$IncludeHFCache,
   [string]$HFCacheDir = "$env:USERPROFILE\\.cache\\huggingface\\hub",
@@ -33,8 +33,9 @@ Write-Host "OutDir: $OutDir"
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
-$dstTools = Join-Path $OutDir "CaptionPanelsTools"
-$dstData  = Join-Path $OutDir "CaptionPanelsData"
+$dstRoot  = Join-Path $OutDir "CaptionPanelsLocal"
+$dstTools = Join-Path $dstRoot "CaptionPanelTools"
+$dstData  = Join-Path $dstRoot "CaptionPanelsData"
 
 Write-Host "Copy tools from $ToolsRoot -> $dstTools"
 Copy-Item -Recurse -Force $ToolsRoot $dstTools

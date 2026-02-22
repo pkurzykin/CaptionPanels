@@ -38,12 +38,12 @@ legacy_cep/       архив CEP версии
 - `enableLogs` — включить диагностические логи (true/false)
 - `logsRoot` — кастомная папка для логов (если пусто — AppData)
 - `subtitleCharsPerLine` — лимит символов в строке (субтитры), по умолчанию 60
-- `captionPanelsDataRoot` — единый корень данных плагина (рекомендуется: `C:\AE\CaptionPanelsData`)
-- `captionPanelsToolsRoot` — единый корень внешних утилит (рекомендуется: `C:\AE\CaptionPanelsTools`)
-- `word2jsonExePath` — путь к `word2json.exe` (Word .docx -> .json), рекомендуется: `C:\AE\CaptionPanelsTools\word2json\word2json.exe`
-- `word2jsonOutDir` — куда сохранять JSON после конвертации, рекомендуется: `C:\AE\CaptionPanelsData\word2json` (если пусто — `%TEMP%\CaptionPanels\word2json`)
-- `word2jsonLogsDir` — куда сохранять логи импорта Word, рекомендуется: `C:\AE\CaptionPanelsData\auto_timing\logs` (если пусто — берется `autoTimingLogsDir`, далее fallback в `captionPanelsDataRoot\auto_timing\logs`)
-- `autoTimingOutDir` — корневая папка данных Auto Timing (если пусто — `%APPDATA%\CaptionPanels\auto_timing`)
+- `captionPanelsDataRoot` — единый корень данных плагина (рекомендуется: `C:\CaptionPanelsLocal\CaptionPanelsData`)
+- `captionPanelsToolsRoot` — единый корень внешних утилит (рекомендуется: `C:\CaptionPanelsLocal\CaptionPanelTools`)
+- `word2jsonExePath` — путь к `word2json.exe` (Word .docx -> .json), рекомендуется: `C:\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.exe`
+- `word2jsonOutDir` — куда сохранять JSON после конвертации, рекомендуется: `C:\CaptionPanelsLocal\CaptionPanelsData\word2json` (если пусто — `captionPanelsDataRoot\word2json`)
+- `word2jsonLogsDir` — куда сохранять логи импорта Word, рекомендуется: `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs` (если пусто — берется `autoTimingLogsDir`, далее fallback в `captionPanelsDataRoot\auto_timing\logs`)
+- `autoTimingOutDir` — корневая папка данных Auto Timing (если пусто — `captionPanelsDataRoot\auto_timing`)
 - `autoTimingMinGapFrames` — минимальный зазор между соседними блоками разных групп при Auto Timing (в кадрах)
 - `whisperxApplyTimeShift` — глобальный time shift (рекомендуется `false`, включать только для диагностики)
 - `whisperxDeviceMode` — режим выбора устройства для WhisperX: `auto` (рекомендуется, CUDA с fallback на CPU), `cuda`, `cpu`

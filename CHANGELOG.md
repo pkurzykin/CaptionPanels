@@ -14,10 +14,15 @@
 - Word Import: прогресс запускается после выбора файла (а не до открытия диалога), чтобы не путать пользователя.
 - Word Import: исправлен capture exit code в hidden-режиме (`cmd /V:ON` + `!errorlevel!`), чтобы корректно ловить падения конвертера.
 - Word Import: перед запуском конвертера DOCX staging в локальную временную папку (ASCII path) для стабильной работы с UNC/кириллицей.
-- Word Import: логи (`word2json_last.log`, `word2json_process_last.log`) вынесены в отдельную папку `word2jsonLogsDir` (по умолчанию — общий каталог логов в `C:\AE\CaptionPanelsData\auto_timing\logs`).
+- Word Import: логи (`word2json_last.log`, `word2json_process_last.log`) вынесены в отдельную папку `word2jsonLogsDir` (по умолчанию — общий каталог логов в `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs`).
 - Auto Timing: запуск внешних команд стабилизирован через временный `.cmd`-скрипт (вместо сложного inline `cmd /C`), чтобы исключить повторяющиеся ошибки экранирования кавычек в путях с пробелами/UNC.
 - Settings/Auto Timing: добавлен `whisperxDeviceMode` (`auto/cuda/cpu`) с безопасным режимом `auto` (CUDA -> CPU fallback) для адаптации на разных рабочих станциях.
 - Speaker Titles: после `Create Title` UI снова сбрасывает контролы в дефолт (`Left`/`Default`/`BG offset 0`, `solo_title` off), в том числе при переходе к следующему спикеру из импортной очереди.
+- Runtime paths: стандартизирован единый корень `C:\CaptionPanelsLocal\...` (инструменты в `C:\CaptionPanelsLocal\CaptionPanelTools\`, данные в `C:\CaptionPanelsLocal\CaptionPanelsData\...`), обновлены примеры `config.json`, deploy-документация и fallback-дефолты в host-коде.
+- Word Import: усилен резолвер пути к `word2json.exe` — учитывает `word2jsonExePath` и `captionPanelsToolsRoot`, и показывает список проверенных путей в тексте ошибки.
+- Auto Timing: усилен резолвер пути к Python (`whisperxPythonPath`) с fallback на `captionPanelsToolsRoot` и диагностикой `Checked:` по проверенным путям.
+- Config: порядок поиска `config.json` скорректирован в пользу user-level `%APPDATA%` (Roaming) перед machine-level `ProgramData`, чтобы исключить неожиданный захват старого глобального конфига.
+- Config/Runtime: добавлена совместимость со старыми путями (`C:/AE/...`, `CaptionPanelsTools`, `C:/Temp/CaptionPanels/word2json`) — значения автоматически нормализуются к `C:/CaptionPanelsLocal/CaptionPanelsData` и `C:/CaptionPanelsLocal/CaptionPanelTools`.
 
 ## v2.3.1 — 2026-02-17
 

@@ -64,14 +64,14 @@ Config file priority is unchanged:
 2) `<plugin_root>\config.json`
 
 New keys:
-- `captionPanelsDataRoot` — unified data root (recommended: `C:\AE\CaptionPanelsData`).
-- `captionPanelsToolsRoot` — unified tools root (recommended: `C:\AE\CaptionPanelsTools`).
+- `captionPanelsDataRoot` — unified data root (recommended: `C:\CaptionPanelsLocal\CaptionPanelsData`).
+- `captionPanelsToolsRoot` — unified tools root (recommended: `C:\CaptionPanelsLocal\CaptionPanelTools`).
 - `word2jsonExePath` — path to `word2json.exe`.
   - Recommended: **local path** (not UNC) to avoid Windows policy blocks.
-  - Recommended location: `C:\AE\CaptionPanelsTools\word2json\word2json.exe`.
+  - Recommended location: `C:\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.exe`.
 - `word2jsonOutDir` — where to write the generated JSON.
-  - Recommended: `C:\AE\CaptionPanelsData\word2json`.
-  - If empty: defaults to `captionPanelsDataRoot\word2json` (if `captionPanelsDataRoot` is set), otherwise `%TEMP%\CaptionPanels\word2json`.
+  - Recommended: `C:\CaptionPanelsLocal\CaptionPanelsData\word2json`.
+  - If empty: defaults to `captionPanelsDataRoot\word2json`.
 
 
 Sample config is updated:

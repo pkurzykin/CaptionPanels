@@ -37,8 +37,89 @@
         return (/^[A-Za-z]:\//).test(s) || s.indexOf("//") === 0 || s.indexOf("/") === 0;
     }
 
+    function _trimPathValue(v) {
+        var s = String(v || "");
+        s = s.replace(/^\s+|\s+$/g, "");
+        if (!s) return "";
+        if ((s.charAt(0) === '"' && s.charAt(s.length - 1) === '"') ||
+            (s.charAt(0) === "'" && s.charAt(s.length - 1) === "'")) {
+            s = s.substring(1, s.length - 1);
+        }
+        return _normalizePath(s);
+    }
+
+    function _rewriteLegacyPath(pathValue, kind) {
+        var p = _trimPathValue(pathValue);
+        if (!p) return "";
+
+        function rep(re, to) {
+            p = p.replace(re, to);
+        }
+
+        // Legacy root migration.
+        rep(/^C:\/AE\/CaptionPanelsData(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelsData");
+        rep(/^C:\/AE\/CaptionPanelsTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
+        rep(/^C:\/AE\/CaptionPanelTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
+        rep(/^C:\/CaptionPanelsLocal\/CaptionPanelsTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
+
+        // Legacy direct tool folders.
+        rep(/^C:\/AE\/word2json(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools/word2json");
+        rep(/^C:\/AE\/whisperx(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools/whisperx");
+        rep(/^C:\/AE\/ffmpeg(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg");
+
+        if (kind === "wordOutDir") {
+            rep(/^C:\/Temp\/CaptionPanels\/word2json(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelsData/word2json");
+        }
+
+        return p;
+    }
+
+    function _canonicalizeConfigPaths(cfg) {
+        if (!cfg) return {};
+
+        function map(key, kind) {
+            try {
+                if (!cfg.hasOwnProperty(key)) return;
+                if (typeof cfg[key] !== "string") return;
+                cfg[key] = _rewriteLegacyPath(cfg[key], kind || "");
+            } catch (e) {}
+        }
+
+        map("captionPanelsDataRoot", "dataRoot");
+        map("captionPanelsToolsRoot", "toolsRoot");
+
+        map("word2jsonExePath", "toolExe");
+        map("word2jsonOutDir", "wordOutDir");
+        map("word2jsonLogsDir", "dataDir");
+
+        map("autoTimingOutDir", "dataDir");
+        map("autoTimingBlocksDir", "dataDir");
+        map("autoTimingWhisperXDir", "dataDir");
+        map("autoTimingAlignmentDir", "dataDir");
+        map("autoTimingLogsDir", "dataDir");
+
+        map("whisperxPythonPath", "toolExe");
+        map("ffmpegExePath", "toolExe");
+
+        return cfg;
+    }
+
     function _configCandidates() {
         var list = [];
+        try {
+            // Most stable explicit user-level location on Windows.
+            var appDataEnv = $.getenv("APPDATA");
+            if (appDataEnv) list.push(_normalizePath(appDataEnv) + "/CaptionPanels/config.json");
+        } catch (e0) {}
+
+        // IMPORTANT: prefer per-user config first.
+        // On some systems Folder.appData points to ProgramData (machine-wide),
+        // while Folder.userData points to user Roaming profile.
+        try {
+            var ud = Folder.userData;
+            if (ud) list.push(_normalizePath(ud.fsName) + "/CaptionPanels/config.json");
+        } catch (e) {}
+
         try {
             if (Folder.appData) {
                 var ad = Folder.appData;
@@ -46,30 +127,72 @@
             }
         } catch (e) {}
 
-        try {
-            var ud = Folder.userData;
-            if (ud) list.push(_normalizePath(ud.fsName) + "/CaptionPanels/config.json");
-        } catch (e) {}
-
         var base = _normalizePath(_resolveRootPath());
-        if (!base) return list;
+        if (base) {
+            list.push(base + "/config.json");
 
-        list.push(base + "/config.json");
+            // If base points to /client or /host, try parent.
+            var trimmed = base.replace(/\/(client|host)$/, "");
+            if (trimmed !== base) list.unshift(trimmed + "/config.json");
 
-        // If base points to /client or /host, try parent.
-        var trimmed = base.replace(/\/(client|host)$/, "");
-        if (trimmed !== base) list.unshift(trimmed + "/config.json");
+            // If config is one level above, try parent too.
+            var parent = _dirName(base);
+            if (parent) list.push(parent + "/config.json");
+        }
 
-        // If config is one level above, try parent too.
-        var parent = _dirName(base);
-        if (parent) list.push(parent + "/config.json");
+        // De-duplicate candidates while preserving order.
+        var out = [];
+        var seen = {};
+        for (var i = 0; i < list.length; i++) {
+            var p = _normalizePath(list[i]);
+            if (!p) continue;
+            if (seen[p]) continue;
+            seen[p] = true;
+            out.push(p);
+        }
 
-        return list;
+        return out;
+    }
+
+    function _tryPromoteToUserConfig(list) {
+        // If we only have machine-level config (e.g. ProgramData), copy it to
+        // user-level APPDATA config and use that as primary.
+        if (!list || !list.length) return "";
+        var preferred = list[0];
+        if (!preferred) return "";
+        if ((new File(preferred)).exists) return preferred;
+
+        for (var i = 1; i < list.length; i++) {
+            var srcPath = list[i];
+            if (!srcPath) continue;
+            var src = new File(srcPath);
+            if (!src.exists) continue;
+
+            try {
+                var dst = new File(preferred);
+                _ensureFolderForFile(dst);
+                if (dst.exists) {
+                    try { dst.remove(); } catch (eRm) {}
+                }
+                if (src.copy(preferred)) return preferred;
+            } catch (eCopy) {}
+            break;
+        }
+
+        return "";
     }
 
     function _configPath() {
         if (_configPathCache) return _configPathCache;
         var list = _configCandidates();
+
+        // Best effort: promote existing machine config into user profile.
+        var promoted = _tryPromoteToUserConfig(list);
+        if (promoted && (new File(promoted)).exists) {
+            _configPathCache = promoted;
+            return _configPathCache;
+        }
+
         for (var i = 0; i < list.length; i++) {
             var f = new File(list[i]);
             if (f.exists) {
@@ -147,7 +270,7 @@
         var merged = {};
         merge(merged, shipped);
         merge(merged, primary);
-        return merged;
+        return _canonicalizeConfigPaths(merged);
     }
 
     getConfig = function () {

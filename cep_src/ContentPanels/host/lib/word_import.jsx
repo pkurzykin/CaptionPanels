@@ -10,7 +10,14 @@
 
 (function () {
     function _normalizePath(p) {
-        var s = String(p || "").replace(/\\/g, "/");
+        var s = String(p || "");
+        s = s.replace(/^\s+|\s+$/g, "");
+        // Config values are sometimes saved with quotes; strip one wrapping pair.
+        if ((s.charAt(0) === '"' && s.charAt(s.length - 1) === '"') ||
+            (s.charAt(0) === "'" && s.charAt(s.length - 1) === "'")) {
+            s = s.substring(1, s.length - 1);
+        }
+        s = s.replace(/\\/g, "/");
         // Fix macOS-style "/C:/..." paths sometimes coming from fsName
         var winMatch = s.match(/^\/([A-Za-z]:\/.*)/);
         if (winMatch) s = winMatch[1];
@@ -38,6 +45,100 @@
             if (base) return base + "/" + v;
         } catch (e) {}
         return v;
+    }
+
+    function _getCaptionPanelsDataRoot() {
+        var raw = "";
+        try { raw = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (e) {}
+        var root = _resolvePathRelativeToConfig(raw);
+        if (!root) root = "C:/CaptionPanelsLocal/CaptionPanelsData";
+        return _normalizePath(root);
+    }
+
+    function _getCaptionPanelsToolsRoot() {
+        var raw = "";
+        try { raw = String(getConfigValue("captionPanelsToolsRoot", "") || ""); } catch (e) {}
+        var root = _resolvePathRelativeToConfig(raw);
+        if (!root) root = "C:/CaptionPanelsLocal/CaptionPanelTools";
+        return _normalizePath(root);
+    }
+
+    function _buildToolsRootCandidates() {
+        var out = [];
+        var seen = {};
+
+        function add(p) {
+            var n = _normalizePath(p);
+            if (!n) return;
+            if (seen[n]) return;
+            seen[n] = true;
+            out.push(n);
+        }
+
+        var root = _getCaptionPanelsToolsRoot();
+        add(root);
+
+        // Accept both folder spellings (CaptionPanelTools / CaptionPanelsTools).
+        if (root) {
+            if (/\/CaptionPanelsTools$/i.test(root)) {
+                add(root.replace(/\/CaptionPanelsTools$/i, "/CaptionPanelTools"));
+            } else if (/\/CaptionPanelTools$/i.test(root)) {
+                add(root.replace(/\/CaptionPanelTools$/i, "/CaptionPanelsTools"));
+            } else {
+                add(root + "/CaptionPanelTools");
+                add(root + "/CaptionPanelsTools");
+            }
+        }
+
+        // If only data root is configured, derive tools root from parent folder.
+        try {
+            var dataRoot = _getCaptionPanelsDataRoot();
+            var parent = _dirName(dataRoot);
+            if (parent) {
+                add(parent + "/CaptionPanelTools");
+                add(parent + "/CaptionPanelsTools");
+            }
+        } catch (e1) {}
+
+        // Hard defaults + legacy compatibility.
+        add("C:/CaptionPanelsLocal/CaptionPanelTools");
+        add("C:/CaptionPanelsLocal/CaptionPanelsTools");
+        add("C:/AE/CaptionPanelTools");
+        add("C:/AE/CaptionPanelsTools");
+
+        return out;
+    }
+
+    function _resolveWord2JsonExePath() {
+        var candidates = [];
+        var checked = [];
+        var seen = {};
+
+        function addCandidate(p) {
+            var n = _normalizePath(p);
+            if (!n) return;
+            if (seen[n]) return;
+            seen[n] = true;
+            candidates.push(n);
+        }
+
+        var exeRaw = "";
+        try { exeRaw = String(getConfigValue("word2jsonExePath", "") || ""); } catch (e0) { exeRaw = ""; }
+        addCandidate(_resolvePathRelativeToConfig(exeRaw));
+
+        var toolRoots = _buildToolsRootCandidates();
+        for (var i = 0; i < toolRoots.length; i++) {
+            addCandidate(toolRoots[i] + "/word2json/word2json.exe");
+        }
+
+        for (var j = 0; j < candidates.length; j++) {
+            var p = candidates[j];
+            checked.push(p);
+            var f = new File(p);
+            if (f.exists) return { path: p, checked: checked };
+        }
+
+        return { path: "", checked: checked };
     }
 
     function _two(n) {
@@ -287,10 +388,12 @@
 
             try { if (typeof reloadConfig === "function") reloadConfig(); } catch (e) {}
 
-            var exeRaw = getConfigValue("word2jsonExePath", "");
-            var exePath = _resolvePathRelativeToConfig(exeRaw);
+            var exeResolved = _resolveWord2JsonExePath();
+            var exePath = String(exeResolved.path || "");
             if (!exePath) {
-                return respondErr("word2jsonExePath is not set in config.json");
+                var tried = "";
+                try { tried = exeResolved.checked && exeResolved.checked.length ? ("\nChecked:\n- " + exeResolved.checked.join("\n- ")) : ""; } catch (eT) { tried = ""; }
+                return respondErr("word2json.exe not found. Check word2jsonExePath/captionPanelsToolsRoot." + tried);
             }
 
             var exeFile = new File(exePath);
@@ -302,20 +405,14 @@
             var outDirRaw = getConfigValue("word2jsonOutDir", "");
             var outDir = _resolvePathRelativeToConfig(outDirRaw);
             if (!outDir) {
-                // Prefer our unified data root if configured.
                 try {
-                    var dataRoot = String(getConfigValue("captionPanelsDataRoot", "") || "");
-                    dataRoot = _normalizePath(dataRoot);
+                    var dataRoot = _getCaptionPanelsDataRoot();
                     if (dataRoot) outDir = dataRoot + "/word2json";
                 } catch (eRoot) {}
             }
 
             if (!outDir) {
-                try {
-                    outDir = Folder.temp.fsName + "/CaptionPanels/word2json";
-                } catch (e) {
-                    outDir = "C:/Temp/CaptionPanels/word2json";
-                }
+                outDir = "C:/CaptionPanelsLocal/CaptionPanelsData/word2json";
             }
             outDir = _normalizePath(outDir);
             _ensureFolder(outDir);

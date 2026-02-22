@@ -6,7 +6,14 @@
 
 (function () {
     function _normalizePath(p) {
-        var s = String(p || "").replace(/\\/g, "/");
+        var s = String(p || "");
+        s = s.replace(/^\s+|\s+$/g, "");
+        // Config values can be saved with wrapping quotes.
+        if ((s.charAt(0) === '"' && s.charAt(s.length - 1) === '"') ||
+            (s.charAt(0) === "'" && s.charAt(s.length - 1) === "'")) {
+            s = s.substring(1, s.length - 1);
+        }
+        s = s.replace(/\\/g, "/");
         // Fix macOS-style "/C:/..." paths sometimes coming from fsName
         var winMatch = s.match(/^\/([A-Za-z]:\/.*)/);
         if (winMatch) s = winMatch[1];
@@ -503,8 +510,94 @@
         try { raw = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (e) {}
         var root = _resolvePathRelativeToConfig(raw);
         // Sane Windows default (also matches our documentation).
-        if (!root) root = "C:/AE/CaptionPanelsData";
+        if (!root) root = "C:/CaptionPanelsLocal/CaptionPanelsData";
         return _normalizePath(root);
+    }
+
+    function _getCaptionPanelsToolsRoot() {
+        var raw = "";
+        try { raw = String(getConfigValue("captionPanelsToolsRoot", "") || ""); } catch (e) {}
+        var root = _resolvePathRelativeToConfig(raw);
+        if (!root) root = "C:/CaptionPanelsLocal/CaptionPanelTools";
+        return _normalizePath(root);
+    }
+
+    function _buildToolsRootCandidates() {
+        var out = [];
+        var seen = {};
+
+        function add(p) {
+            var n = _normalizePath(p);
+            if (!n) return;
+            if (seen[n]) return;
+            seen[n] = true;
+            out.push(n);
+        }
+
+        var root = _getCaptionPanelsToolsRoot();
+        add(root);
+
+        if (root) {
+            if (/\/CaptionPanelsTools$/i.test(root)) {
+                add(root.replace(/\/CaptionPanelsTools$/i, "/CaptionPanelTools"));
+            } else if (/\/CaptionPanelTools$/i.test(root)) {
+                add(root.replace(/\/CaptionPanelTools$/i, "/CaptionPanelsTools"));
+            } else {
+                add(root + "/CaptionPanelTools");
+                add(root + "/CaptionPanelsTools");
+            }
+        }
+
+        // If only data root is configured, derive tools root from parent folder.
+        try {
+            var dataRoot = _getCaptionPanelsDataRoot();
+            var parent = _dirName(dataRoot);
+            if (parent) {
+                add(parent + "/CaptionPanelTools");
+                add(parent + "/CaptionPanelsTools");
+            }
+        } catch (e1) {}
+
+        // Hard defaults + legacy compatibility.
+        add("C:/CaptionPanelsLocal/CaptionPanelTools");
+        add("C:/CaptionPanelsLocal/CaptionPanelsTools");
+        add("C:/AE/CaptionPanelTools");
+        add("C:/AE/CaptionPanelsTools");
+
+        return out;
+    }
+
+    function _resolveWhisperPythonPath() {
+        var candidates = [];
+        var checked = [];
+        var seen = {};
+
+        function addCandidate(p) {
+            var n = _normalizePath(p);
+            if (!n) return;
+            if (seen[n]) return;
+            seen[n] = true;
+            candidates.push(n);
+        }
+
+        var pyRaw = "";
+        try { pyRaw = String(getConfigValue("whisperxPythonPath", "") || ""); } catch (e0) { pyRaw = ""; }
+        addCandidate(_resolvePathRelativeToConfig(pyRaw));
+
+        var toolRoots = _buildToolsRootCandidates();
+        for (var i = 0; i < toolRoots.length; i++) {
+            addCandidate(toolRoots[i] + "/whisperx/.venv/Scripts/python.exe");
+            addCandidate(toolRoots[i] + "/whisperx/venv/Scripts/python.exe");
+            addCandidate(toolRoots[i] + "/whisperx/python.exe");
+        }
+
+        for (var j = 0; j < candidates.length; j++) {
+            var p = candidates[j];
+            checked.push(p);
+            if ((new File(p)).exists) return { path: p, checked: checked };
+        }
+
+        return { path: "", checked: checked };
     }
 
     function _getAutoTimingOutDir() {
@@ -1321,11 +1414,13 @@
             var runBase = _sanitizeFileBase(comp.name || "comp") + "_" + stamp;
 
             // 3) Run WhisperX
-            var pyRaw = "";
-            try { pyRaw = String(getConfigValue("whisperxPythonPath", "") || ""); } catch (ePy) {}
-            var py = _resolvePathRelativeToConfig(pyRaw);
-            if (!py) return respondErr("whisperxPythonPath is not set in config.json");
-            if (!(new File(py)).exists) return respondErr("Python not found: " + py);
+            var pyResolved = _resolveWhisperPythonPath();
+            var py = String(pyResolved.path || "");
+            if (!py) {
+                var triedPy = "";
+                try { triedPy = pyResolved.checked && pyResolved.checked.length ? ("\nChecked:\n- " + pyResolved.checked.join("\n- ")) : ""; } catch (eTpy) { triedPy = ""; }
+                return respondErr("Python not found. Check whisperxPythonPath/captionPanelsToolsRoot." + triedPy);
+            }
 
             var pyExe = "\"" + _toCmdWinPath(_normalizePath(py)) + "\"";
 
@@ -1418,13 +1513,27 @@
             try {
                 var ffRaw = String(getConfigValue("ffmpegExePath", "") || "");
                 var ff = _resolvePathRelativeToConfig(ffRaw);
+                var toolsRootFf = _getCaptionPanelsToolsRoot();
+                var ffCandidates = [];
+                if (ff) ffCandidates.push(_normalizePath(ff));
+                if (toolsRootFf) {
+                    ffCandidates.push(_normalizePath(toolsRootFf + "/ffmpeg/ffmpeg.exe"));
+                    ffCandidates.push(_normalizePath(toolsRootFf + "/ffmpeg/bin/ffmpeg.exe"));
+                }
+                ff = "";
+                for (var ffIdx = 0; ffIdx < ffCandidates.length; ffIdx++) {
+                    var cand = ffCandidates[ffIdx];
+                    if (!cand) continue;
+                    var candFile = new File(cand);
+                    if (candFile.exists) {
+                        ff = cand;
+                        break;
+                    }
+                }
                 if (ff) {
-                    var ffFile = new File(ff);
-                    if (ffFile.exists) {
-                        var ffDir = _dirName(ff);
-                        if (ffDir) {
-                            envPrefix = "set \"PATH=" + _escapeCmdValue(_normalizePath(ffDir)) + ";%PATH%\" & ";
-                        }
+                    var ffDir = _dirName(ff);
+                    if (ffDir) {
+                        envPrefix = "set \"PATH=" + _escapeCmdValue(_normalizePath(ffDir)) + ";%PATH%\" & ";
                     }
                 }
             } catch (eFf) {}
@@ -1444,7 +1553,7 @@
 
             // Deterministic model cache root (offline-friendly)
             var cacheDir = "";
-            try { cacheDir = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (eCd) { cacheDir = ""; }
+            try { cacheDir = _getCaptionPanelsDataRoot(); } catch (eCd) { cacheDir = ""; }
             if (cacheDir) cacheDir = _normalizePath(cacheDir + "/models");
             if (cacheDir) _ensureFolder(cacheDir);
 

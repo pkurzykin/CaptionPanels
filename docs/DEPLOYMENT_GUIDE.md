@@ -24,22 +24,22 @@
 
 Чтобы на всех машинах было одинаково и предсказуемо, используем 2 корня:
 
-- Инструменты (exe/venv): `C:\AE\CaptionPanelsTools\...`
-- Данные (выходные файлы, логи): `C:\AE\CaptionPanelsData\...`
+- Инструменты (exe/venv): `C:\CaptionPanelsLocal\CaptionPanelTools\...`
+- Данные (выходные файлы, логи): `C:\CaptionPanelsLocal\CaptionPanelsData\...`
 
 ### 1.1 Пример структуры
 
 Инструменты:
-- `C:\AE\CaptionPanelsTools\word2json\word2json.exe`
-- `C:\AE\CaptionPanelsTools\whisperx\` (папка с `.venv` и пакетами)
-- `C:\AE\CaptionPanelsTools\ffmpeg\ffmpeg.exe` (если используем portable)
+- `C:\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.exe`
+- `C:\CaptionPanelsLocal\CaptionPanelTools\whisperx\` (папка с `.venv` и пакетами)
+- `C:\CaptionPanelsLocal\CaptionPanelTools\ffmpeg\ffmpeg.exe` (если используем portable)
 
 Данные:
-- `C:\AE\CaptionPanelsData\word2json\` (куда падает json из Word)
-- `C:\AE\CaptionPanelsData\auto_timing\blocks\`
-- `C:\AE\CaptionPanelsData\auto_timing\whisperx\`
-- `C:\AE\CaptionPanelsData\auto_timing\alignment\`
-- `C:\AE\CaptionPanelsData\auto_timing\logs\`
+- `C:\CaptionPanelsLocal\CaptionPanelsData\word2json\` (куда падает json из Word)
+- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\blocks\`
+- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\whisperx\`
+- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\alignment\`
+- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs\`
 
 Папки данных создаются автоматически (если есть права на запись).
 
@@ -87,12 +87,12 @@
 ## 5) Что нужно настроить на каждом ПК (минимум)
 
 ### 5.1 Word -> JSON
-- `word2jsonExePath`: `C:/AE/CaptionPanelsTools/word2json/word2json.exe`
-- `word2jsonOutDir`: `C:/AE/CaptionPanelsData/word2json`
-- `word2jsonLogsDir`: `C:/AE/CaptionPanelsData/auto_timing/logs`
+- `word2jsonExePath`: `C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
+- `word2jsonOutDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
+- `word2jsonLogsDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
 
 ### 5.2 Auto Timing (WhisperX + align)
-- `whisperxPythonPath`: `C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe`
+- `whisperxPythonPath`: `C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
 - `whisperxModel`: например `medium`
 - `whisperxLanguage`: `ru`
 - `whisperxDeviceMode`: `auto` (рекомендуется)
@@ -136,8 +136,8 @@
 
 Если `ffmpeg.exe` не установлен и нельзя править системный `PATH`:
 - используем portable:
-  - кладем `ffmpeg.exe` в `C:\AE\CaptionPanelsTools\ffmpeg\ffmpeg.exe`
-  - в `config.json` задаем: `ffmpegExePath: C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe`
+  - кладем `ffmpeg.exe` в `C:\CaptionPanelsLocal\CaptionPanelTools\ffmpeg\ffmpeg.exe`
+  - в `config.json` задаем: `ffmpegExePath: C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
   - плагин добавит папку ffmpeg в `PATH` **только на время запуска WhisperX** (системный `PATH` не меняется)
 
 Где взять:

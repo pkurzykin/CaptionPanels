@@ -15,8 +15,8 @@
 
 ## Этап 0 (уже сделано частично)
 **Стабильные внешние утилиты + единый data-root**
-- `C:\\AE\\CaptionPanelsData\\...` для артефактов, логов и кэшей.
-- Внешние инструменты как portable‑папки (word2json, whisperx env) в `C:\\AE\\...`.
+- `C:\CaptionPanelsLocal\CaptionPanelsData\...` для артефактов, логов и кэшей.
+- Внешние инструменты как portable‑папки (word2json, whisperx env) в `C:\CaptionPanelsLocal\CaptionPanelTools\...`.
 - Техническое правило: не собирать сложные inline-команды `cmd /C` с вложенными кавычками; запуск внешних утилит делать через временный `.cmd` (устраняет повторяющиеся ошибки `C:\\Program`, `не является внутренней или внешней командой`).
 
 Результат: минимальная зависимость от Program Files/UNC и понятная структура для ИБ.
@@ -94,9 +94,9 @@
 
 **Что делаем**
 - Держим ffmpeg как часть нашего "tools"‑набора:
-  - `C:\AE\CaptionPanelsTools\ffmpeg\ffmpeg.exe`
+  - `C:\CaptionPanelsLocal\CaptionPanelTools\ffmpeg\ffmpeg.exe`
 - Вводим конфиг‑ключ (и используем его везде, где нужен ffmpeg):
-  - `ffmpegExePath`: `C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe`
+  - `ffmpegExePath`: `C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
 - Любые вызовы ffmpeg делаем по **явному пути**, без зависимости от `PATH`.
 
 **Результат**

@@ -21,8 +21,8 @@
 
 ## Рекомендуемые базовые каталоги (стандарт деплоя)
 Чтобы на рабочих ПК всё было предсказуемо и не требовало прав администратора / правки `PATH`:
-- Данные/артефакты: `C:\AE\CaptionPanelsData\...`
-- Внешние утилиты: `C:\AE\CaptionPanelsTools\...`
+- Данные/артефакты: `C:\CaptionPanelsLocal\CaptionPanelsData\...`
+- Внешние утилиты: `C:\CaptionPanelsLocal\CaptionPanelTools\...`
 
 ## Ключи (reference)
 
@@ -62,24 +62,24 @@
 ### word import (Word -> JSON)
 - `captionPanelsToolsRoot` (string)
   - Рекомендуемый корень внешних утилит.
-  - Пример: `C:/AE/CaptionPanelsTools`
+  - Пример: `C:/CaptionPanelsLocal/CaptionPanelTools`
 
 - `captionPanelsDataRoot` (string)
   - Рекомендуемый корень данных/артефактов.
-  - Пример: `C:/AE/CaptionPanelsData`
+  - Пример: `C:/CaptionPanelsLocal/CaptionPanelsData`
 
 - `word2jsonExePath` (string)
   - Путь к `word2json.exe` (конвертер `.docx` -> `.json`).
-  - Рекомендация (локально, не UNC): `C:/AE/CaptionPanelsTools/word2json/word2json.exe`
+  - Рекомендация (локально, не UNC): `C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
 
 - `word2jsonOutDir` (string)
   - Папка, куда пишется сгенерированный `.json`.
-  - Рекомендация: `C:/AE/CaptionPanelsData/word2json`
-  - Если пусто: сначала пробуется `captionPanelsDataRoot/word2json`, иначе `%TEMP%\CaptionPanels\word2json`.
+  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
+  - Если пусто: используется `captionPanelsDataRoot/word2json`.
 
 - `word2jsonLogsDir` (string)
   - Папка для логов Word-import (`word2json_last.log`, `word2json_process_last.log`).
-  - Рекомендация: `C:/AE/CaptionPanelsData/auto_timing/logs` (единое место с логами Auto Timing).
+  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs` (единое место с логами Auto Timing).
   - Если пусто: сначала `autoTimingLogsDir`, затем `captionPanelsDataRoot/auto_timing/logs`, затем `word2jsonOutDir`.
 
 ### auto timing (blocks / whisperx / alignment)
@@ -88,25 +88,25 @@
 
 - `autoTimingBlocksDir` (string)
   - Куда сохраняется `blocks_*.json` при Export Blocks.
-  - Рекомендация: `C:/AE/CaptionPanelsData/auto_timing/blocks`
+  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks`
 
 - `autoTimingWhisperXDir` (string)
   - Базовая папка для артефактов WhisperX по runId.
-  - Рекомендация: `C:/AE/CaptionPanelsData/auto_timing/whisperx`
+  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/whisperx`
 
 - `autoTimingAlignmentDir` (string)
   - Базовая папка для результатов выравнивания (`alignment.json`) по runId.
-  - Рекомендация: `C:/AE/CaptionPanelsData/auto_timing/alignment`
+  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment`
 
 - `autoTimingLogsDir` (string)
   - Куда пишутся логи запуска внешних команд.
-  - Рекомендация: `C:/AE/CaptionPanelsData/auto_timing/logs`
+  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
 
 ### whisperx (ASR)
 - `whisperxPythonPath` (string)
   - Путь к Python из venv WhisperX.
-  - Пример: `C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe`
-  - Это позволяет **не устанавливать системный Python** на рабочих ПК (достаточно скопировать папку `C:\AE\CaptionPanelsTools\whisperx\`).
+  - Пример: `C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
+  - Это позволяет **не устанавливать системный Python** на рабочих ПК (достаточно скопировать папку `C:\CaptionPanelsLocal\CaptionPanelTools\whisperx\`).
 - `whisperxRunnerScriptPath` (string)
   - Путь к Python-скрипту `run_whisperx.py`, который запускает ASR/выравнивание через Python API.
   - По умолчанию: `host/tools/whisperx_runner/run_whisperx.py` (внутри папки плагина).
@@ -175,8 +175,8 @@
 
 ```json
 {
-  "captionPanelsDataRoot": "C:/AE/CaptionPanelsData",
-  "captionPanelsToolsRoot": "C:/AE/CaptionPanelsTools",
+  "captionPanelsDataRoot": "C:/CaptionPanelsLocal/CaptionPanelsData",
+  "captionPanelsToolsRoot": "C:/CaptionPanelsLocal/CaptionPanelTools",
 
   "speakersDbPath": "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json",
   "topicOptions": ["Новости", "Специальный репортаж", "Спорт"],
@@ -185,16 +185,16 @@
   "subtitleShortWordMaxLen": 3,
   "subtitleBgGapSec": 1.0,
 
-  "word2jsonExePath": "C:/AE/CaptionPanelsTools/word2json/word2json.exe",
-  "word2jsonOutDir": "C:/AE/CaptionPanelsData/word2json",
-  "word2jsonLogsDir": "C:/AE/CaptionPanelsData/auto_timing/logs",
+  "word2jsonExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe",
+  "word2jsonOutDir": "C:/CaptionPanelsLocal/CaptionPanelsData/word2json",
+  "word2jsonLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
 
-  "autoTimingBlocksDir": "C:/AE/CaptionPanelsData/auto_timing/blocks",
-  "autoTimingWhisperXDir": "C:/AE/CaptionPanelsData/auto_timing/whisperx",
-  "autoTimingAlignmentDir": "C:/AE/CaptionPanelsData/auto_timing/alignment",
-  "autoTimingLogsDir": "C:/AE/CaptionPanelsData/auto_timing/logs",
+  "autoTimingBlocksDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks",
+  "autoTimingWhisperXDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/whisperx",
+  "autoTimingAlignmentDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment",
+  "autoTimingLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
 
-  "whisperxPythonPath": "C:/AE/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe",
+  "whisperxPythonPath": "C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe",
   "whisperxRunnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
   "whisperxModel": "medium",
   "whisperxLanguage": "ru",
@@ -212,7 +212,7 @@
   "whisperxConditionOnPreviousText": false,
   "whisperxExtraArgs": "",
 
-  "ffmpegExePath": "C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe",
+  "ffmpegExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe",
 
   "transcribeAlignScriptPath": "host/tools/transcribe_align/transcribe_align.py"
 }
@@ -230,7 +230,7 @@
 ## ffmpeg (portable, без PATH)
 - `ffmpegExePath` (string)
   - Путь к `ffmpeg.exe`.
-  - Пример: `C:/AE/CaptionPanelsTools/ffmpeg/ffmpeg.exe`
+  - Пример: `C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
   - Если ключ задан и файл существует, плагин **на время запуска WhisperX** добавляет папку ffmpeg в `PATH` процесса (через `cmd.exe /c set PATH=...;%PATH%`).
   - Системный `PATH` не изменяется.
 

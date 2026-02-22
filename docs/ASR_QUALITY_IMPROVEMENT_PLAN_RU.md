@@ -17,7 +17,7 @@
 
 ## Базовая идея
 1) Делаем шаг распознавания WhisperX управляемым параметрами (модель + декодирование).
-2) Добавляем правильный кэш моделей/артефактов в `C:\AE\CaptionPanelsData\...`.
+2) Добавляем правильный кэш моделей/артефактов в `C:\CaptionPanelsLocal\CaptionPanelsData\...`.
 3) Тестируем на реальных роликах: сравниваем процент «успешно выставленных блоков».
 
 ## Параметры, которые нужно поддержать (настройки)
@@ -42,7 +42,7 @@
 - `whisperxConditionOnPreviousText`: boolean, напр. `false`
 
 Важно: фактические имена CLI-флагов у WhisperX/движка (faster-whisper) нужно сверить командой на Windows:
-- `C:\AE\whisperx\.venv\Scripts\python.exe -m whisperx --help`
+- `C:\CaptionPanelsLocal\CaptionPanelTools\whisperx\.venv\Scripts\python.exe -m whisperx --help`
 
 Если каких-то флагов в CLI нет, делаем альтернативный путь (см. ниже).
 
@@ -50,7 +50,7 @@
 
 ### Шаг 1. Инвентаризация: какие флаги реально поддерживает CLI WhisperX
 Что делаем:
-- На Windows запускаем `python -m whisperx --help` из нашего окружения `C:\AE\whisperx`.
+- На Windows запускаем `python -m whisperx --help` из нашего окружения `C:\CaptionPanelsLocal\CaptionPanelTools\whisperx`.
 - Выписываем:
   - как задаётся модель (имя модели и доступность `large-v3`),
   - как задаются параметры декодирования (beam/temperature),
@@ -71,7 +71,7 @@
 - В `cep_src/ContentPanels/host/lib/auto_timing.jsx`:
   - читаем новые поля,
   - собираем команду WhisperX с дополнительными флагами,
-  - логируем итоговую команду в `C:\AE\CaptionPanelsData\auto_timing\logs`.
+  - логируем итоговую команду в `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs`.
 
 #### Вариант B (если CLI не поддерживает часть параметров): делаем наш wrapper-скрипт
 Условия:
@@ -93,14 +93,14 @@
 
 Что делаем:
 - Стандартизируем один корень:
-  - `captionPanelsDataRoot = C:/AE/CaptionPanelsData`
+  - `captionPanelsDataRoot = C:/CaptionPanelsLocal/CaptionPanelsData`
 - Добавляем (или фиксируем) подкаталоги:
-  - `C:\AE\CaptionPanelsData\auto_timing\blocks`
-  - `C:\AE\CaptionPanelsData\auto_timing\whisperx\<runId>`
-  - `C:\AE\CaptionPanelsData\auto_timing\alignment\<runId>`
-  - `C:\AE\CaptionPanelsData\auto_timing\logs`
-  - `C:\AE\CaptionPanelsData\models\` (если решим хранить модели централизованно)
-  - `C:\AE\CaptionPanelsData\hf_cache\` (кэш HuggingFace)
+  - `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\blocks`
+  - `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\whisperx\<runId>`
+  - `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\alignment\<runId>`
+  - `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs`
+  - `C:\CaptionPanelsLocal\CaptionPanelsData\models\` (если решим хранить модели централизованно)
+  - `C:\CaptionPanelsLocal\CaptionPanelsData\hf_cache\` (кэш HuggingFace)
 
 Идея для офлайна:
 - На ноуте (с интернетом) один раз прогреваем скачивание моделей.
@@ -143,6 +143,6 @@
 
 ## Что будет «готово», когда можно считать задачу закрытой
 - Параметры распознавания настраиваются через `config.json`.
-- Пути сохранения и кэш моделей стандартизированы под `C:\AE\CaptionPanelsData\...`.
+- Пути сохранения и кэш моделей стандартизированы под `C:\CaptionPanelsLocal\CaptionPanelsData\...`.
 - Есть краткий тест-отчёт: «на 3 роликах medium/large-v3 даёт X% успешного тайминга».
 
