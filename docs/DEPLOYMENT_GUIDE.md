@@ -87,19 +87,19 @@
 ## 5) Что нужно настроить на каждом ПК (минимум)
 
 ### 5.1 Word -> JSON
-- `word2jsonExePath`: `C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
-- `word2jsonOutDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
-- `word2jsonLogsDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
+- `paths.word2jsonExePath`: `C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
+- `paths.word2jsonOutDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
+- `paths.word2jsonLogsDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
 
 ### 5.2 Auto Timing (WhisperX + align)
-- `whisperxPythonPath`: `C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
-- `whisperxModel`: например `medium`
-- `whisperxLanguage`: `ru`
-- `whisperxDeviceMode`: `auto` (рекомендуется)
-- `whisperxVadMethod`: `silero`
+- `asr.whisperxPythonPath`: `C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
+- `asr.model`: например `medium`
+- `asr.language`: `ru`
+- `asr.deviceMode`: `auto` (рекомендуется)
+- `asr.vadMethod`: `silero`
 
 (Опционально)
-- `whisperxAdvancedArgsEnabled` и параметры качества (beam/temperature/...)
+- `asr.advancedArgsEnabled` и параметры качества (beam/temperature/...)
 
 ### 5.3 CUDA недоступна: что будет
 

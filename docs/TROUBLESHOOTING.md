@@ -5,12 +5,12 @@
 ## 1) `word2json.exe not found`
 
 Проверь в активном конфиге:
-- `captionPanelsToolsRoot`
-- `word2jsonExePath`
+- `paths.toolsRoot`
+- `paths.word2jsonExePath`
 
 Рекомендуемые значения:
-- `captionPanelsToolsRoot = C:/CaptionPanelsLocal/CaptionPanelTools`
-- `word2jsonExePath = C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
+- `paths.toolsRoot = C:/CaptionPanelsLocal/CaptionPanelTools`
+- `paths.word2jsonExePath = C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
 
 Если в логах видно старые пути `C:/AE/...`, перезагрузи панель (`Reload`): runtime делает авто-нормализацию legacy-путей.
 
@@ -45,19 +45,19 @@
 ## 4) WhisperX не стартует: `Python not found`
 
 Проверь:
-- `whisperxPythonPath`
-- `captionPanelsToolsRoot`
+- `asr.whisperxPythonPath`
+- `paths.toolsRoot`
 
 Рекомендуемо:
-- `whisperxPythonPath = C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
+- `asr.whisperxPythonPath = C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
 
 ## 5) `ffmpeg` не найден
 
 Проверь:
-- `ffmpegExePath`
+- `paths.ffmpegExePath`
 
 Рекомендуемо:
-- `ffmpegExePath = C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
+- `paths.ffmpegExePath = C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
 
 Системный `PATH` менять не нужно.
 
@@ -73,10 +73,10 @@
 
 Проверь:
 - активный `config.json` (обычно `%APPDATA%/CaptionPanels/config.json`);
-- значение `word2jsonOutDir`.
+- значение `paths.word2jsonOutDir`.
 
 Рекомендуемо:
-- `word2jsonOutDir = C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
+- `paths.word2jsonOutDir = C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
 
 ## 8) Общая проверка окружения (Windows)
 

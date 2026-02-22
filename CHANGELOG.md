@@ -31,6 +31,7 @@
 - UI Bridge: добавлен helper `callHost(...)` с метаданными `requestId/ts/module/fn` (поэтапный переход с прямых `aeCall` на единый протокол вызовов).
 - UI Bridge: все основные UI-модули (`import`, `settings`, `topics`, `speakers`, `speakers_db`, `typography`, `auto_timing`, `branding`, `host_loader`, `subtitles`) переведены на `callHost(...)`; добавлены таймауты вызовов для более предсказуемых ошибок в UI.
 - Diagnostics: добавлено окно `Diagnostics` (минимальный экран наблюдаемости) с snapshot текущих путей/существования утилит/последних логов и историей последних host-вызовов (`requestId`, `module`, `fn`, `durationMs`).
+- Config: добавлена секционная структура (`speakers/logging/subtitle/paths/asr/transcribe`) в `config.json`; runtime теперь автоматически синхронизирует новые секции со старыми flat-ключами для обратной совместимости.
 
 ## v2.3.1 — 2026-02-17
 
