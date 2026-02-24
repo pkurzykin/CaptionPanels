@@ -52,6 +52,15 @@
 - Tool path resolver: добавлены legacy fallback-пути для `word2json.exe` и `whisperx` python (`C:/AE/...`) для совместимости со старыми раскладками.
 - Runtime validation: импорт JSON и auto-timing теперь явно валидируют payload по схеме до выполнения (ошибки формата не проходят «тихо»).
 - Diagnostics: в блоке `latestRuns` теперь показываются outputs/result-метрики (включая `applyReportPath`, `applied/total/missing/...`).
+- Diagnostics: при несовпадении `toolsRoot` (например `CaptionPanelTools` vs `CaptionPanelsTools`) больше нет ложного `FAIL` — теперь fallback-корень определяется автоматически, а в snapshot показываются и `toolsRoot`, и `toolsRootConfigured`.
+- Auto Timing: резолвер portable `ffmpeg.exe` расширен (`ffmpeg/ffmpeg.exe`, `ffmpeg/bin/ffmpeg.exe`, `ffmpeg.exe`) с учетом fallback-корней tools, чтобы убрать ложные предупреждения в mixed-раскладках.
+- Config: приоритет чтения/записи `config.json` возвращен к файлу в папке плагина (`.../ContentPanels/config.json`); AppData теперь используется как fallback.
+- Branding: пересчет `subtitle_BG` закреплен в host-логике `applyHeadTopicToRegular` (включая fallback), чтобы пересчет гарантированно выполнялся после `Create Branding`.
+- Auto Timing: автоматический пересчет `subtitle_BG` после apply отключен (пересчет остается в сценарии `Create Branding`).
+- Diagnostics UI: убрано визуальное дублирование `latestRuns` (если `autoTiming` и `autoTimingCompleted` ссылаются на один run).
+- UI: кнопка `Diagnostics` перенесена из верхней шапки в нижнюю мета-зону рядом с версией (compact button).
+- subtitle_BG: дефолтный порог разрыва увеличен до `3.0s` (разрыв только если пауза между блоками больше 3 секунд).
+- Head Topic: после первого блока (который стартует встык к geotag) следующий `head_topic` стартует от конца предыдущего `Sub_SYNCH`, а конец ставится к старту следующего `Sub_SYNCH` (цепочка без лишних разрывов между VO-участками).
 
 ## v2.3.1 — 2026-02-17
 

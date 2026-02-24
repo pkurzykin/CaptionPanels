@@ -53,7 +53,7 @@
   - Длина "короткого слова", которое нельзя оставлять в конце строки.
   - Диапазон: 1..10, дефолт: `3`.
 - `subtitle.bgGapSec` (number)
-  - Порог разрыва для `subtitle_BG`, дефолт: `1.0`.
+  - Порог разрыва для `subtitle_BG`, дефолт: `3.0`.
 
 ### `paths`
 - `paths.dataRoot` (string) — корень данных/артефактов, напр. `C:/CaptionPanelsLocal/CaptionPanelsData`.
@@ -101,7 +101,7 @@
   "subtitle": {
     "charsPerLine": 60,
     "shortWordMaxLen": 3,
-    "bgGapSec": 1.0
+    "bgGapSec": 3.0
   },
   "paths": {
     "dataRoot": "C:/CaptionPanelsLocal/CaptionPanelsData",

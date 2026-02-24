@@ -265,7 +265,15 @@
 
     function _buildDeploymentChecks() {
         var dataRoot = _dataRoot();
-        var toolsRoot = _toolsRoot();
+        var configuredToolsRoot = _toolsRoot();
+        var toolsRoot = configuredToolsRoot;
+        var toolRoots = _buildToolsRootCandidates();
+        for (var tr = 0; tr < toolRoots.length; tr++) {
+            if (_folderExists(toolRoots[tr])) {
+                toolsRoot = _normalizePath(toolRoots[tr]);
+                break;
+            }
+        }
 
         var wordExe = _resolveToolPath(String(_val("word2jsonExePath", "") || ""), [
             "word2json/word2json.exe"
@@ -276,7 +284,9 @@
             "whisperx/python.exe"
         ]);
         var ffmpeg = _resolveToolPath(String(_val("ffmpegExePath", "") || ""), [
-            "ffmpeg/ffmpeg.exe"
+            "ffmpeg/ffmpeg.exe",
+            "ffmpeg/bin/ffmpeg.exe",
+            "ffmpeg.exe"
         ]);
 
         var wxOfflineOnly = false;
@@ -302,6 +312,7 @@
         var hasWxPy = _fileExists(wxPy);
         var hasFfmpeg = _fileExists(ffmpeg);
         var hasDataRoot = _folderExists(dataRoot);
+        var hasConfiguredToolsRoot = _folderExists(configuredToolsRoot);
         var hasToolsRoot = _folderExists(toolsRoot);
         var hasFwCacheDir = _folderExists(fwCacheRoot);
         var hasFwModel = hasFwCacheDir && _folderContainsName(fwCacheRoot, String(wxModel || "").toLowerCase());
@@ -311,7 +322,13 @@
         addCheck("whisperx python", hasWxPy, hasWxPy ? "ok" : "fail", hasWxPy ? "" : ("whisperx python.exe not found: " + wxPy));
         addCheck("ffmpeg.exe", hasFfmpeg, hasFfmpeg ? "ok" : "warn", hasFfmpeg ? "" : ("ffmpeg not found (audio load may fail): " + ffmpeg));
         addCheck("data root", hasDataRoot, hasDataRoot ? "ok" : "fail", hasDataRoot ? "" : "data root folder does not exist");
-        addCheck("tools root", hasToolsRoot, hasToolsRoot ? "ok" : "fail", hasToolsRoot ? "" : "tools root folder does not exist");
+        if (hasConfiguredToolsRoot) {
+            addCheck("tools root", true, "ok", "");
+        } else if (hasToolsRoot) {
+            addCheck("tools root", true, "warn", "configured tools root not found, using fallback: " + toolsRoot);
+        } else {
+            addCheck("tools root", false, "fail", "tools root folder does not exist");
+        }
 
         if (wxOfflineOnly) {
             addCheck("offline ASR model cache", hasFwModel, hasFwModel ? "ok" : "fail",
@@ -331,6 +348,7 @@
         return {
             dataRoot: dataRoot,
             toolsRoot: toolsRoot,
+            configuredToolsRoot: configuredToolsRoot,
             modelsRoot: modelsRoot,
             fwCacheRoot: fwCacheRoot,
             hfHubRoot: hfHubRoot,
@@ -387,6 +405,7 @@
                 configPath: cfgPath,
                 dataRoot: dataRoot,
                 toolsRoot: toolsRoot,
+                toolsRootConfigured: dep.configuredToolsRoot || toolsRoot,
                 word2jsonOutDir: wordOut,
                 autoTimingLogsDir: atLogs,
                 word2jsonLogsDir: wordLogs,
@@ -406,6 +425,7 @@
                     configPath: _fileExists(cfgPath),
                     dataRoot: _folderExists(dataRoot),
                     toolsRoot: _folderExists(toolsRoot),
+                    toolsRootConfigured: _folderExists(dep.configuredToolsRoot || ""),
                     word2jsonOutDir: _folderExists(wordOut),
                     autoTimingLogsDir: _folderExists(atLogs),
                     word2jsonLogsDir: _folderExists(wordLogs),

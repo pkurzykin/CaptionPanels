@@ -32,6 +32,7 @@ function _diagBuildText(snapshot, history) {
     addKV("configPath", s.configPath || "");
     addKV("dataRoot", s.dataRoot || "");
     addKV("toolsRoot", s.toolsRoot || "");
+    addKV("toolsRootConfigured", s.toolsRootConfigured || s.toolsRoot || "");
     addKV("word2jsonOutDir", s.word2jsonOutDir || "");
     addKV("autoTimingLogsDir", s.autoTimingLogsDir || "");
     addKV("word2jsonLogsDir", s.word2jsonLogsDir || "");
@@ -62,7 +63,13 @@ function _diagBuildText(snapshot, history) {
     } else {
         for (var ci = 0; ci < checks.length; ci++) {
             var c = checks[ci] || {};
-            var mark = c.ok ? "OK" : String(c.level || "warn").toUpperCase();
+            var level = String(c.level || "").toLowerCase();
+            var mark = "OK";
+            if (level === "warn" || level === "fail") {
+                mark = level.toUpperCase();
+            } else if (!c.ok) {
+                mark = "FAIL";
+            }
             var line = "  - [" + mark + "] " + String(c.name || "");
             if (c.details) line += " | " + String(c.details || "");
             lines.push(line);
@@ -105,9 +112,21 @@ function _diagBuildText(snapshot, history) {
         if (typeof st.invalidCount !== "undefined") lines.push("    invalidCount: " + String(st.invalidCount || 0));
         if (typeof st.errorCount !== "undefined") lines.push("    errorCount: " + String(st.errorCount || 0));
     }
+    function sameRun(a, b) {
+        if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
+        var aRun = String(a.runId || "");
+        var bRun = String(b.runId || "");
+        var aPath = String(a.path || "");
+        var bPath = String(b.path || "");
+        if (aRun && bRun && aRun === bRun) return true;
+        if (aPath && bPath && aPath === bPath) return true;
+        return false;
+    }
     addRun("wordImport", runs.wordImport);
     addRun("autoTiming", runs.autoTiming);
-    addRun("autoTimingCompleted", runs.autoTimingCompleted);
+    if (!sameRun(runs.autoTiming, runs.autoTimingCompleted)) {
+        addRun("autoTimingCompleted", runs.autoTimingCompleted);
+    }
     lines.push("");
 
     lines.push("host calls (latest):");

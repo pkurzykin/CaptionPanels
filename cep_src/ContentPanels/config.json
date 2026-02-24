@@ -19,7 +19,7 @@
   "subtitle": {
     "charsPerLine": 60,
     "shortWordMaxLen": 3,
-    "bgGapSec": 1.0
+    "bgGapSec": 3.0
   },
   "paths": {
     "dataRoot": "C:/CaptionPanelsLocal/CaptionPanelsData",

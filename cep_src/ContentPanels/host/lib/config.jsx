@@ -126,6 +126,27 @@
         var p = _trimPathValue(pathValue);
         if (!p) return "";
 
+        function _pickExistingToolsVariant(pathStr) {
+            var cur = _normalizePath(pathStr);
+            if (!cur) return cur;
+
+            var alt = "";
+            if (/\/CaptionPanelTools(?=\/|$)/i.test(cur)) {
+                alt = cur.replace(/\/CaptionPanelTools(?=\/|$)/i, "/CaptionPanelsTools");
+            } else if (/\/CaptionPanelsTools(?=\/|$)/i.test(cur)) {
+                alt = cur.replace(/\/CaptionPanelsTools(?=\/|$)/i, "/CaptionPanelTools");
+            }
+            if (!alt) return cur;
+
+            try {
+                if ((new File(cur)).exists || (new Folder(cur)).exists) return cur;
+            } catch (e0) {}
+            try {
+                if ((new File(alt)).exists || (new Folder(alt)).exists) return alt;
+            } catch (e1) {}
+            return cur;
+        }
+
         function rep(re, to) {
             p = p.replace(re, to);
         }
@@ -134,7 +155,6 @@
         rep(/^C:\/AE\/CaptionPanelsData(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelsData");
         rep(/^C:\/AE\/CaptionPanelsTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
         rep(/^C:\/AE\/CaptionPanelTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
-        rep(/^C:\/CaptionPanelsLocal\/CaptionPanelsTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
 
         // Legacy direct tool folders.
         rep(/^C:\/AE\/word2json(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools/word2json");
@@ -144,6 +164,9 @@
         if (kind === "wordOutDir") {
             rep(/^C:\/Temp\/CaptionPanels\/word2json(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelsData/word2json");
         }
+
+        // Do not force singular/plural tools folder naming. Pick existing variant if possible.
+        p = _pickExistingToolsVariant(p);
 
         return p;
     }
@@ -226,27 +249,7 @@
 
     function _configCandidates() {
         var list = [];
-        try {
-            // Most stable explicit user-level location on Windows.
-            var appDataEnv = $.getenv("APPDATA");
-            if (appDataEnv) list.push(_normalizePath(appDataEnv) + "/CaptionPanels/config.json");
-        } catch (e0) {}
-
-        // IMPORTANT: prefer per-user config first.
-        // On some systems Folder.appData points to ProgramData (machine-wide),
-        // while Folder.userData points to user Roaming profile.
-        try {
-            var ud = Folder.userData;
-            if (ud) list.push(_normalizePath(ud.fsName) + "/CaptionPanels/config.json");
-        } catch (e) {}
-
-        try {
-            if (Folder.appData) {
-                var ad = Folder.appData;
-                if (ad) list.push(_normalizePath(ad.fsName) + "/CaptionPanels/config.json");
-            }
-        } catch (e) {}
-
+        // Prefer config colocated with the plugin files.
         var base = _normalizePath(_resolveRootPath());
         if (base) {
             list.push(base + "/config.json");
@@ -259,6 +262,22 @@
             var parent = _dirName(base);
             if (parent) list.push(parent + "/config.json");
         }
+
+        // User-level fallback locations.
+        try {
+            var appDataEnv = $.getenv("APPDATA");
+            if (appDataEnv) list.push(_normalizePath(appDataEnv) + "/CaptionPanels/config.json");
+        } catch (e0) {}
+        try {
+            var ud = Folder.userData;
+            if (ud) list.push(_normalizePath(ud.fsName) + "/CaptionPanels/config.json");
+        } catch (e1) {}
+        try {
+            if (Folder.appData) {
+                var ad = Folder.appData;
+                if (ad) list.push(_normalizePath(ad.fsName) + "/CaptionPanels/config.json");
+            }
+        } catch (e2) {}
 
         // De-duplicate candidates while preserving order.
         var out = [];
@@ -305,13 +324,6 @@
     function _configPath() {
         if (_configPathCache) return _configPathCache;
         var list = _configCandidates();
-
-        // Best effort: promote existing machine config into user profile.
-        var promoted = _tryPromoteToUserConfig(list);
-        if (promoted && (new File(promoted)).exists) {
-            _configPathCache = promoted;
-            return _configPathCache;
-        }
 
         for (var i = 0; i < list.length; i++) {
             var f = new File(list[i]);
@@ -475,10 +487,8 @@
     }
 
     function _preferredWriteConfigPath() {
-        // Always prefer the user-writable config location (AppData) for writes.
-        // This avoids trying to write into Program Files when the plugin ships with a default config.json.
-        var list = _configCandidates();
-        return (list && list.length) ? list[0] : _configPath();
+        // Write into the same config location we currently use for reads.
+        return _configPath();
     }
 
     function _configForWrite(cfg) {
