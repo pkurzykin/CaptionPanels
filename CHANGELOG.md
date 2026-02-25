@@ -6,6 +6,8 @@
 - Stage 3.2: добавлены формальные JSON-схемы в `docs/schemas/` (`import`, `blocks`, `alignment`) и справка `docs/SCHEMAS_REFERENCE_RU.md`.
 
 ### Changed
+- Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
+- Branding: после `Create Branding` принудительный пересчет `subtitle_BG` сохраняется (host + fallback), чтобы не терялся после правок логики head_topic.
 - Auto Timing: после применения таймингов добавлен более надежный пересчет `subtitle_BG` (с fallback-алгоритмом, если модуль `subtitles.jsx` не подгрузился).
 - Head Topic: старт теперь ставится встык к предыдущему geotag (если geotag есть перед группой).
 - Head Topic: конец теперь ставится встык к первому `Sub_SYNCH_*` после начала группы (вместо конца `Sub_VOICEOVER`).

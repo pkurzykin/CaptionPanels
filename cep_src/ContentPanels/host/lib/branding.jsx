@@ -326,6 +326,17 @@
         return first;
     }
 
+    function _findLastRegularLayer(comp) {
+        var last = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (_isRegularSubLayer(l)) {
+                if (!last || l.outPoint > last.outPoint) last = l;
+            }
+        }
+        return last;
+    }
+
     function _findLastRegularLayerInRange(comp, startTime, endTime) {
         var last = null;
         var EPS = 1.0 / 60.0;
@@ -420,6 +431,19 @@
             }
         }
         return best;
+    }
+
+    function _collectSynchLayersSorted(comp) {
+        var out = [];
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !l.name || l.name.indexOf("Sub_SYNCH_") !== 0) continue;
+            out.push({ start: Number(l.inPoint) || 0, end: Number(l.outPoint) || 0, layer: l });
+        }
+        out.sort(function (a, b) {
+            return (a.start === b.start) ? (a.end - b.end) : (a.start - b.start);
+        });
+        return out;
     }
 
     function _findLayerStartByName(comp, layerName) {
@@ -567,69 +591,56 @@
         // remove previous generated layers
         _removeGeneratedHeadLayers(comp);
 
-        // collect groups of regular subs
-    var groups = _collectRegularGroups(comp);
-
-    // FALLBACK: если нет regular-субтитров — создаём один head_topic по плейхеду
-        if (groups.length === 0) {
-
-        var one = comp.layers.add(work);
-        one.name = HEAD_LAYER_PREFIX + "_PLAYHEAD";
-        try { one.label = HEAD_LABEL; } catch (e) {}
-
-        // строго по плейхеду
-        one.startTime = comp.time;
-        _applyFadeOutOpacityExpr(one, 0.5);
-
-        // длительность НЕ трогаем — остаётся "как в шаблоне head_topic_WORK"
-        try { _refreshSubtitleBgAfterBranding(comp); } catch (eBg0) {}
-
-        app.endUndoGroup();
-        return respondOk("OK");
-    }
-        // HEAD_TOPIC: first layer starts at the first subtitle block start (not playhead).
-
-        // create layers for each group
-        var prevSynchEnd = null;
+        // Head-topic chain is built by SYNCH boundaries (not by geotag count):
+        // first starts at playhead, each next starts at previous synch end,
+        // each ends at next synch start.
+        var EPS = Math.max(1.0 / 60.0, Number(comp.frameDuration) || (1.0 / 25.0));
+        var MIN_DUR = EPS * 2;
+        var synchs = _collectSynchLayersSorted(comp);
         var made = 0;
         var firstStart = Number(comp.time) || 0;
-        for (var g = 0; g < groups.length; g++) {
-            var st = groups[g].start;
-            var EPS = 1.0 / 60.0;
+        var prevSynchEnd = null;
 
-            // First head_topic always starts at playhead.
-            if (g === 0) {
-                st = firstStart;
-            } else if (prevSynchEnd !== null && !isNaN(prevSynchEnd)) {
-                // Next head_topic starts at the end of previous synch.
-                st = prevSynchEnd;
+        if (synchs.length > 0) {
+            for (var si = 0; si < synchs.length; si++) {
+                var syn = synchs[si];
+                var st = (si === 0) ? firstStart : ((prevSynchEnd !== null) ? prevSynchEnd : firstStart);
+                var en = Number(syn.start) || st;
+                var synEnd = Number(syn.end) || en;
+
+                if ((en - st) > MIN_DUR) {
+                    var l = comp.layers.add(work);
+                    made++;
+                    l.name = HEAD_LAYER_PREFIX + "_" + made;
+                    try { l.label = HEAD_LABEL; } catch (eLbl) {}
+                    l.startTime = st;
+                    l.inPoint = st;
+                    l.outPoint = en;
+                    _applyFadeOutOpacityExpr(l, 0.5);
+
+                    // Размещаем head_topic под всем блоком субтитров
+                    var anchor = _findLowestRegularLayerInRange(comp, st, en);
+                    if (anchor) {
+                        try { l.moveAfter(anchor); } catch (eMv) {}
+                    }
+                }
+
+                if (synEnd > st + EPS) prevSynchEnd = synEnd;
             }
+        }
 
-            // End at the first Sub_SYNCH start after this head_topic start.
-            var syn = _findFirstSynchAfter(comp, st);
-            if (!syn || !(syn.start > st + EPS)) {
-                continue;
+        // Fallback: no SYNCH blocks, but regular subtitles exist.
+        if (made === 0) {
+            var lastReg = _findLastRegularLayer(comp);
+            if (lastReg && ((Number(lastReg.outPoint) || 0) - firstStart > MIN_DUR)) {
+                var one = comp.layers.add(work);
+                one.name = HEAD_LAYER_PREFIX + "_1";
+                try { one.label = HEAD_LABEL; } catch (eLbl2) {}
+                one.startTime = firstStart;
+                one.inPoint = firstStart;
+                one.outPoint = Number(lastReg.outPoint) || firstStart;
+                _applyFadeOutOpacityExpr(one, 0.5);
             }
-            var en = syn.start;
-
-            var l = comp.layers.add(work);
-            made++;
-            l.name = HEAD_LAYER_PREFIX + "_" + made;
-            try { l.label = HEAD_LABEL; } catch (e) {}
-            // start and duration match group
-            l.startTime = st;
-            l.inPoint = st;
-            l.outPoint = en;
-
-            _applyFadeOutOpacityExpr(l, 0.5);
-
-            // Размещаем head_topic под всем блоком субтитров
-            var anchor = _findLowestRegularLayerInRange(comp, st, en);
-            if (anchor) {
-                try { l.moveAfter(anchor); } catch (e) {}
-            }
-
-            if (syn.end > st + EPS) prevSynchEnd = syn.end;
         }
 
         try { _refreshSubtitleBgAfterBranding(comp); } catch (eBg1) {}
