@@ -12,6 +12,7 @@
     var HEAD_LAYER_PREFIX   = "HEAD_TOPIC"; // метка для удаления/пересоздания
     var HEAD_LAYER_PREFIX_OLD = "__NH_HEADTOPIC__";
     var HEAD_LABEL = 10; // Purple (default label index)
+    var GEOTAG_LABEL = 12; // Brown (default label index)
 
     // --------- helpers ---------
     function _ensureActiveComp() {
@@ -114,6 +115,7 @@
             var gv = Number(getConfigValue("subtitleBgGapSec", 3.0));
             if (!isNaN(gv) && gv >= 0 && gv <= 10) GAP_SEC = gv;
         } catch (eG) {}
+        if (GAP_SEC < 3.0) GAP_SEC = 3.0;
 
         var bg = null;
         try { bg = comp.layer(BG_NAME); } catch (e0) { bg = null; }
@@ -373,19 +375,31 @@
         return (srcName.indexOf("geotag_") === 0) || (layerName.indexOf("geotag_") === 0);
     }
 
-    function _findPrevGeotagOut(comp, t, afterTime) {
+    function _findGeotagEndForGroup(comp, groupStart, afterTime) {
         var EPS = 1.0 / 60.0;
         var hasAfter = (typeof afterTime === "number");
         var best = null;
-        var bestOut = -1;
+        var bestStart = -999999;
+        var groups = _collectRegularGroups(comp);
+        var groupEnd = groupStart;
+        for (var gi = 0; gi < groups.length; gi++) {
+            if (Math.abs(Number(groups[gi].start) - Number(groupStart)) <= EPS) {
+                groupEnd = Number(groups[gi].end) || groupStart;
+                break;
+            }
+        }
         for (var i = 1; i <= comp.numLayers; i++) {
             var l = comp.layer(i);
             if (!_isGeotagLayer(l)) continue;
-            var out = Number(l.outPoint) || 0;
-            if (out > t + EPS) continue;
-            if (hasAfter && out <= afterTime + EPS) continue;
-            if (out > bestOut) {
-                bestOut = out;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) continue;
+            // Geotag belongs to this group if it starts before/equal end of the group.
+            // This keeps "first geotag -> first head_topic" even when geotag is inside VO range.
+            if (st > groupEnd + EPS) continue;
+            // ...and after previous group, if provided.
+            if (hasAfter && st <= afterTime + EPS) continue;
+            if (st > bestStart) {
+                bestStart = st;
                 best = l;
             }
         }
@@ -406,6 +420,50 @@
             }
         }
         return best;
+    }
+
+    function _findLayerStartByName(comp, layerName) {
+        if (!comp || !layerName) return null;
+        try {
+            var l = comp.layer(layerName);
+            if (!l) return null;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) return null;
+            return st;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function _findLayerStartByBatch(comp, typeUpper, batchNum) {
+        if (!comp) return null;
+        var type = String(typeUpper || "").toUpperCase();
+        var batch = Number(batchNum) || 0;
+        if (!type || batch <= 0) return null;
+
+        var prefix = "Sub_" + type + "_" + String(batch) + "_";
+        var best = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !l.name || String(l.name).indexOf(prefix) !== 0) continue;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) continue;
+            if (best === null || st < best) best = st;
+        }
+        return best;
+    }
+
+    function _findNextRegularGroupStartAfter(comp, afterTime) {
+        var groups = _collectRegularGroups(comp);
+        var t = Number(afterTime);
+        if (isNaN(t)) t = -999999;
+        var EPS = 1.0 / 60.0;
+        for (var i = 0; i < groups.length; i++) {
+            var st = Number(groups[i].start);
+            if (isNaN(st)) continue;
+            if (st > t + EPS) return st;
+        }
+        return null;
     }
 
     // =====================================================
@@ -436,6 +494,7 @@
 
         var layer = comp.layers.add(copy);
         layer.startTime = comp.time;
+        try { layer.label = GEOTAG_LABEL; } catch (eLbl) {}
         _applyFadeOutOpacityExpr(layer, 0.5);
         // Геотег должен быть ниже первого блока субтитров (вниз перед первым)
         var firstSub = _findFirstRegularLayer(comp);
@@ -458,22 +517,20 @@
         }
         if (!(arr instanceof Array)) return respondErr("Invalid geotags list");
 
-        var t0 = comp.time;
+        var t0 = Number(comp.time) || 0;
+        var tpl = _findCompByName("geotag");
+        var geotagDur = tpl ? (Number(tpl.duration) || 0) : 0;
+        var nextStart = t0;
+
         for (var i = 0; i < arr.length; i++) {
             var g = arr[i] || {};
-
-            // First geotag is always placed at current playhead (t0).
-            // Additional geotags are placed by their saved times.
-            if (i === 0) {
-                comp.time = t0;
-            } else {
-                var tt = Number(g.time);
-                if (!isNaN(tt)) comp.time = tt;
-            }
-
+            comp.time = nextStart;
             createGeotag(g.text || "");
+
+            // Additional geotags are placed sequentially (in butt-join) after the first one.
+            if (geotagDur > 0) nextStart += geotagDur;
         }
-        comp.time = t0;
+        comp.time = Number(t0) || comp.time;
         return respondOk("OK");
     };
 
@@ -533,39 +590,27 @@
         // HEAD_TOPIC: first layer starts at the first subtitle block start (not playhead).
 
         // create layers for each group
-        var prevGroupEnd = -999999;
         var prevSynchEnd = null;
         var made = 0;
+        var firstStart = Number(comp.time) || 0;
         for (var g = 0; g < groups.length; g++) {
             var st = groups[g].start;
-            var en = groups[g].end;
-            var groupEndRaw = groups[g].end;
             var EPS = 1.0 / 60.0;
-            var minDur = 1.0 / Math.max(1, Number(comp.frameRate) || 25);
 
-            // For head_topic #2+ always stick start to the end of previous synch.
-            if (prevSynchEnd !== null && !isNaN(prevSynchEnd)) {
+            // First head_topic always starts at playhead.
+            if (g === 0) {
+                st = firstStart;
+            } else if (prevSynchEnd !== null && !isNaN(prevSynchEnd)) {
+                // Next head_topic starts at the end of previous synch.
                 st = prevSynchEnd;
             }
 
-            // A) If there is a geotag between previous VO-group end and this group start,
-            // snap this head_topic start to geotag end.
-            // This handles head_topic_1 and any next "first group after geotag".
-            var geoOut = _findPrevGeotagOut(comp, st, prevGroupEnd);
-            if (geoOut !== null && !isNaN(geoOut)) st = geoOut;
-
-            // B) Prefer end at the first Sub_SYNCH start after this head_topic start.
+            // End at the first Sub_SYNCH start after this head_topic start.
             var syn = _findFirstSynchAfter(comp, st);
-            var synStart = syn ? syn.start : null;
-            if (synStart !== null && (synStart > st + EPS)) en = synStart;
-
-            if (en <= st + EPS) en = st + minDur;
-
-            // Skip degenerate ranges that can happen when group start is still before previous synch end.
-            if (en <= st + EPS) {
-                prevGroupEnd = groupEndRaw;
+            if (!syn || !(syn.start > st + EPS)) {
                 continue;
             }
+            var en = syn.start;
 
             var l = comp.layers.add(work);
             made++;
@@ -584,8 +629,7 @@
                 try { l.moveAfter(anchor); } catch (e) {}
             }
 
-            prevGroupEnd = groupEndRaw;
-            if (syn && syn.end > st + EPS) prevSynchEnd = syn.end;
+            if (syn.end > st + EPS) prevSynchEnd = syn.end;
         }
 
         try { _refreshSubtitleBgAfterBranding(comp); } catch (eBg1) {}

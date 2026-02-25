@@ -404,6 +404,7 @@ function _updateSubtitleBg(comp) {
             if (!isNaN(v) && v >= 0 && v <= 10) GAP_SEC = v;
         }
     } catch (eGap) {}
+    if (GAP_SEC < 3.0) GAP_SEC = 3.0;
 
     var bg = comp.layer(BG_NAME);
     if (!bg) {
