@@ -144,6 +144,20 @@
   - `alignment.schema.json`
 - исправить обязательные поля (`segId/start/end/type/text`) и повторить запуск.
 
+## 14) `Unable to execute script ... modal dialog is waiting response` (line 0)
+
+Симптом:
+- при запуске AE иногда вылетает ошибка про модальный диалог (`line 0`).
+
+Что уже реализовано:
+- в UI-мосте добавлен auto-retry для modal-busy ответов (`callHost`), чтобы переживать короткие блокировки AE;
+- загрузка host-модулей сдвинута на `~1.2s` после старта панели.
+
+Если проблема повторяется:
+- закрой лишние модальные окна AE/плагины при старте;
+- нажми `Reload` в панели после полной загрузки проекта;
+- приложи `Diagnostics` snapshot + хвост лога `captionpanels_YYYYMMDD.log`.
+
 ## Где смотреть логи
 
 - Word import:

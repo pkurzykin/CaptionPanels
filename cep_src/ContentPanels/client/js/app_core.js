@@ -33,7 +33,7 @@ if (!csInterface) {
     };
 }
 
-var UI_VERSION = "2.4.0";
+var UI_VERSION = "2.4.1";
 
 function buildJob(type, payload) {
     return {
@@ -157,6 +157,16 @@ function normalizeSpeakerText(txt) {
     return String(txt || "").replace(/\r\n|\r/g, "\n").trim();
 }
 
+function isModalDialogBusyError(text) {
+    var t = String(text || "").toLowerCase();
+    if (!t) return false;
+    return (
+        (t.indexOf("modal dialog") !== -1 && t.indexOf("waiting response") !== -1) ||
+        (t.indexOf("cannot run a script") !== -1 && t.indexOf("modal dialog") !== -1) ||
+        (t.indexOf("can not run a script") !== -1 && t.indexOf("modal dialog") !== -1)
+    );
+}
+
 function parseAeResult(res) {
     // WebView2 bridge can return a non-string result; normalize it here.
     if (res && typeof res === "object") {
@@ -182,6 +192,9 @@ function parseAeResult(res) {
         return { ok: false, error: t.slice("Error:".length).trim(), result: "" };
     }
     if (t === "Error") {
+        return { ok: false, error: t, result: "" };
+    }
+    if (isModalDialogBusyError(t)) {
         return { ok: false, error: t, result: "" };
     }
 
@@ -231,6 +244,7 @@ function callHost(fnName, args, opts, cb) {
     var requestId = "req_" + (__hostRequestSeq++);
     var startedAt = Date.now();
     var script = "";
+    var modalRetryDelaysMs = [300, 600, 1000, 1500, 1500];
 
     try {
         if (o.rawScript) {
@@ -296,15 +310,38 @@ function callHost(fnName, args, opts, cb) {
             }, timeoutMs);
         }
 
-        aeCall(script).then(function (out) {
+        function maybeRetryOrFinish(out, attemptNo) {
             var res = out || { ok: false, error: "Unknown host response", result: "" };
+            var canRetry =
+                !res.ok &&
+                (isModalDialogBusyError(res.error) || isModalDialogBusyError(res.result)) &&
+                attemptNo <= modalRetryDelaysMs.length;
+
+            if (canRetry) {
+                var delayMs = modalRetryDelaysMs[attemptNo - 1];
+                setTimeout(function () {
+                    runAttempt(attemptNo + 1);
+                }, delayMs);
+                return;
+            }
+
             res.requestId = requestId;
             res.ts = new Date(startedAt).toISOString();
             res.module = String(o.module || "");
             res.fn = String(fnName || "");
             res.durationMs = Date.now() - startedAt;
             finish(res);
-        });
+        }
+
+        function runAttempt(attemptNo) {
+            if (done) return;
+            aeCall(script).then(function (out) {
+                if (done) return;
+                maybeRetryOrFinish(out, attemptNo);
+            });
+        }
+
+        runAttempt(1);
     });
 }
 

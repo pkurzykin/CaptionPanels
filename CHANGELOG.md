@@ -67,6 +67,12 @@
 - Branding (workflow simplification): первый `head_topic` теперь всегда стартует от плейхеда; последующие идут по цепочке `start = end(previous synch)`, `end = start(next synch)` и не зависят от geotag.
 - Geotag (workflow simplification): первый geotag ставится по плейхеду, все следующие — последовательно встык (ручная доводка позиции дальше делается на таймлайне); geotag получает label `Brown`.
 
+## v2.4.1 — 2026-02-25
+
+### Fixed
+- AE startup race: снижена вероятность ошибки `Unable to execute script ... Can not run a script while a modal dialog is waiting response` (line 0). Добавлен retry в `callHost(...)` для modal-busy ответов.
+- UI startup: загрузка host JSX-модулей теперь стартует с небольшой задержкой (`1.2s`), чтобы не попадать в модальные состояния AE в первые секунды запуска.
+
 ## v2.3.1 — 2026-02-17
 
 ### Changed

@@ -1,7 +1,7 @@
 # CaptionPanels
 
 AEGP‑плагин для After Effects 2024+ (Windows 10/11) с UI на WebView2 и JSX‑мостом.
-Текущая версия: 2.4.0.
+Текущая версия: 2.4.1.
 
 ## Структура
 ```
