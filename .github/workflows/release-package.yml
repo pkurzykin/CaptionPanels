@@ -23,6 +23,11 @@ jobs:
             throw "Policy violation: dist/ contains tracked files. dist/ must remain build output only."
           }
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
       - name: Preflight (strict, release packaging mode)
         shell: pwsh
         run: .\scripts\preflight.ps1 -Strict -SkipAegpChecks
