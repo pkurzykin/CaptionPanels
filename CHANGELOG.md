@@ -22,6 +22,7 @@
 - Build restore diagnostics: при ошибке `dotnet restore` в `scripts/build.ps1` добавлены явные подсказки по NuGet (`dotnet nuget list source`, проверка feed/proxy) и зафиксировано, что отдельный `nuget.exe` обычно не нужен при наличии .NET SDK.
 - Build restore config: `scripts/build.ps1` теперь использует явный `NuGet.Config` для tools-restore (по умолчанию локальный `dist/_build/tools/NuGet.Config`, плюс флаг `-NuGetConfigFile`), чтобы снизить зависимость от user-level `~/.nuget` в ограниченных окружениях.
 - Build restore sources: в `scripts/build.ps1` добавлен флаг `-NuGetSource` (поддерживает несколько источников) для генерации локального `NuGet.Config` под корпоративные mirror/feed без ручного редактирования файлов.
+- Build concurrency: `scripts/build.ps1` теперь использует lock-файл `dist/.build.lock` (exclusive file lock), чтобы параллельные build-процессы не конфликтовали по `dist` и вложенному packaging.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
 - Branding: после `Create Branding` принудительный пересчет `subtitle_BG` сохраняется (host + fallback), чтобы не терялся после правок логики head_topic.

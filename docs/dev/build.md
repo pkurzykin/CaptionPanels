@@ -34,6 +34,8 @@ Note:
 3. Сборка AEGP через `msbuild` (если `msbuild` найден).
 4. Вызов `scripts/package.ps1` для формирования `dist/CaptionPanels`.
 
+`scripts/build.ps1` использует lock-файл `dist/.build.lock`, чтобы блокировать параллельные build-запуски в одном `dist`.
+
 Для .NET tools-сборки:
 - если `DOTNET_CLI_HOME`/`NUGET_PACKAGES` не заданы извне, `build.ps1` направляет их в `dist/_build/tools/...`;
 - это уменьшает зависимость от user-home прав на runner/локальной машине.

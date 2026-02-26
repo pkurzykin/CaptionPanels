@@ -56,6 +56,36 @@ function Invoke-External {
     }
 }
 
+function Acquire-ExclusiveFileLock {
+    param(
+        [Parameter(Mandatory = $true)][string]$LockPath
+    )
+
+    $lockDir = Split-Path -Path $LockPath -Parent
+    if (!(Test-Path -LiteralPath $lockDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $lockDir -Force | Out-Null
+    }
+
+    try {
+        $stream = [System.IO.File]::Open(
+            $LockPath,
+            [System.IO.FileMode]::OpenOrCreate,
+            [System.IO.FileAccess]::ReadWrite,
+            [System.IO.FileShare]::None
+        )
+    } catch {
+        throw "Another build process is already running (lock: $LockPath). Wait until it completes and retry."
+    }
+
+    $lockContent = "pid=$PID`nstartedUtc=$((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))`n"
+    $lockBytes = [System.Text.Encoding]::UTF8.GetBytes($lockContent)
+    $stream.SetLength(0)
+    $stream.Write($lockBytes, 0, $lockBytes.Length)
+    $stream.Flush()
+
+    return $stream
+}
+
 function Build-Word2Json {
     param(
         [Parameter(Mandatory = $true)][string]$RepoRoot,
@@ -225,58 +255,75 @@ $resolvedBuildRoot = Get-CaptionPanelsBuildRoot -BuildRoot $BuildRoot
 $distRoot = Get-CaptionPanelsDistRoot -RepoRoot $repoRoot -OutDir $OutDir
 $resolvedVersion = Get-CaptionPanelsVersion -RepoRoot $repoRoot -Version $Version
 
-Write-Host ("Configuration: {0}" -f $Configuration)
-Write-Host ("Platform:      {0}" -f $Platform)
-Write-Host ("Build root:    {0}" -f $resolvedBuildRoot)
-Write-Host ("Dist root:     {0}" -f $distRoot)
-Write-Host ("Version:       {0}" -f $resolvedVersion)
+$buildLockPath = Join-Path $distRoot ".build.lock"
+$buildLock = $null
 
-if (!$SkipTools) {
-    Build-Word2Json `
-        -RepoRoot $repoRoot `
-        -Configuration $Configuration `
-        -DistRoot $distRoot `
-        -NuGetConfigFile $NuGetConfigFile `
-        -NuGetSource $NuGetSource
-} else {
-    Write-Host "Skipping tools build (-SkipTools)."
-}
+try {
+    $buildLock = Acquire-ExclusiveFileLock -LockPath $buildLockPath
 
-if (!$SkipAegp) {
-    Build-Aegp -RepoRoot $repoRoot -Configuration $Configuration -Platform $Platform -BuildRoot $resolvedBuildRoot
-} else {
-    Write-Host "Skipping AEGP build (-SkipAegp)."
-}
+    Write-Host ("Configuration: {0}" -f $Configuration)
+    Write-Host ("Platform:      {0}" -f $Platform)
+    Write-Host ("Build root:    {0}" -f $resolvedBuildRoot)
+    Write-Host ("Dist root:     {0}" -f $distRoot)
+    Write-Host ("Version:       {0}" -f $resolvedVersion)
 
-if (!$SkipPackage) {
-    $packageScript = Join-Path $PSScriptRoot "package.ps1"
-    if (!(Test-Path -LiteralPath $packageScript)) {
-        throw "Missing package script: $packageScript"
+    if (!$SkipTools) {
+        Build-Word2Json `
+            -RepoRoot $repoRoot `
+            -Configuration $Configuration `
+            -DistRoot $distRoot `
+            -NuGetConfigFile $NuGetConfigFile `
+            -NuGetSource $NuGetSource
+    } else {
+        Write-Host "Skipping tools build (-SkipTools)."
     }
 
-    $packageParams = @{
-        PluginName = $PluginName
-        Version    = $resolvedVersion
-        OutDir     = $distRoot
-        BuildRoot  = $resolvedBuildRoot
+    if (!$SkipAegp) {
+        Build-Aegp -RepoRoot $repoRoot -Configuration $Configuration -Platform $Platform -BuildRoot $resolvedBuildRoot
+    } else {
+        Write-Host "Skipping AEGP build (-SkipAegp)."
     }
 
-    $packageArgsForLog = @(
-        "-PluginName", $PluginName,
-        "-Version", $resolvedVersion,
-        "-OutDir", $distRoot,
-        "-BuildRoot", $resolvedBuildRoot
-    )
+    if (!$SkipPackage) {
+        $packageScript = Join-Path $PSScriptRoot "package.ps1"
+        if (!(Test-Path -LiteralPath $packageScript)) {
+            throw "Missing package script: $packageScript"
+        }
 
-    if ($AllowMissingAex -or $SkipAegp) {
-        $packageParams["AllowMissingAex"] = $true
-        $packageArgsForLog += "-AllowMissingAex"
+        $packageParams = @{
+            PluginName = $PluginName
+            Version    = $resolvedVersion
+            OutDir     = $distRoot
+            BuildRoot  = $resolvedBuildRoot
+        }
+
+        $packageArgsForLog = @(
+            "-PluginName", $PluginName,
+            "-Version", $resolvedVersion,
+            "-OutDir", $distRoot,
+            "-BuildRoot", $resolvedBuildRoot
+        )
+
+        if ($AllowMissingAex -or $SkipAegp) {
+            $packageParams["AllowMissingAex"] = $true
+            $packageArgsForLog += "-AllowMissingAex"
+        }
+
+        Write-Host ("> {0} {1}" -f $packageScript, ($packageArgsForLog -join " "))
+        & $packageScript @packageParams
+    } else {
+        Write-Host "Skipping packaging (-SkipPackage)."
     }
 
-    Write-Host ("> {0} {1}" -f $packageScript, ($packageArgsForLog -join " "))
-    & $packageScript @packageParams
-} else {
-    Write-Host "Skipping packaging (-SkipPackage)."
+    Write-Host "Build pipeline completed."
+} finally {
+    if ($null -ne $buildLock) {
+        try {
+            $buildLock.Dispose()
+        } catch {}
+    }
+
+    if (Test-Path -LiteralPath $buildLockPath -PathType Leaf) {
+        Remove-Item -LiteralPath $buildLockPath -Force -ErrorAction SilentlyContinue
+    }
 }
-
-Write-Host "Build pipeline completed."
