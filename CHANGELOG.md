@@ -25,6 +25,7 @@
 - Build concurrency: `scripts/build.ps1` теперь использует lock-файл `dist/.build.lock` (exclusive file lock), чтобы параллельные build-процессы не конфликтовали по `dist` и вложенному packaging.
 - Build preflight: добавлен `scripts/preflight.ps1` (окружение/инструменты/env/доступ к `dist`) и обновлена build-документация с preflight-шагом перед one-button сборкой.
 - CI preflight: в `.github/workflows/ci-package.yml` добавлен строгий preflight-шаг `scripts/preflight.ps1 -Strict -SkipAegpChecks` перед packaging build, а `preflight.ps1` выровнен с `build.ps1` по dotnet cache-переменным (`DOTNET_CLI_HOME`/`NUGET_PACKAGES` в `dist/_build/tools`), чтобы убрать ложные WARN из-за недоступного user-home.
+- CI policy guard: в `ci-package.yml` и `release-package.yml` добавлена проверка, что `dist/` не содержит tracked-файлов (`git ls-files -- dist`), чтобы enforce-ить правило “dist = build output only”.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
 - Branding: после `Create Branding` принудительный пересчет `subtitle_BG` сохраняется (host + fallback), чтобы не терялся после правок логики head_topic.

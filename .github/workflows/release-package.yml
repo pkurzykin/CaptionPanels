@@ -12,6 +12,15 @@ jobs:
       - name: Checkout dev repo
         uses: actions/checkout@v4
 
+      - name: Policy guard (dist must be untracked)
+        shell: pwsh
+        run: |
+          $trackedDist = git ls-files -- dist
+          if (-not [string]::IsNullOrWhiteSpace($trackedDist)) {
+            Write-Host $trackedDist
+            throw "Policy violation: dist/ contains tracked files. dist/ must remain build output only."
+          }
+
       - name: Package plugin
         shell: pwsh
         run: .\\scripts\\package_release.ps1 -Version $env:GITHUB_REF_NAME

@@ -17,6 +17,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Policy guard (dist must be untracked)
+        shell: pwsh
+        run: |
+          $trackedDist = git ls-files -- dist
+          if (-not [string]::IsNullOrWhiteSpace($trackedDist)) {
+            Write-Host $trackedDist
+            throw "Policy violation: dist/ contains tracked files. dist/ must remain build output only."
+          }
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:

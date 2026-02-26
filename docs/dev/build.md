@@ -101,6 +101,7 @@ Preflight-проверка окружения:
 - Workflow: `.github/workflows/ci-package.yml`.
 - Триггеры: `pull_request` (если изменяются `scripts/**`, `cep_src/**`, `tools/**`) и `workflow_dispatch`.
 - В CI используется:
+  - policy guard: `dist/` не должен содержать tracked-файлы (`git ls-files -- dist` должен быть пустым);
   - `scripts/preflight.ps1 -Strict -SkipAegpChecks`
   - `scripts/build.ps1 -Configuration Release -SkipAegp -AllowMissingAex`
   - проверка обязательного layout в `dist/CaptionPanels`
