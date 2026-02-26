@@ -131,6 +131,11 @@
             addCandidate(toolRoots[i] + "/word2json/word2json.exe");
         }
 
+        // Legacy direct locations (kept for backward compatibility).
+        addCandidate("C:/AE/word2json/word2json.exe");
+        addCandidate("C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe");
+        addCandidate("C:/CaptionPanelsLocal/CaptionPanelsTools/word2json/word2json.exe");
+
         for (var j = 0; j < candidates.length; j++) {
             var p = candidates[j];
             checked.push(p);
@@ -530,6 +535,30 @@
             var logPath = logsDir + "/word2json_last.log";
             var processLogPath = logsDir + "/word2json_process_last.log";
             var stagedInputPath = "";
+            var runRef = null;
+            var runManifestPath = "";
+            var runId = safeBase + "_" + _timestamp();
+
+            try {
+                if (typeof cpRunCreate === "function") {
+                    runRef = cpRunCreate("word_import", {
+                        runId: runId,
+                        inputs: {
+                            docxPath: _normalizePath(docxPath)
+                        },
+                        outputs: {
+                            outJsonPath: _normalizePath(outJsonPath),
+                            logPath: _normalizePath(logPath),
+                            processLogPath: _normalizePath(processLogPath)
+                        },
+                        meta: {
+                            configPath: String(getConfigPath ? getConfigPath() : "")
+                        }
+                    });
+                    if (runRef && runRef.manifestPath) runManifestPath = String(runRef.manifestPath || "");
+                    if (runRef && typeof cpRunUpdate === "function") cpRunUpdate(runRef, { stage: "convert" });
+                }
+            } catch (eRunCreate) {}
 
             // Normalize to forward slashes for cmd quoting stability.
             var exeCmd = _normalizePath(exePath);
@@ -556,7 +585,24 @@
 
             if (stagedInputPath) {
                 docCmd = stagedInputPath;
+                try {
+                    if (runRef && typeof cpRunUpdate === "function") {
+                        cpRunUpdate(runRef, {
+                            stage: "convert",
+                            inputs: { docxStagedPath: _normalizePath(stagedInputPath) }
+                        });
+                    }
+                } catch (eRunStage1) {}
             } else if (String(docCmd || "").indexOf("//") === 0 || _containsNonAscii(docCmd)) {
+                try {
+                    if (runRef && typeof cpRunFinalize === "function") {
+                        cpRunFinalize(runRef, "failed", {
+                            stage: "prepare",
+                            error: "Cannot stage DOCX to local temp path",
+                            result: { reason: "staging_failed" }
+                        });
+                    }
+                } catch (eRunStage2) {}
                 return respondErr("Cannot stage DOCX to local temp path. Check access to: " + outDir);
             }
 
@@ -585,7 +631,21 @@
                 var fail = "word2json failed (exit=" + String(run.exitCode) + ")";
                 fail += "\nlog=" + logPath;
                 if (run.processLogPath) fail += "\nprocessLog=" + run.processLogPath;
+                if (runManifestPath) fail += "\nrunManifest=" + runManifestPath;
                 fail += "\nOutput:\n" + String(output || "");
+                try {
+                    if (runRef && typeof cpRunFinalize === "function") {
+                        cpRunFinalize(runRef, "failed", {
+                            stage: "convert",
+                            error: "word2json failed",
+                            result: { exitCode: Number(run.exitCode) || 0 },
+                            outputs: {
+                                logPath: _normalizePath(logPath),
+                                processLogPath: _normalizePath(run.processLogPath || "")
+                            }
+                        });
+                    }
+                } catch (eRunFail1) {}
                 return respondErr(fail);
             }
 
@@ -594,13 +654,28 @@
                 // Include converter output + log path to help debugging.
                 var msg = "word2json did not produce JSON.";
                 msg += "\nlog=" + logPath;
+                if (runManifestPath) msg += "\nrunManifest=" + runManifestPath;
                 msg += "\nOutput:\n" + String(output || "");
+                try {
+                    if (runRef && typeof cpRunFinalize === "function") {
+                        cpRunFinalize(runRef, "failed", {
+                            stage: "convert",
+                            error: "word2json did not produce JSON",
+                            result: { reason: "missing_output" },
+                            outputs: {
+                                outJsonPath: _normalizePath(outJsonPath),
+                                logPath: _normalizePath(logPath)
+                            }
+                        });
+                    }
+                } catch (eRunFail2) {}
                 return respondErr(msg);
             }
 
             // Reuse existing JSON import pipeline.
             var res = "";
             try {
+                try { if (runRef && typeof cpRunUpdate === "function") cpRunUpdate(runRef, { stage: "import" }); } catch (eRunImpStage) {}
                 res = importJsonFromFile(outJsonPath);
             } catch (eImp) {
                 var impMsg = "";
@@ -620,6 +695,17 @@
                 msg += "\nconfig=" + String(getConfigPath ? getConfigPath() : "");
                 msg += "\noutJson=" + String(outJsonPath || "");
                 msg += "\nexe=" + String(exePath || "");
+                if (runManifestPath) msg += "\nrunManifest=" + runManifestPath;
+                try {
+                    if (runRef && typeof cpRunFinalize === "function") {
+                        cpRunFinalize(runRef, "failed", {
+                            stage: "import",
+                            error: impMsg,
+                            result: { reason: "import_exception" },
+                            outputs: { outJsonPath: _normalizePath(outJsonPath) }
+                        });
+                    }
+                } catch (eRunFail3) {}
                 return respondErr(msg);
             }
 
@@ -638,7 +724,19 @@
                     errMsg += "\noutJson=" + String(outJsonPath || "");
                     errMsg += "\nexe=" + String(exePath || "");
                     errMsg += "\nlog=" + String(logPath || "");
+                    if (runManifestPath) errMsg += "\nrunManifest=" + runManifestPath;
                     obj.error = errMsg;
+
+                    try {
+                        if (runRef && typeof cpRunFinalize === "function") {
+                            cpRunFinalize(runRef, "failed", {
+                                stage: "import",
+                                error: String(obj.error || "Import failed"),
+                                result: { reason: "import_response_error" },
+                                outputs: { outJsonPath: _normalizePath(outJsonPath) }
+                            });
+                        }
+                    } catch (eRunFail4) {}
 
                     if (typeof JSON !== "undefined" && JSON.stringify) {
                         return JSON.stringify(obj);
@@ -646,6 +744,43 @@
                     return respondErr(obj.error);
                 }
             } catch (eAnn) {}
+
+            try {
+                var parsedOk = _parseJsonSafe(res);
+                if (parsedOk && parsedOk.ok) {
+                    var resultObj = (parsedOk.result && typeof parsedOk.result === "object") ? parsedOk.result : {};
+                    resultObj.runId = runId;
+                    if (runManifestPath) resultObj.runManifestPath = runManifestPath;
+                    parsedOk.result = resultObj;
+
+                    try {
+                        if (runRef && typeof cpRunFinalize === "function") {
+                            cpRunFinalize(runRef, "completed", {
+                                stage: "done",
+                                outputs: {
+                                    outJsonPath: _normalizePath(outJsonPath),
+                                    logPath: _normalizePath(logPath)
+                                },
+                                result: {
+                                    ok: true,
+                                    source: String(resultObj.source || ""),
+                                    speakers: Number((resultObj.speakers && resultObj.speakers.length) || 0)
+                                }
+                            });
+                        }
+                    } catch (eRunDone) {}
+
+                    if (typeof JSON !== "undefined" && JSON.stringify) {
+                        return JSON.stringify(parsedOk);
+                    }
+                }
+            } catch (eWrap) {}
+
+            try {
+                if (runRef && typeof cpRunFinalize === "function") {
+                    cpRunFinalize(runRef, "completed", { stage: "done" });
+                }
+            } catch (eRunDone2) {}
 
             return res;
 
@@ -657,6 +792,15 @@
                 msg = "Unknown error";
             }
             if (!msg) msg = "Unknown error";
+            try {
+                if (typeof runRef !== "undefined" && runRef && typeof cpRunFinalize === "function") {
+                    cpRunFinalize(runRef, "failed", {
+                        stage: "fatal",
+                        error: msg,
+                        result: { reason: "exception" }
+                    });
+                }
+            } catch (eRunFatal) {}
             return respondErr(msg);
         }
     };

@@ -39,11 +39,14 @@ function _formatWhisperAutoTimingSummary(res) {
     var msg = "WhisperX Auto Timing done.";
     if (r.videoPath) msg += "\nVideo: " + r.videoPath;
     if (r.blocksPath) msg += "\nBlocks: " + r.blocksPath;
+    if (r.runManifestPath) msg += "\nRun manifest: " + r.runManifestPath;
     if (r.whisperxJson) msg += "\nWhisperX JSON: " + r.whisperxJson;
     if (r.alignmentPath) msg += "\nAlignment: " + r.alignmentPath;
+    if (r.applyReportPath) msg += "\nApply report: " + r.applyReportPath;
     if (r.whisperxDeviceMode) msg += "\nWhisperX device mode: " + r.whisperxDeviceMode;
     if (r.whisperxDeviceRequested) msg += "\nWhisperX device requested: " + r.whisperxDeviceRequested;
     if (r.whisperxDeviceUsed) msg += "\nWhisperX device used: " + r.whisperxDeviceUsed;
+    if (typeof r.whisperxOfflineOnly !== "undefined") msg += "\nWhisperX offline only: " + (r.whisperxOfflineOnly ? "true" : "false");
 
     if (r.whisperxArgs) msg += "\nWhisperX args: " + r.whisperxArgs;
     if (r.whisperxArgsIgnored && r.whisperxArgsIgnored.length) msg += "\nWhisperX ignored: " + r.whisperxArgsIgnored.join(", ");
@@ -51,6 +54,12 @@ function _formatWhisperAutoTimingSummary(res) {
     if (typeof r.whisperxTimeShiftSuggestedSec !== "undefined") msg += "\nTime shift suggested (sec): " + r.whisperxTimeShiftSuggestedSec;
     if (r.whisperxOnsetBiasSec && typeof r.whisperxOnsetBiasSec === "object") {
         msg += "\nOnset bias (sec): median=" + (r.whisperxOnsetBiasSec.median || 0) + " p90=" + (r.whisperxOnsetBiasSec.p90 || 0) + " n=" + (r.whisperxOnsetBiasSec.count || 0);
+    }
+    if (r.preflightWarnings && r.preflightWarnings.length) {
+        msg += "\nPreflight warnings:";
+        for (var wi = 0; wi < r.preflightWarnings.length; wi++) {
+            msg += "\n" + String(r.preflightWarnings[wi] || "");
+        }
     }
 
     if (typeof a.total !== "undefined") msg += "\nTotal: " + (a.total || 0);
@@ -70,6 +79,39 @@ function _formatWhisperAutoTimingSummary(res) {
     if (r.whisperxLog) msg += "\nwhisperx log: " + r.whisperxLog;
     if (r.alignLog) msg += "\nalign log: " + r.alignLog;
 
+    return msg;
+}
+
+function _formatRerunAlignmentSummary(res) {
+    var r = (res && typeof res === "object") ? res : {};
+    var a = (r.apply && typeof r.apply === "object") ? r.apply : {};
+
+    var msg = "Re-run Alignment done.";
+    if (r.sourceRunId) msg += "\nSource run: " + r.sourceRunId;
+    if (r.runManifestPath) msg += "\nRun manifest: " + r.runManifestPath;
+    if (r.blocksPath) msg += "\nBlocks: " + r.blocksPath;
+    if (r.whisperxJson) msg += "\nWhisperX JSON: " + r.whisperxJson;
+    if (r.alignmentPath) msg += "\nAlignment: " + r.alignmentPath;
+    if (r.applyReportPath) msg += "\nApply report: " + r.applyReportPath;
+
+    if (typeof a.total !== "undefined") msg += "\nTotal: " + (a.total || 0);
+    if (typeof a.applied !== "undefined") msg += "\nApplied: " + (a.applied || 0);
+    if (typeof a.matched !== "undefined") msg += " / matched " + (a.matched || 0);
+    if (a.unmatchedCount) msg += "\nUnmatched (ASR): " + a.unmatchedCount;
+    if (a.missingCount) msg += "\nMissing segId: " + a.missingCount;
+    if (a.invalidCount) msg += "\nInvalid: " + a.invalidCount;
+    if (a.errorCount) msg += "\nErrors: " + a.errorCount;
+    if (a.reasonStats) {
+        msg += "\n\nSkipped reasons:";
+        msg += _formatReasonStats(a.reasonStats, 10);
+    }
+    if (r.preflightWarnings && r.preflightWarnings.length) {
+        msg += "\nPreflight warnings:";
+        for (var wi = 0; wi < r.preflightWarnings.length; wi++) {
+            msg += "\n" + String(r.preflightWarnings[wi] || "");
+        }
+    }
+    if (r.alignLog) msg += "\nalign log: " + r.alignLog;
     return msg;
 }
 
@@ -139,58 +181,6 @@ function _formatTimingsApplySummary(res) {
     return msg;
 }
 
-// Local parser that does NOT depend on app_core.js parseAeResult().
-// This makes the button robust even if the bridge returns objects.
-function _parseHostResponse(res) {
-    if (res && typeof res === "object") {
-        if (typeof res.ok !== "undefined") {
-            if (typeof res.error === "undefined") res.error = "";
-            if (typeof res.result === "undefined") res.result = "";
-            return res;
-        }
-        return { ok: true, error: "", result: res };
-    }
-
-    var s = String(res || "");
-    var t = s.trim();
-
-    if (t && t[0] === "{") {
-        try {
-            var obj = JSON.parse(t);
-            if (obj && typeof obj.ok !== "undefined") return obj;
-        } catch (e) {}
-    }
-
-    if (t.indexOf("Error:") === 0) {
-        return { ok: false, error: t.slice("Error:".length).trim(), result: "" };
-    }
-    if (t === "Error") {
-        return { ok: false, error: t, result: "" };
-    }
-
-    if (t === "OK") {
-        return { ok: true, error: "", result: t };
-    }
-
-    return { ok: true, error: "", result: s };
-}
-
-function _evalAeRaw(cmd, cb) {
-    try {
-        csInterface.evalScript(cmd, function (res) {
-            cb(res);
-        });
-    } catch (e) {
-        cb("Error: " + (e && e.message ? e.message : String(e)));
-    }
-}
-
-function _evalAe(cmd, cb) {
-    _evalAeRaw(cmd, function (raw) {
-        cb(_parseHostResponse(raw), raw);
-    });
-}
-
 function _startAutoTimingProgress() {
     var dots = 0;
     var t0 = Date.now();
@@ -235,6 +225,47 @@ function _startAutoTimingProgress() {
     };
 }
 
+function _startRerunAlignmentProgress() {
+    var dots = 0;
+    var t0 = Date.now();
+    showTaskProgress("Re-run Alignment", "Preparing...");
+    updateTaskProgress(5, "Preparing...");
+
+    var timer = setInterval(function () {
+        var sec = (Date.now() - t0) / 1000.0;
+        var pct = 5;
+        var caption = "Preparing...";
+
+        if (sec < 3) {
+            pct = 5 + sec * 12; // 5..41
+            caption = "Reading latest run artifacts...";
+        } else if (sec < 12) {
+            pct = 41 + (sec - 3) * 4.5; // 41..81
+            caption = "Running alignment...";
+        } else if (sec < 22) {
+            pct = 81 + (sec - 12) * 1.3; // 81..94
+            caption = "Applying timings in After Effects...";
+        } else {
+            pct = 94;
+            dots = (dots + 1) % 4;
+            caption = "Finalizing" + Array(dots + 1).join(".");
+        }
+
+        if (pct > 95) pct = 95;
+        updateTaskProgress(pct, caption);
+    }, 450);
+
+    return function (ok) {
+        clearInterval(timer);
+        if (ok) {
+            updateTaskProgress(100, "Done.");
+            setTimeout(function () { hideTaskProgress(); }, 250);
+        } else {
+            hideTaskProgress();
+        }
+    };
+}
+
 function initAutoTimingUI() {
     attachClick("btn-auto-timing-whisperx", function () {
         var btn = document.getElementById("btn-auto-timing-whisperx");
@@ -246,7 +277,7 @@ function initAutoTimingUI() {
 
         var stopProgress = _startAutoTimingProgress();
 
-        _evalAe("autoTimingRunWhisperXAndApply()", function (out, raw) {
+        callHost("autoTimingRunWhisperXAndApply", [], { module: "autoTiming", timeoutMs: 0 }, function (out) {
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = prevText;
@@ -277,6 +308,50 @@ function initAutoTimingUI() {
 
             try { stopProgress(true); } catch (eP2) {}
             uiAlert(_formatWhisperAutoTimingSummary(r));
+        });
+    });
+
+    attachClick("btn-rerun-alignment", function () {
+        var btn = document.getElementById("btn-rerun-alignment");
+        var prevText = btn ? btn.textContent : "";
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "Running...";
+        }
+
+        var stopProgress = _startRerunAlignmentProgress();
+
+        callHost("autoTimingRerunAlignmentAndApply", [], { module: "autoTiming", timeoutMs: 0 }, function (out) {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = prevText;
+            }
+
+            if (!out || !out.ok) {
+                try { stopProgress(false); } catch (eP0) {}
+                var err = out && out.error ? String(out.error) : "Unknown error";
+                if (err === "CANCELLED") return;
+                uiAlert("Re-run Alignment failed.\n" + err);
+                try { logUiError("autoTiming.rerun", err); } catch (eLog) {}
+                return;
+            }
+
+            var r = out.result;
+            if (typeof r === "string") {
+                var rt = String(r || "").trim();
+                if (rt && rt[0] === "{") {
+                    try { r = JSON.parse(rt); } catch (eJ) {}
+                }
+            }
+
+            if (!r || typeof r !== "object") {
+                try { stopProgress(false); } catch (eP1) {}
+                uiAlert("Re-run Alignment: unexpected host result");
+                return;
+            }
+
+            try { stopProgress(true); } catch (eP2) {}
+            uiAlert(_formatRerunAlignmentSummary(r));
         });
     });
 }

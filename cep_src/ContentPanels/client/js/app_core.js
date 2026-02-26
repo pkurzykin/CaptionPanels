@@ -33,7 +33,7 @@ if (!csInterface) {
     };
 }
 
-var UI_VERSION = "2.3.3";
+var UI_VERSION = "2.4.1";
 
 function buildJob(type, payload) {
     return {
@@ -157,6 +157,16 @@ function normalizeSpeakerText(txt) {
     return String(txt || "").replace(/\r\n|\r/g, "\n").trim();
 }
 
+function isModalDialogBusyError(text) {
+    var t = String(text || "").toLowerCase();
+    if (!t) return false;
+    return (
+        (t.indexOf("modal dialog") !== -1 && t.indexOf("waiting response") !== -1) ||
+        (t.indexOf("cannot run a script") !== -1 && t.indexOf("modal dialog") !== -1) ||
+        (t.indexOf("can not run a script") !== -1 && t.indexOf("modal dialog") !== -1)
+    );
+}
+
 function parseAeResult(res) {
     // WebView2 bridge can return a non-string result; normalize it here.
     if (res && typeof res === "object") {
@@ -184,6 +194,9 @@ function parseAeResult(res) {
     if (t === "Error") {
         return { ok: false, error: t, result: "" };
     }
+    if (isModalDialogBusyError(t)) {
+        return { ok: false, error: t, result: "" };
+    }
 
     if (t === "OK") {
         return { ok: true, error: "", result: t };
@@ -199,6 +212,136 @@ function aeCall(cmd, cb) {
             if (typeof cb === "function") cb(out);
             resolve(out);
         });
+    });
+}
+
+var __hostRequestSeq = 1;
+var __hostCallHistory = [];
+
+function getHostCallHistory(limit) {
+    var n = Number(limit);
+    if (isNaN(n) || n <= 0) n = 20;
+    var start = Math.max(0, __hostCallHistory.length - n);
+    return __hostCallHistory.slice(start);
+}
+
+function _buildHostCallScript(fnName, args) {
+    var fn = String(fnName || "").replace(/^\s+|\s+$/g, "");
+    if (!fn) throw new Error("Empty host function name");
+
+    var a = (args instanceof Array) ? args : (typeof args === "undefined" ? [] : [args]);
+    var parts = [];
+    for (var i = 0; i < a.length; i++) {
+        parts.push(JSON.stringify(a[i]));
+    }
+    return fn + "(" + parts.join(",") + ")";
+}
+
+// Phase-1 host wrapper (roadmap 1.1): keeps old aeCall behavior,
+// but attaches request metadata for deterministic diagnostics.
+function callHost(fnName, args, opts, cb) {
+    var o = opts || {};
+    var requestId = "req_" + (__hostRequestSeq++);
+    var startedAt = Date.now();
+    var script = "";
+    var modalRetryDelaysMs = [300, 600, 1000, 1500, 1500];
+
+    try {
+        if (o.rawScript) {
+            script = String(o.rawScript);
+        } else {
+            script = _buildHostCallScript(fnName, args);
+        }
+    } catch (eBuild) {
+        var fail = {
+            ok: false,
+            error: "callHost build error: " + (eBuild && eBuild.message ? eBuild.message : String(eBuild)),
+            result: "",
+            requestId: requestId,
+            ts: new Date(startedAt).toISOString(),
+            module: String(o.module || ""),
+            fn: String(fnName || "")
+        };
+        if (typeof cb === "function") cb(fail);
+        return Promise.resolve(fail);
+    }
+
+    var timeoutMs = Number(o.timeoutMs);
+    if (isNaN(timeoutMs) || timeoutMs < 0) timeoutMs = 0;
+
+    return new Promise(function (resolve) {
+        var done = false;
+        var timer = null;
+
+        function finish(res) {
+            if (done) return;
+            done = true;
+            if (timer) clearTimeout(timer);
+            try {
+                __hostCallHistory.push({
+                    requestId: String(res.requestId || ""),
+                    ts: String(res.ts || ""),
+                    module: String(res.module || ""),
+                    fn: String(res.fn || ""),
+                    ok: !!res.ok,
+                    error: String(res.error || ""),
+                    durationMs: Number(res.durationMs || 0)
+                });
+                if (__hostCallHistory.length > 100) {
+                    __hostCallHistory.splice(0, __hostCallHistory.length - 100);
+                }
+            } catch (eHist) {}
+            if (typeof cb === "function") cb(res);
+            resolve(res);
+        }
+
+        if (timeoutMs > 0) {
+            timer = setTimeout(function () {
+                finish({
+                    ok: false,
+                    error: "Host call timeout (" + timeoutMs + " ms)",
+                    result: "",
+                    requestId: requestId,
+                    ts: new Date(startedAt).toISOString(),
+                    module: String(o.module || ""),
+                    fn: String(fnName || ""),
+                    durationMs: Date.now() - startedAt
+                });
+            }, timeoutMs);
+        }
+
+        function maybeRetryOrFinish(out, attemptNo) {
+            var res = out || { ok: false, error: "Unknown host response", result: "" };
+            var canRetry =
+                !res.ok &&
+                (isModalDialogBusyError(res.error) || isModalDialogBusyError(res.result)) &&
+                attemptNo <= modalRetryDelaysMs.length;
+
+            if (canRetry) {
+                var delayMs = modalRetryDelaysMs[attemptNo - 1];
+                setTimeout(function () {
+                    runAttempt(attemptNo + 1);
+                }, delayMs);
+                return;
+            }
+
+            res.requestId = requestId;
+            res.ts = new Date(startedAt).toISOString();
+            res.module = String(o.module || "");
+            res.fn = String(fnName || "");
+            res.durationMs = Date.now() - startedAt;
+            finish(res);
+        }
+
+        function runAttempt(attemptNo) {
+            if (done) return;
+            aeCall(script).then(function (out) {
+                if (done) return;
+                maybeRetryOrFinish(out, attemptNo);
+            });
+        }
+
+        runAttempt(1);
     });
 }
 

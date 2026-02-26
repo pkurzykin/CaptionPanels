@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://captionpanels.local/schemas/alignment.schema.json",
+  "title": "CaptionPanels Alignment JSON",
+  "type": "object",
+  "required": ["schemaVersion", "blocks"],
+  "properties": {
+    "schemaVersion": { "type": "number" },
+    "source": {
+      "type": "object",
+      "properties": {
+        "engine": { "type": "string" },
+        "language": { "type": "string" },
+        "media": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "padEndFrames": { "type": "number" },
+        "minDurationFrames": { "type": "number" },
+        "minGapFrames": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["segId", "start", "end"],
+        "properties": {
+          "segId": { "type": "string", "minLength": 1 },
+          "start": { "type": "number" },
+          "end": { "type": "number" },
+          "confidence": { "type": "number" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "unmatched": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "segId": { "type": "string" },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

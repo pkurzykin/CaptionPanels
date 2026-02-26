@@ -12,6 +12,7 @@
     var HEAD_LAYER_PREFIX   = "HEAD_TOPIC"; // метка для удаления/пересоздания
     var HEAD_LAYER_PREFIX_OLD = "__NH_HEADTOPIC__";
     var HEAD_LABEL = 10; // Purple (default label index)
+    var GEOTAG_LABEL = 12; // Brown (default label index)
 
     // --------- helpers ---------
     function _ensureActiveComp() {
@@ -97,6 +98,133 @@
         // регулярные слои субтитров: Sub_VOICEOVER_...
         if (!layer) return false;
         return (layer.name && layer.name.indexOf("Sub_VOICEOVER_") === 0);
+    }
+
+    function _isSubtitleLayerName(name) {
+        var s = String(name || "");
+        return (s.indexOf("Sub_VOICEOVER_") === 0) || (s.indexOf("Sub_SYNCH_") === 0);
+    }
+
+    function _refreshSubtitleBgFallback(comp) {
+        if (!comp) return false;
+
+        var BG_NAME = "subtitle_BG";
+        var BG_PREFIX = "subtitle_BG_";
+        var GAP_SEC = 3.0;
+        try {
+            var gv = Number(getConfigValue("subtitleBgGapSec", 3.0));
+            if (!isNaN(gv) && gv >= 0 && gv <= 10) GAP_SEC = gv;
+        } catch (eG) {}
+        if (GAP_SEC < 3.0) GAP_SEC = 3.0;
+
+        var bg = null;
+        try { bg = comp.layer(BG_NAME); } catch (e0) { bg = null; }
+        if (!bg) {
+            for (var i = 1; i <= comp.numLayers; i++) {
+                var l0 = comp.layer(i);
+                if (l0 && l0.name && String(l0.name).indexOf(BG_PREFIX) === 0) {
+                    bg = l0;
+                    try { bg.name = BG_NAME; } catch (eRn) {}
+                    break;
+                }
+            }
+        }
+        if (!bg) return false;
+
+        for (var r = comp.numLayers; r >= 1; r--) {
+            var lr = comp.layer(r);
+            if (lr && lr.name && String(lr.name).indexOf(BG_PREFIX) === 0) {
+                try { lr.remove(); } catch (eRm) {}
+            }
+        }
+
+        var subs = [];
+        for (var s = 1; s <= comp.numLayers; s++) {
+            var sl = comp.layer(s);
+            if (!sl || !_isSubtitleLayerName(sl.name)) continue;
+            subs.push({
+                layer: sl,
+                start: Number(sl.inPoint) || 0,
+                end: Number(sl.outPoint) || 0
+            });
+        }
+        subs.sort(function (a, b) {
+            return (a.start === b.start) ? (a.end - b.end) : (a.start - b.start);
+        });
+
+        var groups = [];
+        if (subs.length > 0) {
+            var gs = subs[0].start;
+            var ge = subs[0].end;
+            for (var k = 1; k < subs.length; k++) {
+                var ss = subs[k].start;
+                var ee = subs[k].end;
+                if (ss - ge > GAP_SEC) {
+                    groups.push({ start: gs, end: ge });
+                    gs = ss;
+                    ge = ee;
+                } else {
+                    if (ee > ge) ge = ee;
+                }
+            }
+            groups.push({ start: gs, end: ge });
+        }
+
+        if (groups.length === 0) {
+            bg.inPoint = comp.time;
+            bg.outPoint = comp.time;
+            bg.startTime = comp.time;
+            return true;
+        }
+
+        for (var g = 0; g < groups.length; g++) {
+            var grp = groups[g];
+            var layer = bg;
+            if (g > 0) {
+                layer = bg.duplicate();
+                layer.name = BG_PREFIX + (g + 1);
+            }
+
+            layer.startTime = grp.start;
+            layer.inPoint = grp.start;
+            layer.outPoint = grp.end;
+
+            var anchor = null;
+            for (var j = 1; j <= comp.numLayers; j++) {
+                var la = comp.layer(j);
+                if (!la || !_isSubtitleLayerName(la.name)) continue;
+                var inP = Number(la.inPoint) || 0;
+                if (inP < grp.start || inP > grp.end) continue;
+                if (!anchor || la.index > anchor.index) anchor = la;
+            }
+            if (anchor) {
+                try { layer.moveAfter(anchor); } catch (eMv) {}
+            }
+        }
+
+        return true;
+    }
+
+    function _refreshSubtitleBgAfterBranding(comp) {
+        var ok = false;
+        try {
+            if (typeof loadModule === "function") loadModule("subtitles.jsx");
+        } catch (eLm) {}
+
+        try {
+            if (typeof _updateSubtitleBg === "function") {
+                _updateSubtitleBg(comp);
+                ok = true;
+            }
+        } catch (eUp) {
+            ok = false;
+        }
+
+        if (!ok) {
+            try { ok = _refreshSubtitleBgFallback(comp); } catch (eFb) { ok = false; }
+        }
+
+        return ok;
     }
 
     function _parseSubLayerNameInfo(name) {
@@ -198,6 +326,17 @@
         return first;
     }
 
+    function _findLastRegularLayer(comp) {
+        var last = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (_isRegularSubLayer(l)) {
+                if (!last || l.outPoint > last.outPoint) last = l;
+            }
+        }
+        return last;
+    }
+
     function _findLastRegularLayerInRange(comp, startTime, endTime) {
         var last = null;
         var EPS = 1.0 / 60.0;
@@ -247,36 +386,108 @@
         return (srcName.indexOf("geotag_") === 0) || (layerName.indexOf("geotag_") === 0);
     }
 
-    function _findPrevGeotagOut(comp, t, afterTime) {
+    function _findGeotagEndForGroup(comp, groupStart, afterTime) {
         var EPS = 1.0 / 60.0;
         var hasAfter = (typeof afterTime === "number");
         var best = null;
-        var bestOut = -1;
+        var bestStart = -999999;
+        var groups = _collectRegularGroups(comp);
+        var groupEnd = groupStart;
+        for (var gi = 0; gi < groups.length; gi++) {
+            if (Math.abs(Number(groups[gi].start) - Number(groupStart)) <= EPS) {
+                groupEnd = Number(groups[gi].end) || groupStart;
+                break;
+            }
+        }
         for (var i = 1; i <= comp.numLayers; i++) {
             var l = comp.layer(i);
             if (!_isGeotagLayer(l)) continue;
-            var out = Number(l.outPoint) || 0;
-            if (out > t + EPS) continue;
-            if (hasAfter && out <= afterTime + EPS) continue;
-            if (out > bestOut) {
-                bestOut = out;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) continue;
+            // Geotag belongs to this group if it starts before/equal end of the group.
+            // This keeps "first geotag -> first head_topic" even when geotag is inside VO range.
+            if (st > groupEnd + EPS) continue;
+            // ...and after previous group, if provided.
+            if (hasAfter && st <= afterTime + EPS) continue;
+            if (st > bestStart) {
+                bestStart = st;
                 best = l;
             }
         }
         return best ? (Number(best.outPoint) || null) : null;
     }
 
-    function _findFirstSynchStartAfter(comp, t) {
+    function _findFirstSynchAfter(comp, t) {
         var EPS = 1.0 / 60.0;
         var best = null;
         for (var i = 1; i <= comp.numLayers; i++) {
             var l = comp.layer(i);
             if (!l || !l.name || l.name.indexOf("Sub_SYNCH_") !== 0) continue;
             var st = Number(l.inPoint) || 0;
+            var en = Number(l.outPoint) || 0;
             if (st + EPS < t) continue;
+            if (!best || st < best.start) {
+                best = { start: st, end: en };
+            }
+        }
+        return best;
+    }
+
+    function _collectSynchLayersSorted(comp) {
+        var out = [];
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !l.name || l.name.indexOf("Sub_SYNCH_") !== 0) continue;
+            out.push({ start: Number(l.inPoint) || 0, end: Number(l.outPoint) || 0, layer: l });
+        }
+        out.sort(function (a, b) {
+            return (a.start === b.start) ? (a.end - b.end) : (a.start - b.start);
+        });
+        return out;
+    }
+
+    function _findLayerStartByName(comp, layerName) {
+        if (!comp || !layerName) return null;
+        try {
+            var l = comp.layer(layerName);
+            if (!l) return null;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) return null;
+            return st;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function _findLayerStartByBatch(comp, typeUpper, batchNum) {
+        if (!comp) return null;
+        var type = String(typeUpper || "").toUpperCase();
+        var batch = Number(batchNum) || 0;
+        if (!type || batch <= 0) return null;
+
+        var prefix = "Sub_" + type + "_" + String(batch) + "_";
+        var best = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !l.name || String(l.name).indexOf(prefix) !== 0) continue;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) continue;
             if (best === null || st < best) best = st;
         }
         return best;
+    }
+
+    function _findNextRegularGroupStartAfter(comp, afterTime) {
+        var groups = _collectRegularGroups(comp);
+        var t = Number(afterTime);
+        if (isNaN(t)) t = -999999;
+        var EPS = 1.0 / 60.0;
+        for (var i = 0; i < groups.length; i++) {
+            var st = Number(groups[i].start);
+            if (isNaN(st)) continue;
+            if (st > t + EPS) return st;
+        }
+        return null;
     }
 
     // =====================================================
@@ -307,6 +518,7 @@
 
         var layer = comp.layers.add(copy);
         layer.startTime = comp.time;
+        try { layer.label = GEOTAG_LABEL; } catch (eLbl) {}
         _applyFadeOutOpacityExpr(layer, 0.5);
         // Геотег должен быть ниже первого блока субтитров (вниз перед первым)
         var firstSub = _findFirstRegularLayer(comp);
@@ -329,22 +541,20 @@
         }
         if (!(arr instanceof Array)) return respondErr("Invalid geotags list");
 
-        var t0 = comp.time;
+        var t0 = Number(comp.time) || 0;
+        var tpl = _findCompByName("geotag");
+        var geotagDur = tpl ? (Number(tpl.duration) || 0) : 0;
+        var nextStart = t0;
+
         for (var i = 0; i < arr.length; i++) {
             var g = arr[i] || {};
-
-            // First geotag is always placed at current playhead (t0).
-            // Additional geotags are placed by their saved times.
-            if (i === 0) {
-                comp.time = t0;
-            } else {
-                var tt = Number(g.time);
-                if (!isNaN(tt)) comp.time = tt;
-            }
-
+            comp.time = nextStart;
             createGeotag(g.text || "");
+
+            // Additional geotags are placed sequentially (in butt-join) after the first one.
+            if (geotagDur > 0) nextStart += geotagDur;
         }
-        comp.time = t0;
+        comp.time = Number(t0) || comp.time;
         return respondOk("OK");
     };
 
@@ -381,66 +591,59 @@
         // remove previous generated layers
         _removeGeneratedHeadLayers(comp);
 
-        // collect groups of regular subs
-    var groups = _collectRegularGroups(comp);
+        // Head-topic chain is built by SYNCH boundaries (not by geotag count):
+        // first starts at playhead, each next starts at previous synch end,
+        // each ends at next synch start.
+        var EPS = Math.max(1.0 / 60.0, Number(comp.frameDuration) || (1.0 / 25.0));
+        var MIN_DUR = EPS * 2;
+        var synchs = _collectSynchLayersSorted(comp);
+        var made = 0;
+        var firstStart = Number(comp.time) || 0;
+        var prevSynchEnd = null;
 
-    // FALLBACK: если нет regular-субтитров — создаём один head_topic по плейхеду
-        if (groups.length === 0) {
+        if (synchs.length > 0) {
+            for (var si = 0; si < synchs.length; si++) {
+                var syn = synchs[si];
+                var st = (si === 0) ? firstStart : ((prevSynchEnd !== null) ? prevSynchEnd : firstStart);
+                var en = Number(syn.start) || st;
+                var synEnd = Number(syn.end) || en;
 
-        var one = comp.layers.add(work);
-        one.name = HEAD_LAYER_PREFIX + "_PLAYHEAD";
-        try { one.label = HEAD_LABEL; } catch (e) {}
+                if ((en - st) > MIN_DUR) {
+                    var l = comp.layers.add(work);
+                    made++;
+                    l.name = HEAD_LAYER_PREFIX + "_" + made;
+                    try { l.label = HEAD_LABEL; } catch (eLbl) {}
+                    l.startTime = st;
+                    l.inPoint = st;
+                    l.outPoint = en;
+                    _applyFadeOutOpacityExpr(l, 0.5);
 
-        // строго по плейхеду
-        one.startTime = comp.time;
-        _applyFadeOutOpacityExpr(one, 0.5);
+                    // Размещаем head_topic под всем блоком субтитров
+                    var anchor = _findLowestRegularLayerInRange(comp, st, en);
+                    if (anchor) {
+                        try { l.moveAfter(anchor); } catch (eMv) {}
+                    }
+                }
 
-        // длительность НЕ трогаем — остаётся "как в шаблоне head_topic_WORK"
-
-        app.endUndoGroup();
-        return respondOk("OK");
-    }
-        // HEAD_TOPIC: first layer starts at the first subtitle block start (not playhead).
-
-        // create layers for each group
-        var prevGroupEnd = -999999;
-        for (var g = 0; g < groups.length; g++) {
-            var st = groups[g].start;
-            var en = groups[g].end;
-            var groupEndRaw = groups[g].end;
-            var EPS = 1.0 / 60.0;
-            var minDur = 1.0 / Math.max(1, Number(comp.frameRate) || 25);
-
-            // A) If there is a geotag between previous VO-group end and this group start,
-            // snap this head_topic start to geotag end.
-            // This handles head_topic_1 and any next "first group after geotag".
-            var geoOut = _findPrevGeotagOut(comp, st, prevGroupEnd);
-            if (geoOut !== null && !isNaN(geoOut)) st = geoOut;
-
-            // B) Prefer end at the first Sub_SYNCH start after this head_topic start.
-            var synStart = _findFirstSynchStartAfter(comp, st);
-            if (synStart !== null && (synStart > st + EPS)) en = synStart;
-
-            if (en <= st + EPS) en = st + minDur;
-
-            var l = comp.layers.add(work);
-            l.name = HEAD_LAYER_PREFIX + "_" + (g + 1);
-            try { l.label = HEAD_LABEL; } catch (e) {}
-            // start and duration match group
-            l.startTime = st;
-            l.inPoint = st;
-            l.outPoint = en;
-
-            _applyFadeOutOpacityExpr(l, 0.5);
-
-            // Размещаем head_topic под всем блоком субтитров
-            var anchor = _findLowestRegularLayerInRange(comp, st, en);
-            if (anchor) {
-                try { l.moveAfter(anchor); } catch (e) {}
+                if (synEnd > st + EPS) prevSynchEnd = synEnd;
             }
-
-            prevGroupEnd = groupEndRaw;
         }
+
+        // Fallback: no SYNCH blocks, but regular subtitles exist.
+        if (made === 0) {
+            var lastReg = _findLastRegularLayer(comp);
+            if (lastReg && ((Number(lastReg.outPoint) || 0) - firstStart > MIN_DUR)) {
+                var one = comp.layers.add(work);
+                one.name = HEAD_LAYER_PREFIX + "_1";
+                try { one.label = HEAD_LABEL; } catch (eLbl2) {}
+                one.startTime = firstStart;
+                one.inPoint = firstStart;
+                one.outPoint = Number(lastReg.outPoint) || firstStart;
+                _applyFadeOutOpacityExpr(one, 0.5);
+            }
+        }
+
+        try { _refreshSubtitleBgAfterBranding(comp); } catch (eBg1) {}
 
         app.endUndoGroup();
         return respondOk("OK");

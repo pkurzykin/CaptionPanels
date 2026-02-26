@@ -17,9 +17,12 @@ function getSpeakerData() {
 
 function triggerSpeakerPreview() {
     var d = getSpeakerData();
-    var cmd =
-    "updateSpeakerPreview(" + JSON.stringify(d.name) + "," + JSON.stringify(d.job) + "," + JSON.stringify(d.side) + "," + JSON.stringify(d.size) + "," + Number(d.bgOffset || 0) + "," + (d.soloTitle ? "true" : "false") + ")";
-    csInterface.evalScript(cmd);
+    callHost("updateSpeakerPreview", [d.name, d.job, d.side, d.size, Number(d.bgOffset || 0), !!d.soloTitle], { module: "speakers", timeoutMs: 10000 }, function (out) {
+        if (!out || !out.ok) {
+            var err = out && (out.error || out.result) ? String(out.error || out.result) : "Unknown error";
+            logUiError("speakers.preview", err);
+        }
+    });
 }
 
 function safeTriggerSpeakerPreview() {
@@ -150,8 +153,7 @@ function initSpeakersUI() {
                 return;
             }
 
-            var cmd = "addSpeakerToDb(" + JSON.stringify(name) + "," + JSON.stringify(job) + ")";
-            aeCall(cmd, function (out) {
+            callHost("addSpeakerToDb", [name, job], { module: "speakers", timeoutMs: 15000 }, function (out) {
                 var res = out.result || "";
                 if (out.ok && res === "OK") {
                     SPEAKERS_DB.push({ name: name, job: job });
@@ -176,9 +178,7 @@ function initSpeakersUI() {
     // Кнопка создания
     attachClick("btn-create-title", function () {
         var d = getSpeakerData();
-        var cmd =
-            "createSpeakerTitle(" + JSON.stringify(d.name) + "," + JSON.stringify(d.job) + "," + JSON.stringify(d.side) + "," + JSON.stringify(d.size) + "," + Number(d.bgOffset || 0) + "," + (d.soloTitle ? "true" : "false") + ")";
-        aeCall(cmd, function (out) {
+        callHost("createSpeakerTitle", [d.name, d.job, d.side, d.size, Number(d.bgOffset || 0), !!d.soloTitle], { module: "speakers", timeoutMs: 20000 }, function (out) {
             if (!out || !out.ok) {
                 var err = out && (out.error || out.result) ? (out.error || out.result) : "Unknown error";
                 uiAlert("Не удалось создать титр.\n" + err);
@@ -219,8 +219,14 @@ function initSpeakersUI() {
         var jobInput = document.getElementById("input-job");
         if (nameInput) nameInput.value = "";
         if (jobInput) jobInput.value = "";
-        csInterface.evalScript("removePreview()");
-        logUi("removePreview");
+        callHost("removePreview", [], { module: "speakers", timeoutMs: 5000 }, function (out) {
+            if (!out || !out.ok) {
+                var err = out && (out.error || out.result) ? String(out.error || out.result) : "Unknown error";
+                logUiError("speakers.preview.remove", err);
+                return;
+            }
+            logUi("removePreview");
+        });
         updateAddSpeakerBtnState();
     });
 
@@ -237,5 +243,13 @@ function initSpeakersUI() {
     attachClick("btn-open-database", function () { loadSpeakersDbThenOpen(); });
 
     // TRIM
-    attachClick("btn-trim", function () { csInterface.evalScript("trimLayersInsideSelectedPrecomp()"); });
+    attachClick("btn-trim", function () {
+        callHost("trimLayersInsideSelectedPrecomp", [], { module: "speakers", timeoutMs: 15000 }, function (out) {
+            if (!out || !out.ok) {
+                var err = out && (out.error || out.result) ? String(out.error || out.result) : "Unknown error";
+                uiAlert("Trim failed.\n" + err);
+                logUiError("speakers.trim", err);
+            }
+        });
+    });
 }

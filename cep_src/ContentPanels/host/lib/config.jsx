@@ -6,6 +6,49 @@
 (function () {
     var _configCache = null;
     var _configPathCache = "";
+    var _CONFIG_KEY_PATHS = {
+        speakersDbPath: "speakers.dbPath",
+        topicOptions: "speakers.topicOptions",
+
+        enableLogs: "logging.enable",
+        logsRoot: "logging.root",
+
+        subtitleCharsPerLine: "subtitle.charsPerLine",
+        subtitleShortWordMaxLen: "subtitle.shortWordMaxLen",
+        subtitleBgGapSec: "subtitle.bgGapSec",
+
+        captionPanelsDataRoot: "paths.dataRoot",
+        captionPanelsToolsRoot: "paths.toolsRoot",
+        word2jsonExePath: "paths.word2jsonExePath",
+        word2jsonOutDir: "paths.word2jsonOutDir",
+        word2jsonLogsDir: "paths.word2jsonLogsDir",
+        autoTimingOutDir: "paths.autoTimingOutDir",
+        autoTimingBlocksDir: "paths.autoTimingBlocksDir",
+        autoTimingWhisperXDir: "paths.autoTimingWhisperXDir",
+        autoTimingAlignmentDir: "paths.autoTimingAlignmentDir",
+        autoTimingLogsDir: "paths.autoTimingLogsDir",
+        ffmpegExePath: "paths.ffmpegExePath",
+
+        whisperxPythonPath: "asr.whisperxPythonPath",
+        whisperxRunnerScriptPath: "asr.runnerScriptPath",
+        whisperxModel: "asr.model",
+        whisperxLanguage: "asr.language",
+        whisperxDeviceMode: "asr.deviceMode",
+        whisperxDevice: "asr.device",
+        whisperxVadMethod: "asr.vadMethod",
+        whisperxOfflineOnly: "asr.offlineOnly",
+        whisperxApplyTimeShift: "asr.applyTimeShift",
+        autoTimingMinGapFrames: "asr.minGapFrames",
+        whisperxAdvancedArgsEnabled: "asr.advancedArgsEnabled",
+        whisperxBeamSize: "asr.beamSize",
+        whisperxTemperature: "asr.temperature",
+        whisperxNoSpeechThreshold: "asr.noSpeechThreshold",
+        whisperxLogprobThreshold: "asr.logprobThreshold",
+        whisperxConditionOnPreviousText: "asr.conditionOnPreviousText",
+        whisperxExtraArgs: "asr.extraArgs",
+
+        transcribeAlignScriptPath: "transcribe.alignScriptPath"
+    };
 
     function _resolveRootPath() {
         if (typeof rootPath !== "undefined" && rootPath) return rootPath;
@@ -32,6 +75,37 @@
         return s.slice(0, idx);
     }
 
+    function _getByPath(obj, path) {
+        if (!obj || !path) return undefined;
+        var parts = String(path).split(".");
+        var cur = obj;
+        for (var i = 0; i < parts.length; i++) {
+            var key = parts[i];
+            if (!key) return undefined;
+            var own = false;
+            try { own = cur && cur.hasOwnProperty && cur.hasOwnProperty(key); } catch (e) { own = false; }
+            if (!own) return undefined;
+            cur = cur[key];
+            if (typeof cur === "undefined" || cur === null) {
+                if (i < parts.length - 1) return undefined;
+            }
+        }
+        return cur;
+    }
+
+    function _setByPath(obj, path, value) {
+        if (!obj || !path) return;
+        var parts = String(path).split(".");
+        var cur = obj;
+        for (var i = 0; i < parts.length - 1; i++) {
+            var key = parts[i];
+            if (!key) return;
+            if (!cur[key] || typeof cur[key] !== "object") cur[key] = {};
+            cur = cur[key];
+        }
+        cur[parts[parts.length - 1]] = value;
+    }
+
     function _isAbsolutePath(p) {
         var s = _normalizePath(p);
         return (/^[A-Za-z]:\//).test(s) || s.indexOf("//") === 0 || s.indexOf("/") === 0;
@@ -52,6 +126,27 @@
         var p = _trimPathValue(pathValue);
         if (!p) return "";
 
+        function _pickExistingToolsVariant(pathStr) {
+            var cur = _normalizePath(pathStr);
+            if (!cur) return cur;
+
+            var alt = "";
+            if (/\/CaptionPanelTools(?=\/|$)/i.test(cur)) {
+                alt = cur.replace(/\/CaptionPanelTools(?=\/|$)/i, "/CaptionPanelsTools");
+            } else if (/\/CaptionPanelsTools(?=\/|$)/i.test(cur)) {
+                alt = cur.replace(/\/CaptionPanelsTools(?=\/|$)/i, "/CaptionPanelTools");
+            }
+            if (!alt) return cur;
+
+            try {
+                if ((new File(cur)).exists || (new Folder(cur)).exists) return cur;
+            } catch (e0) {}
+            try {
+                if ((new File(alt)).exists || (new Folder(alt)).exists) return alt;
+            } catch (e1) {}
+            return cur;
+        }
+
         function rep(re, to) {
             p = p.replace(re, to);
         }
@@ -60,7 +155,6 @@
         rep(/^C:\/AE\/CaptionPanelsData(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelsData");
         rep(/^C:\/AE\/CaptionPanelsTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
         rep(/^C:\/AE\/CaptionPanelTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
-        rep(/^C:\/CaptionPanelsLocal\/CaptionPanelsTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
 
         // Legacy direct tool folders.
         rep(/^C:\/AE\/word2json(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools/word2json");
@@ -70,6 +164,9 @@
         if (kind === "wordOutDir") {
             rep(/^C:\/Temp\/CaptionPanels\/word2json(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelsData/word2json");
         }
+
+        // Do not force singular/plural tools folder naming. Pick existing variant if possible.
+        p = _pickExistingToolsVariant(p);
 
         return p;
     }
@@ -82,6 +179,14 @@
                 if (!cfg.hasOwnProperty(key)) return;
                 if (typeof cfg[key] !== "string") return;
                 cfg[key] = _rewriteLegacyPath(cfg[key], kind || "");
+            } catch (e) {}
+        }
+
+        function mapNested(path, kind) {
+            try {
+                var v = _getByPath(cfg, path);
+                if (typeof v !== "string") return;
+                _setByPath(cfg, path, _rewriteLegacyPath(v, kind || ""));
             } catch (e) {}
         }
 
@@ -101,32 +206,50 @@
         map("whisperxPythonPath", "toolExe");
         map("ffmpegExePath", "toolExe");
 
+        mapNested("paths.dataRoot", "dataRoot");
+        mapNested("paths.toolsRoot", "toolsRoot");
+        mapNested("paths.word2jsonExePath", "toolExe");
+        mapNested("paths.word2jsonOutDir", "wordOutDir");
+        mapNested("paths.word2jsonLogsDir", "dataDir");
+        mapNested("paths.autoTimingOutDir", "dataDir");
+        mapNested("paths.autoTimingBlocksDir", "dataDir");
+        mapNested("paths.autoTimingWhisperXDir", "dataDir");
+        mapNested("paths.autoTimingAlignmentDir", "dataDir");
+        mapNested("paths.autoTimingLogsDir", "dataDir");
+        mapNested("paths.ffmpegExePath", "toolExe");
+        mapNested("asr.whisperxPythonPath", "toolExe");
+
+        return cfg;
+    }
+
+    function _synchronizeConfigShape(cfg) {
+        if (!cfg || typeof cfg !== "object") return {};
+        for (var k in _CONFIG_KEY_PATHS) {
+            var own = true;
+            try { own = _CONFIG_KEY_PATHS.hasOwnProperty(k); } catch (e0) { own = true; }
+            if (!own) continue;
+
+            var path = _CONFIG_KEY_PATHS[k];
+            var hasFlat = false;
+            try { hasFlat = cfg.hasOwnProperty(k); } catch (e1) { hasFlat = false; }
+            var nested = _getByPath(cfg, path);
+            var hasNested = (typeof nested !== "undefined");
+
+            if (hasFlat) {
+                _setByPath(cfg, path, cfg[k]);
+                continue;
+            }
+
+            if (!hasFlat && hasNested) {
+                cfg[k] = nested;
+            }
+        }
         return cfg;
     }
 
     function _configCandidates() {
         var list = [];
-        try {
-            // Most stable explicit user-level location on Windows.
-            var appDataEnv = $.getenv("APPDATA");
-            if (appDataEnv) list.push(_normalizePath(appDataEnv) + "/CaptionPanels/config.json");
-        } catch (e0) {}
-
-        // IMPORTANT: prefer per-user config first.
-        // On some systems Folder.appData points to ProgramData (machine-wide),
-        // while Folder.userData points to user Roaming profile.
-        try {
-            var ud = Folder.userData;
-            if (ud) list.push(_normalizePath(ud.fsName) + "/CaptionPanels/config.json");
-        } catch (e) {}
-
-        try {
-            if (Folder.appData) {
-                var ad = Folder.appData;
-                if (ad) list.push(_normalizePath(ad.fsName) + "/CaptionPanels/config.json");
-            }
-        } catch (e) {}
-
+        // Prefer config colocated with the plugin files.
         var base = _normalizePath(_resolveRootPath());
         if (base) {
             list.push(base + "/config.json");
@@ -139,6 +262,22 @@
             var parent = _dirName(base);
             if (parent) list.push(parent + "/config.json");
         }
+
+        // User-level fallback locations.
+        try {
+            var appDataEnv = $.getenv("APPDATA");
+            if (appDataEnv) list.push(_normalizePath(appDataEnv) + "/CaptionPanels/config.json");
+        } catch (e0) {}
+        try {
+            var ud = Folder.userData;
+            if (ud) list.push(_normalizePath(ud.fsName) + "/CaptionPanels/config.json");
+        } catch (e1) {}
+        try {
+            if (Folder.appData) {
+                var ad = Folder.appData;
+                if (ad) list.push(_normalizePath(ad.fsName) + "/CaptionPanels/config.json");
+            }
+        } catch (e2) {}
 
         // De-duplicate candidates while preserving order.
         var out = [];
@@ -185,13 +324,6 @@
     function _configPath() {
         if (_configPathCache) return _configPathCache;
         var list = _configCandidates();
-
-        // Best effort: promote existing machine config into user profile.
-        var promoted = _tryPromoteToUserConfig(list);
-        if (promoted && (new File(promoted)).exists) {
-            _configPathCache = promoted;
-            return _configPathCache;
-        }
 
         for (var i = 0; i < list.length; i++) {
             var f = new File(list[i]);
@@ -270,7 +402,7 @@
         var merged = {};
         merge(merged, shipped);
         merge(merged, primary);
-        return _canonicalizeConfigPaths(merged);
+        return _synchronizeConfigShape(_canonicalizeConfigPaths(merged));
     }
 
     getConfig = function () {
@@ -290,6 +422,11 @@
     getConfigValue = function (key, def) {
         var cfg = getConfig();
         if (cfg && cfg.hasOwnProperty(key)) return cfg[key];
+        var path = _CONFIG_KEY_PATHS[String(key || "")];
+        if (cfg && path) {
+            var nested = _getByPath(cfg, path);
+            if (typeof nested !== "undefined") return nested;
+        }
         return def;
     };
 
@@ -318,7 +455,7 @@
             var path = _configPath();
             var exists = path ? (new File(path)).exists : false;
             var root = _resolveRootPath();
-            var rawVal = (cfg && cfg.hasOwnProperty("speakersDbPath")) ? cfg["speakersDbPath"] : "";
+            var rawVal = getConfigValue("speakersDbPath", "");
             var resolved = getSpeakersDbPath();
             return "configPath=" + path +
                 " | exists=" + exists +
@@ -350,10 +487,41 @@
     }
 
     function _preferredWriteConfigPath() {
-        // Always prefer the user-writable config location (AppData) for writes.
-        // This avoids trying to write into Program Files when the plugin ships with a default config.json.
-        var list = _configCandidates();
-        return (list && list.length) ? list[0] : _configPath();
+        // Write into the same config location we currently use for reads.
+        return _configPath();
+    }
+
+    function _configForWrite(cfg) {
+        // Persist grouped sections as source of truth, while keeping legacy keys
+        // virtual (reconstructed in-memory for old callers).
+        var src = cfg || {};
+        var out = {};
+        var k;
+
+        for (k in src) {
+            var own = true;
+            try { own = src.hasOwnProperty(k); } catch (e0) { own = true; }
+            if (!own) continue;
+            if (_CONFIG_KEY_PATHS.hasOwnProperty(k)) continue;
+            out[k] = src[k];
+        }
+
+        for (k in _CONFIG_KEY_PATHS) {
+            var ownMap = true;
+            try { ownMap = _CONFIG_KEY_PATHS.hasOwnProperty(k); } catch (e1) { ownMap = true; }
+            if (!ownMap) continue;
+            var path = _CONFIG_KEY_PATHS[k];
+            var v = _getByPath(src, path);
+            if (typeof v === "undefined") {
+                var hasFlat = false;
+                try { hasFlat = src.hasOwnProperty(k); } catch (e2) { hasFlat = false; }
+                if (hasFlat) v = src[k];
+            }
+            if (typeof v === "undefined") continue;
+            _setByPath(out, path, v);
+        }
+
+        return out;
     }
 
     function _writeConfigFileAt(p, cfg) {
@@ -363,7 +531,7 @@
             _ensureFolderForFile(f);
             f.encoding = "UTF-8";
             if (!f.open("w")) return false;
-            f.write(_stringifyPretty(cfg || {}));
+            f.write(_stringifyPretty(_configForWrite(cfg)));
             f.close();
             return true;
         } catch (e) {
@@ -390,7 +558,7 @@
             if (isNaN(swMax) || swMax < 1 || swMax > 10) swMax = 3;
             swMax = Math.round(swMax);
 
-            var rawSp = (cfg && cfg.hasOwnProperty("speakersDbPath")) ? String(cfg["speakersDbPath"] || "") : "";
+            var rawSp = String(getConfigValue("speakersDbPath", "") || "");
             var resolvedSp = "";
             try { resolvedSp = String(getSpeakersDbPath() || ""); } catch (eSp) {}
 
@@ -418,6 +586,8 @@
             var wxDevice = String(getConfigValue("whisperxDevice", "cuda") || "cuda");
             var wxDeviceMode = String(getConfigValue("whisperxDeviceMode", "") || "").toLowerCase();
             var wxVad = String(getConfigValue("whisperxVadMethod", "silero") || "silero");
+            var wxOfflineOnly = false;
+            try { wxOfflineOnly = !!getConfigValue("whisperxOfflineOnly", false); } catch (eOff) { wxOfflineOnly = false; }
             if (wxDeviceMode !== "auto" && wxDeviceMode !== "cuda" && wxDeviceMode !== "cpu") {
                 wxDeviceMode = (String(wxDevice).toLowerCase() === "cpu") ? "cpu" : "auto";
             }
@@ -455,6 +625,7 @@
                 whisperxDeviceMode: wxDeviceMode,
                 whisperxDevice: wxDevice,
                 whisperxVadMethod: wxVad,
+                whisperxOfflineOnly: wxOfflineOnly,
 
                 whisperxAdvancedArgsEnabled: wxAdvEnabled,
                 whisperxBeamSize: wxBeam,
@@ -476,6 +647,8 @@
 
             var cfg = reloadConfig() || {};
             cfg[k] = value;
+            var mappedPath = _CONFIG_KEY_PATHS[k];
+            if (mappedPath) _setByPath(cfg, mappedPath, value);
 
             var writePath = _preferredWriteConfigPath();
             if (!_writeConfigFileAt(writePath, cfg)) {

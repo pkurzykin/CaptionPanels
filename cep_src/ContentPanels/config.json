@@ -1,45 +1,59 @@
 {
-  "speakersDbPath": "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json",
-  "topicOptions": [
-    "Новости",
-    "Специальный репортаж",
-    "Транснефть помогает",
-    "Волонтеры Транснефти",
-    "Люди компании",
-    "Новость дня",
-    "Оптимум",
-    "Спорт"
-  ],
-  "enableLogs": false,
-  "logsRoot": "",
-  "subtitleCharsPerLine": 60,
-  "subtitleShortWordMaxLen": 3,
-  "word2jsonExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe",
-  "word2jsonOutDir": "C:/CaptionPanelsLocal/CaptionPanelsData/word2json",
-  "word2jsonLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
-  "autoTimingOutDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing",
-  "captionPanelsDataRoot": "C:/CaptionPanelsLocal/CaptionPanelsData",
-  "autoTimingBlocksDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks",
-  "autoTimingWhisperXDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/whisperx",
-  "autoTimingAlignmentDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment",
-  "autoTimingLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
-  "whisperxPythonPath": "C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe",
-  "whisperxRunnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
-  "whisperxModel": "medium",
-  "whisperxLanguage": "ru",
-  "whisperxDeviceMode": "auto",
-  "whisperxDevice": "cuda",
-  "whisperxVadMethod": "silero",
-  "transcribeAlignScriptPath": "host/tools/transcribe_align/transcribe_align.py",
-  "captionPanelsToolsRoot": "C:/CaptionPanelsLocal/CaptionPanelTools",
-  "whisperxApplyTimeShift": false,
-  "autoTimingMinGapFrames": 1,
-  "whisperxAdvancedArgsEnabled": false,
-  "whisperxBeamSize": 5,
-  "whisperxTemperature": 0.0,
-  "whisperxNoSpeechThreshold": 0.6,
-  "whisperxLogprobThreshold": -1.0,
-  "whisperxConditionOnPreviousText": false,
-  "whisperxExtraArgs": "",
-  "ffmpegExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe"
+  "speakers": {
+    "dbPath": "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json",
+    "topicOptions": [
+      "Новости",
+      "Специальный репортаж",
+      "Транснефть помогает",
+      "Волонтеры Транснефти",
+      "Люди компании",
+      "Новость дня",
+      "Оптимум",
+      "Спорт"
+    ]
+  },
+  "logging": {
+    "enable": false,
+    "root": ""
+  },
+  "subtitle": {
+    "charsPerLine": 60,
+    "shortWordMaxLen": 3,
+    "bgGapSec": 3.0
+  },
+  "paths": {
+    "dataRoot": "C:/CaptionPanelsLocal/CaptionPanelsData",
+    "toolsRoot": "C:/CaptionPanelsLocal/CaptionPanelTools",
+    "word2jsonExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe",
+    "word2jsonOutDir": "C:/CaptionPanelsLocal/CaptionPanelsData/word2json",
+    "word2jsonLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
+    "autoTimingOutDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing",
+    "autoTimingBlocksDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks",
+    "autoTimingWhisperXDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/whisperx",
+    "autoTimingAlignmentDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment",
+    "autoTimingLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
+    "ffmpegExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe"
+  },
+  "asr": {
+    "whisperxPythonPath": "C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe",
+    "runnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
+    "model": "medium",
+    "language": "ru",
+    "deviceMode": "auto",
+    "device": "cuda",
+    "vadMethod": "silero",
+    "offlineOnly": false,
+    "applyTimeShift": false,
+    "minGapFrames": 1,
+    "advancedArgsEnabled": false,
+    "beamSize": 5,
+    "temperature": 0.0,
+    "noSpeechThreshold": 0.6,
+    "logprobThreshold": -1.0,
+    "conditionOnPreviousText": false,
+    "extraArgs": ""
+  },
+  "transcribe": {
+    "alignScriptPath": "host/tools/transcribe_align/transcribe_align.py"
+  }
 }

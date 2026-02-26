@@ -49,6 +49,7 @@
     <div class="panel-group">
         <label>Auto Timing</label>
         <button id="btn-auto-timing-whisperx" class="full-width">Auto Timing (WhisperX)</button>
+        <button id="btn-rerun-alignment" class="full-width secondary-btn">Re-run Alignment</button>
     </div>
 
     <div class="panel-group">
@@ -239,6 +240,14 @@
                     </select>
                 </div>
 
+                <div class="settings-row">
+                    <label class="settings-checkbox">
+                        <input id="settings-whisperx-offline-only" type="checkbox" />
+                        Offline only (no model download)
+                    </label>
+                    <div class="settings-note">If enabled, WhisperX uses only local cache and fails fast when model/cache is missing.</div>
+                </div>
+
                 <details class="settings-details settings-details-nested">
                     <summary>Advanced params</summary>
 
@@ -310,8 +319,27 @@
 </div>
 <!-- ===== /Task Progress Modal ===== -->
 
+<!-- ===== Diagnostics Modal ===== -->
+<div id="diag-overlay" class="modal-overlay" style="display:none;">
+    <div class="modal-window diag-window">
+        <div class="modal-header">
+            <div class="modal-title">Diagnostics</div>
+            <button id="btn-diag-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-footer" style="display:flex; gap:8px; justify-content:space-between;">
+                <button id="btn-diag-refresh" class="secondary-btn" style="margin:0; flex:1;">Refresh</button>
+            </div>
+            <pre id="diag-content" class="diag-content">Loading...</pre>
+        </div>
+    </div>
+</div>
+<!-- ===== /Diagnostics Modal ===== -->
 
-    <div class="ui-version">v<span id="ui-version">2.3.3</span></div>
+    <div class="ui-meta-row">
+        <button id="btn-diagnostics" class="btn-diagnostics-mini" title="Diagnostics">Diagnostics</button>
+        <div class="ui-version">v<span id="ui-version">2.4.1</span></div>
+    </div>
 
     <script src="js/CSInterface.js"></script>
     <script src="js/bridge.js"></script>
@@ -326,6 +354,7 @@
     <script src="js/ui_typography.js"></script>
     <script src="js/ui_branding.js"></script>
     <script src="js/ui_settings.js"></script>
+    <script src="js/ui_diagnostics.js"></script>
     <script src="js/host_loader.js"></script>
     <script src="js/main.js"></script>
 </body>

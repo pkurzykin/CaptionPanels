@@ -3,27 +3,33 @@
 
 window.onload = function() {
     var extensionPath = getExtensionRootPath();
+    var HOST_STARTUP_DELAY_MS = 1200;
 
     // ЦЕПОЧКА ЗАГРУЗКИ JSX
-    loadHostModules([
-        "response.jsx",
-        "config.jsx",
-        "logger.jsx",
-        "utils.jsx",
-        "cleanup.jsx",
-        "subtitles.jsx",
-        "auto_timing.jsx",
-        "branding.jsx",
-        "json_import.jsx",
-        "word_import.jsx",
-        "speakers.jsx",
-        "job_runner.jsx"
-    ], function () {
-        console.log("Все системы AE готовы");
-        if (typeof loadTopicOptionsFromConfig === "function") {
-            loadTopicOptionsFromConfig();
-        }
-    });
+    setTimeout(function () {
+        loadHostModules([
+            "response.jsx",
+            "config.jsx",
+            "logger.jsx",
+            "run_registry.jsx",
+            "diagnostics.jsx",
+            "schema_validation.jsx",
+            "utils.jsx",
+            "cleanup.jsx",
+            "subtitles.jsx",
+            "auto_timing.jsx",
+            "branding.jsx",
+            "json_import.jsx",
+            "word_import.jsx",
+            "speakers.jsx",
+            "job_runner.jsx"
+        ], function () {
+            console.log("Все системы AE готовы");
+            if (typeof loadTopicOptionsFromConfig === "function") {
+                loadTopicOptionsFromConfig();
+            }
+        });
+    }, HOST_STARTUP_DELAY_MS);
 
     function _safeInit(fnName) {
         try {
@@ -61,6 +67,7 @@ window.onload = function() {
     _safeInit("initBrandingUI");
     _safeInit("initJsonImportUI");
     _safeInit("initSettingsUI");
+    _safeInit("initDiagnosticsUI");
 
     var reloadBtn = document.getElementById("btn-reload");
     if (reloadBtn) {

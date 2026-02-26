@@ -1,6 +1,6 @@
 # Config Reference (CaptionPanels)
 
-Дата: 2026-02-09
+Дата: 2026-02-25
 
 Этот документ описывает `config.json`, который управляет путями, настройками субтитров, базой спикеров и пайплайном Auto Timing.
 
@@ -18,203 +18,125 @@
 ## Формат
 - JSON, кодировка UTF‑8.
 - Для путей рекомендуем использовать `/` (слеш), т.к. плагин нормализует `\` -> `/`.
+- Начиная с roadmap-phase1.3, конфиг хранится в секциях:
+  - `speakers`
+  - `logging`
+  - `subtitle`
+  - `paths`
+  - `asr`
+  - `transcribe`
+- Legacy flat-ключи (`word2jsonExePath`, `whisperxModel`, `subtitleCharsPerLine` и т.д.) всё еще поддерживаются runtime-слоем для обратной совместимости.
 
 ## Рекомендуемые базовые каталоги (стандарт деплоя)
 Чтобы на рабочих ПК всё было предсказуемо и не требовало прав администратора / правки `PATH`:
 - Данные/артефакты: `C:\CaptionPanelsLocal\CaptionPanelsData\...`
 - Внешние утилиты: `C:\CaptionPanelsLocal\CaptionPanelTools\...`
+- Run manifests (pipeline): `C:\CaptionPanelsLocal\CaptionPanelsData\runs\<kind>\<runId>\run.json`
 
-## Ключи (reference)
+## Ключи (reference, секционный формат)
 
-### speakers / topics
-- `speakersDbPath` (string)
+### `speakers`
+- `speakers.dbPath` (string)
   - Путь к общей базе спикеров `speakers.json`.
   - Может быть абсолютным (`H:/.../speakers.json`, `C:/.../speakers.json`) или относительным (тогда считается относительно папки конфига).
+- `speakers.topicOptions` (array of string)
+  - Список рубрик для TOPIC (выпадающий список), редактируется в Settings.
 
-- `topicOptions` (array of string)
-  - Список рубрик для TOPIC (выпадающий список).
-  - Редактируется через Settings.
+### `logging`
+- `logging.enable` (boolean) — включает диагностические логи.
+- `logging.root` (string) — кастомная папка логов, если пусто используется AppData.
 
-### logs
-- `enableLogs` (boolean)
-  - Включает диагностические логи (если реализованы в конкретных модулях).
+### `subtitle`
+- `subtitle.charsPerLine` (number)
+  - Лимит символов в строке при нарезке субтитров, guardrails: 20..200.
+- `subtitle.shortWordMaxLen` (number)
+  - Длина "короткого слова", которое нельзя оставлять в конце строки.
+  - Диапазон: 1..10, дефолт: `3`.
+- `subtitle.bgGapSec` (number)
+  - Порог разрыва для `subtitle_BG`, дефолт: `3.0`.
 
-- `logsRoot` (string)
-  - Кастомная папка для логов. Если пусто — используется AppData (см. `getLogsRoot()` в `host/lib/config.jsx`).
+### `paths`
+- `paths.dataRoot` (string) — корень данных/артефактов, напр. `C:/CaptionPanelsLocal/CaptionPanelsData`.
+- `paths.toolsRoot` (string) — корень утилит, напр. `C:/CaptionPanelsLocal/CaptionPanelTools`.
+- `paths.word2jsonExePath` (string) — путь к `word2json.exe`.
+- `paths.word2jsonOutDir` (string) — куда писать JSON после Word import.
+- `paths.word2jsonLogsDir` (string) — где хранить `word2json_*` логи.
+- `paths.autoTimingOutDir` (string) — legacy-совместимость для общего корня Auto Timing.
+- `paths.autoTimingBlocksDir` / `paths.autoTimingWhisperXDir` / `paths.autoTimingAlignmentDir` / `paths.autoTimingLogsDir`
+  - специализированные папки run-артефактов Auto Timing.
+- `paths.ffmpegExePath` (string) — путь к `ffmpeg.exe` (portable, без PATH).
 
-### subtitles
-- `subtitleCharsPerLine` (number)
-  - Лимит символов в строке при нарезке субтитров.
-  - Редактируется через Settings.
-  - Guardrails: 20..200 (вне диапазона будет использовано 60).
+### `asr`
+- `asr.whisperxPythonPath` (string) — Python из venv WhisperX.
+- `asr.runnerScriptPath` (string) — путь к `run_whisperx.py`.
+- `asr.model` / `asr.language` / `asr.deviceMode` / `asr.device` / `asr.vadMethod`
+  - базовые параметры запуска WhisperX.
+- `asr.offlineOnly` (boolean)
+  - если `true`, runner запрещает сетевые скачивания моделей и использует только локальный cache.
+  - если нужной модели нет локально — запуск завершится ошибкой с подсказкой.
+- `asr.applyTimeShift` (boolean)
+  - включает экспериментальный глобальный time-shift.
+- `asr.minGapFrames` (number)
+  - минимальный зазор между соседними блоками после Auto Timing.
+- `asr.advancedArgsEnabled` (boolean)
+  - включает расширенные decode-параметры.
+- `asr.beamSize` / `asr.temperature` / `asr.noSpeechThreshold` / `asr.logprobThreshold` / `asr.conditionOnPreviousText`
+  - параметры advanced decode.
+- `asr.extraArgs` (string)
+  - raw аргументы для ручного расширения запуска.
 
-- `subtitleShortWordMaxLen` (number)
-  - Максимальная длина "короткого слова", которое нельзя оставлять в конце строки (его переносят на следующую строку вместе со следующим словом).
-  - По умолчанию: `3`.
-  - Диапазон: 1..10.
-  - Редактируется через Settings.
-
-- `subtitleBgGapSec` (number)
-  - Порог разрыва для `subtitle_BG`: если пауза между соседними блоками субтитров больше этого значения — подложка режется на отдельный сегмент.
-  - По умолчанию: `1.0`.
-  - Диапазон: 0..10.
-
-### word import (Word -> JSON)
-- `captionPanelsToolsRoot` (string)
-  - Рекомендуемый корень внешних утилит.
-  - Пример: `C:/CaptionPanelsLocal/CaptionPanelTools`
-
-- `captionPanelsDataRoot` (string)
-  - Рекомендуемый корень данных/артефактов.
-  - Пример: `C:/CaptionPanelsLocal/CaptionPanelsData`
-
-- `word2jsonExePath` (string)
-  - Путь к `word2json.exe` (конвертер `.docx` -> `.json`).
-  - Рекомендация (локально, не UNC): `C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
-
-- `word2jsonOutDir` (string)
-  - Папка, куда пишется сгенерированный `.json`.
-  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
-  - Если пусто: используется `captionPanelsDataRoot/word2json`.
-
-- `word2jsonLogsDir` (string)
-  - Папка для логов Word-import (`word2json_last.log`, `word2json_process_last.log`).
-  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs` (единое место с логами Auto Timing).
-  - Если пусто: сначала `autoTimingLogsDir`, затем `captionPanelsDataRoot/auto_timing/logs`, затем `word2jsonOutDir`.
-
-### auto timing (blocks / whisperx / alignment)
-- `autoTimingOutDir` (string)
-  - Legacy ключ (оставлен для совместимости). Рекомендуется использовать специализированные каталоги ниже.
-
-- `autoTimingBlocksDir` (string)
-  - Куда сохраняется `blocks_*.json` при Export Blocks.
-  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks`
-
-- `autoTimingWhisperXDir` (string)
-  - Базовая папка для артефактов WhisperX по runId.
-  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/whisperx`
-
-- `autoTimingAlignmentDir` (string)
-  - Базовая папка для результатов выравнивания (`alignment.json`) по runId.
-  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment`
-
-- `autoTimingLogsDir` (string)
-  - Куда пишутся логи запуска внешних команд.
-  - Рекомендация: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
-
-### whisperx (ASR)
-- `whisperxPythonPath` (string)
-  - Путь к Python из venv WhisperX.
-  - Пример: `C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
-  - Это позволяет **не устанавливать системный Python** на рабочих ПК (достаточно скопировать папку `C:\CaptionPanelsLocal\CaptionPanelTools\whisperx\`).
-- `whisperxRunnerScriptPath` (string)
-  - Путь к Python-скрипту `run_whisperx.py`, который запускает ASR/выравнивание через Python API.
-  - По умолчанию: `host/tools/whisperx_runner/run_whisperx.py` (внутри папки плагина).
-  - Нужен, чтобы расширенные параметры (beam_size, temperature и т.п.) работали стабильно независимо от версии WhisperX CLI.
-
-
-- `whisperxModel` (string)
-  - Пример: `small`, `medium`, позже возможно `large-v3`.
-
-- `whisperxLanguage` (string)
-  - Пример: `ru`.
-
-- `whisperxDeviceMode` (string)
-  - Режим выбора устройства:
-    - `auto` — сначала CUDA, при проблеме автоматический fallback на CPU (рекомендуется)
-    - `cuda` — только CUDA, без fallback
-    - `cpu` — только CPU
-
-- `whisperxDevice` (string)
-  - Legacy-ключ совместимости (`cuda`/`cpu`).
-  - Для новых настроек используйте `whisperxDeviceMode`.
-
-- `whisperxVadMethod` (string)
-  - Пример: `silero`.
-
-- `whisperxApplyTimeShift` (boolean)
-  - Если `true`, WhisperX runner после выравнивания оценивает систематический "late start" и может применить глобальный отрицательный сдвиг к таймкодам.
-  - Рекомендуется держать `false` как дефолт и включать только для диагностики конкретного проекта.
-  - По умолчанию: `false`.
-  - Диагностика пишется в `whisperx_runner_meta.json` (поля `onsetBiasSec`, `timeShiftSuggestedSec`, `timeShiftAppliedSec`).
-
-- `autoTimingMinGapFrames` (number)
-  - Минимальный зазор между соседними субтитрами при применении Auto Timing (в кадрах).
-  - Значение `1` означает минимум 1 кадр между концом предыдущего и началом следующего блока.
-  - По умолчанию: `1`.
-
-- `whisperxAdvancedArgsEnabled` (boolean)
-  - Включает передачу расширенных параметров в ASR runner (faster-whisper decode params).
-  - Если `false` — плагин использует только базовые параметры (`model`, `language`, `device`, `vad_method`).
-
-- `whisperxBeamSize` (number)
-  - `beam_size` для декодирования (обычно 1..20).
-
-- `whisperxTemperature` (number)
-  - `temperature` (обычно 0.0 для детерминированности).
-
-- `whisperxNoSpeechThreshold` (number)
-  - `no_speech_threshold` (порог "нет речи").
-
-- `whisperxLogprobThreshold` (number)
-  - `logprob_threshold`.
-
-- `whisperxConditionOnPreviousText` (boolean)
-  - `condition_on_previous_text` (true/false).
-
-- `whisperxExtraArgs` (string)
-  - Raw строка аргументов, которая будет добавлена в конец команды WhisperX "как есть".
-  - Нужна как escape-hatch, если WhisperX CLI меняется и нужно быстро подстроиться без правки кода.
-
-- `transcribeAlignScriptPath` (string)
-  - Путь к `transcribe_align.py`.
-  - Обычно относительный: `host/tools/transcribe_align/transcribe_align.py`.
+### `transcribe`
+- `transcribe.alignScriptPath` (string)
+  - путь к `transcribe_align.py` (обычно `host/tools/transcribe_align/transcribe_align.py`).
 
 ## Пример рекомендуемого конфига (AppData)
 Файл: `%APPDATA%\CaptionPanels\config.json`
 
 ```json
 {
-  "captionPanelsDataRoot": "C:/CaptionPanelsLocal/CaptionPanelsData",
-  "captionPanelsToolsRoot": "C:/CaptionPanelsLocal/CaptionPanelTools",
-
-  "speakersDbPath": "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json",
-  "topicOptions": ["Новости", "Специальный репортаж", "Спорт"],
-
-  "subtitleCharsPerLine": 60,
-  "subtitleShortWordMaxLen": 3,
-  "subtitleBgGapSec": 1.0,
-
-  "word2jsonExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe",
-  "word2jsonOutDir": "C:/CaptionPanelsLocal/CaptionPanelsData/word2json",
-  "word2jsonLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
-
-  "autoTimingBlocksDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks",
-  "autoTimingWhisperXDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/whisperx",
-  "autoTimingAlignmentDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment",
-  "autoTimingLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
-
-  "whisperxPythonPath": "C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe",
-  "whisperxRunnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
-  "whisperxModel": "medium",
-  "whisperxLanguage": "ru",
-  "whisperxDeviceMode": "auto",
-  "whisperxDevice": "cuda",
-  "whisperxVadMethod": "silero",
-  "whisperxApplyTimeShift": false,
-  "autoTimingMinGapFrames": 1,
-
-  "whisperxAdvancedArgsEnabled": false,
-  "whisperxBeamSize": 5,
-  "whisperxTemperature": 0.0,
-  "whisperxNoSpeechThreshold": 0.6,
-  "whisperxLogprobThreshold": -1.0,
-  "whisperxConditionOnPreviousText": false,
-  "whisperxExtraArgs": "",
-
-  "ffmpegExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe",
-
-  "transcribeAlignScriptPath": "host/tools/transcribe_align/transcribe_align.py"
+  "speakers": {
+    "dbPath": "H:/Media/Kurzykin/PROJECT/Titles_Template_NEW2025/work/json/speakers.json",
+    "topicOptions": ["Новости", "Специальный репортаж", "Спорт"]
+  },
+  "subtitle": {
+    "charsPerLine": 60,
+    "shortWordMaxLen": 3,
+    "bgGapSec": 3.0
+  },
+  "paths": {
+    "dataRoot": "C:/CaptionPanelsLocal/CaptionPanelsData",
+    "toolsRoot": "C:/CaptionPanelsLocal/CaptionPanelTools",
+    "word2jsonExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe",
+    "word2jsonOutDir": "C:/CaptionPanelsLocal/CaptionPanelsData/word2json",
+    "word2jsonLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
+    "autoTimingBlocksDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks",
+    "autoTimingWhisperXDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/whisperx",
+    "autoTimingAlignmentDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment",
+    "autoTimingLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
+    "ffmpegExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe"
+  },
+  "asr": {
+    "whisperxPythonPath": "C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe",
+    "runnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
+    "model": "medium",
+    "language": "ru",
+    "deviceMode": "auto",
+    "device": "cuda",
+    "vadMethod": "silero",
+    "offlineOnly": false,
+    "applyTimeShift": false,
+    "minGapFrames": 1,
+    "advancedArgsEnabled": false,
+    "beamSize": 5,
+    "temperature": 0.0,
+    "noSpeechThreshold": 0.6,
+    "logprobThreshold": -1.0,
+    "conditionOnPreviousText": false,
+    "extraArgs": ""
+  },
+  "transcribe": {
+    "alignScriptPath": "host/tools/transcribe_align/transcribe_align.py"
+  }
 }
 ```
 
@@ -228,7 +150,7 @@
 ---
 
 ## ffmpeg (portable, без PATH)
-- `ffmpegExePath` (string)
+- `paths.ffmpegExePath` (string)
   - Путь к `ffmpeg.exe`.
   - Пример: `C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
   - Если ключ задан и файл существует, плагин **на время запуска WhisperX** добавляет папку ffmpeg в `PATH` процесса (через `cmd.exe /c set PATH=...;%PATH%`).

@@ -3,8 +3,11 @@
 ## Unreleased
 ### Added
 - Speaker Titles: добавлен режим `solo_title` (чекбокс). В этом режиме используется шаблон `name_title_solo`, а текст из поля «ФИО» подставляется в слой `Job_title`.
+- Stage 3.2: добавлены формальные JSON-схемы в `docs/schemas/` (`import`, `blocks`, `alignment`) и справка `docs/SCHEMAS_REFERENCE_RU.md`.
 
 ### Changed
+- Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
+- Branding: после `Create Branding` принудительный пересчет `subtitle_BG` сохраняется (host + fallback), чтобы не терялся после правок логики head_topic.
 - Auto Timing: после применения таймингов добавлен более надежный пересчет `subtitle_BG` (с fallback-алгоритмом, если модуль `subtitles.jsx` не подгрузился).
 - Head Topic: старт теперь ставится встык к предыдущему geotag (если geotag есть перед группой).
 - Head Topic: конец теперь ставится встык к первому `Sub_SYNCH_*` после начала группы (вместо конца `Sub_VOICEOVER`).
@@ -27,6 +30,50 @@
 - Word Import: по кнопке `Load Word` автоматически выставляется `Work Area End` по длине выбранного/первого видео-слоя в активной композиции.
 - UI/Import: добавлена кнопка `Rebuild Subtitles` — пересоздает субтитры из уже загруженного JSON (после смены настроек переноса/лимитов), с очисткой текущих `Sub_VOICEOVER_*`/`Sub_SYNCH_*` и сохранением таймлайн-якоря по первому старому субтитру.
 - UI: кнопка `Rebuild Subtitles` перенесена из шапки в раздел `Subtitles / Info` (блок `Subtitles Tools`).
+- Docs: удалены устаревшие draft-планы (`AUTO_TIMING_PLAN.md`, `TRANSCRIBE_UTILITY_PLAN.md`, `WORD_IMPORT_PLAN.md`, `RELEASE_REPO_PLAN.md`), добавлен `docs/TROUBLESHOOTING.md`.
+- UI Bridge: добавлен helper `callHost(...)` с метаданными `requestId/ts/module/fn` (поэтапный переход с прямых `aeCall` на единый протокол вызовов).
+- UI Bridge: все основные UI-модули (`import`, `settings`, `topics`, `speakers`, `speakers_db`, `typography`, `auto_timing`, `branding`, `host_loader`, `subtitles`) переведены на `callHost(...)`; добавлены таймауты вызовов для более предсказуемых ошибок в UI.
+- Diagnostics: добавлено окно `Diagnostics` (минимальный экран наблюдаемости) с snapshot текущих путей/существования утилит/последних логов и историей последних host-вызовов (`requestId`, `module`, `fn`, `durationMs`).
+- Config: добавлена секционная структура (`speakers/logging/subtitle/paths/asr/transcribe`) в `config.json`; runtime теперь автоматически синхронизирует новые секции со старыми flat-ключами для обратной совместимости.
+- Job/Run pipeline (phase 2.1, in progress): добавлен `host/lib/run_registry.jsx` и run-манифесты `run.json` для `word_import` и `auto_timing` в `C:/CaptionPanelsLocal/CaptionPanelsData/runs/...`.
+- Diagnostics: добавлен блок `latestRuns` (последний `word_import` / `auto_timing` с `runId/status/stage/path`).
+- Auto Timing: в итоговом алерте выводится путь к `runManifest`.
+- Auto Timing: добавлена кнопка `Re-run Alignment` (align+apply без повторного ASR), использует артефакты последнего `auto_timing` run (`blocksPath`, `whisperxJson`).
+- Branding: пересчет `subtitle_BG` после `Create Branding` усилен fallback-вызовом (raw-script), чтобы избежать тихого пропуска пересчета при сбоях host-вызова.
+- Re-run Alignment: теперь выбирает последний завершенный `auto_timing` run с валидными `blocksPath`+`whisperxJson` (а не просто последний run), чтобы не падать после неуспешного прогона.
+- Diagnostics: добавлен `latestRuns.autoTimingCompleted` для быстрого контроля, какой run используется для Re-run Alignment.
+- ASR/Settings: добавлен флаг `offlineOnly` (`Offline only (no model download)`), который передается в WhisperX runner.
+- WhisperX runner: добавлена поддержка `--offline_only` (без сетевых загрузок, только локальный cache моделей) с явными подсказками в тексте ошибок.
+- Diagnostics: добавлен блок `deploymentChecks` (быстрая проверка tool/data/cache состояния, включая offline-ready проверки для ASR cache).
+- Auto Timing / Re-run Alignment: добавлен автоматический preflight-gate (проверка deployment checks перед запуском; при `FAIL` запуск блокируется с понятным списком причин).
+- Auto Timing / Re-run Alignment: после `apply` сохраняется `apply_report.json` в run-папку, путь пишется в `run.json` и выводится в итоговом алерте (для повторяемого дебага по пропускам).
+- Diagnostics: `latestRuns.*` теперь показывает ключевые outputs (`blocksPath/whisperxJson/alignmentPath/applyReportPath`) и apply-статистику (`total/applied/missing/...`).
+- Deploy: `make_offline_bundle.ps1` расширен (копирование `CaptionPanelsData/models`, генерация `bundle_summary.json`), добавлен `verify_offline_bundle.ps1` для проверки офлайн-бандла перед переносом.
+- Roadmap: этап 2 архитектурного плана закрыт (2.2 и 2.3), зафиксированы результаты QA/офлайн-проверок в документации.
+- Auto Timing preflight: проверка наличия `word2json.exe` больше не блокирует Auto Timing (для этого шага это не критично).
+- Tool path resolver: добавлены legacy fallback-пути для `word2json.exe` и `whisperx` python (`C:/AE/...`) для совместимости со старыми раскладками.
+- Runtime validation: импорт JSON и auto-timing теперь явно валидируют payload по схеме до выполнения (ошибки формата не проходят «тихо»).
+- Diagnostics: в блоке `latestRuns` теперь показываются outputs/result-метрики (включая `applyReportPath`, `applied/total/missing/...`).
+- Diagnostics: при несовпадении `toolsRoot` (например `CaptionPanelTools` vs `CaptionPanelsTools`) больше нет ложного `FAIL` — теперь fallback-корень определяется автоматически, а в snapshot показываются и `toolsRoot`, и `toolsRootConfigured`.
+- Auto Timing: резолвер portable `ffmpeg.exe` расширен (`ffmpeg/ffmpeg.exe`, `ffmpeg/bin/ffmpeg.exe`, `ffmpeg.exe`) с учетом fallback-корней tools, чтобы убрать ложные предупреждения в mixed-раскладках.
+- Config: приоритет чтения/записи `config.json` возвращен к файлу в папке плагина (`.../ContentPanels/config.json`); AppData теперь используется как fallback.
+- Branding: пересчет `subtitle_BG` закреплен в host-логике `applyHeadTopicToRegular` (включая fallback), чтобы пересчет гарантированно выполнялся после `Create Branding`.
+- Auto Timing: автоматический пересчет `subtitle_BG` после apply отключен (пересчет остается в сценарии `Create Branding`).
+- Diagnostics UI: убрано визуальное дублирование `latestRuns` (если `autoTiming` и `autoTimingCompleted` ссылаются на один run).
+- UI: кнопка `Diagnostics` перенесена из верхней шапки в нижнюю мета-зону рядом с версией (compact button).
+- subtitle_BG: дефолтный порог разрыва увеличен до `3.0s` (разрыв только если пауза между блоками больше 3 секунд).
+- Head Topic: после первого блока (который стартует встык к geotag) следующий `head_topic` стартует от конца предыдущего `Sub_SYNCH`, а конец ставится к старту следующего `Sub_SYNCH` (цепочка без лишних разрывов между VO-участками).
+- Geotag: при импорте JSON geotag теперь сохраняет `anchorLayer` (первый слой следующего блока), а при `Create Branding` ставится по текущему `inPoint` этого слоя — поэтому geotag корректно «едет» вместе с блоками после Auto Timing.
+- Geotag: улучшена привязка для последующих geotag — по умолчанию якорятся к ближайшему следующему `voiceover`-блоку (а к `sync` только если до следующего geotag нет `voiceover`).
+- Head Topic: устранены лишние короткие `head_topic`-слои — создается только валидный интервал между `end(previous synch)` и `start(next synch)`; геотеговый старт учитывается по позиции geotag перед группой.
+- Branding (workflow simplification): первый `head_topic` теперь всегда стартует от плейхеда; последующие идут по цепочке `start = end(previous synch)`, `end = start(next synch)` и не зависят от geotag.
+- Geotag (workflow simplification): первый geotag ставится по плейхеду, все следующие — последовательно встык (ручная доводка позиции дальше делается на таймлайне); geotag получает label `Brown`.
+
+## v2.4.1 — 2026-02-25
+
+### Fixed
+- AE startup race: снижена вероятность ошибки `Unable to execute script ... Can not run a script while a modal dialog is waiting response` (line 0). Добавлен retry в `callHost(...)` для modal-busy ответов.
+- UI startup: загрузка host JSX-модулей теперь стартует с небольшой задержкой (`1.2s`), чтобы не попадать в модальные состояния AE в первые секунды запуска.
 
 ## v2.3.1 — 2026-02-17
 

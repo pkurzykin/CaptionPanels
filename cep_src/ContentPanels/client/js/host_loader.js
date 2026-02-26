@@ -12,12 +12,12 @@ function loadHostModules(modules, cb) {
             return;
         }
         var name = list[i++];
-        csInterface.evalScript('loadModule("' + name + '")', function () {
+        callHost("loadModule", [name], { module: "loader", timeoutMs: 15000 }, function () {
             next();
         });
     }
 
-    csInterface.evalScript('initPath("' + extensionPath + '")', function () {
+    callHost("initPath", [extensionPath], { module: "loader", timeoutMs: 10000 }, function () {
         next();
     });
 }

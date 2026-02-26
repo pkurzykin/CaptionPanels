@@ -265,9 +265,33 @@ def _filter_kwargs(func, kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], List[s
     """Return (accepted_kwargs, ignored_keys) based on func signature."""
     try:
         sig = inspect.signature(func)
-        params = set(sig.parameters.keys())
+        params = sig.parameters
     except Exception:
         # If we can't introspect, pass everything through.
+        return kwargs, []
+
+    # If callable accepts **kwargs, do not filter anything.
+    # This avoids false "ignored args" on versions where C-extension wrappers
+    # expose generic signatures like (*args, **kwargs).
+    try:
+        for p in params.values():
+            if p.kind == inspect.Parameter.VAR_KEYWORD:
+                return kwargs, []
+    except Exception:
+        return kwargs, []
+
+    # If signature is fully generic (*args / **kwargs-like), keep kwargs as-is.
+    # Some builds expose only positional/variadic names and filtering would drop
+    # valid runtime kwargs such as language/device.
+    try:
+        concrete = []
+        for p in params.values():
+            if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+                if p.name not in ("self", "cls"):
+                    concrete.append(p.name)
+        if not concrete:
+            return kwargs, []
+    except Exception:
         return kwargs, []
 
     accepted: Dict[str, Any] = {}
@@ -293,6 +317,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--vad_method", default="silero", help="silero or none")
     ap.add_argument("--compute_type", default="", help="Optional faster-whisper compute_type")
     ap.add_argument("--cache_dir", default="", help="Optional cache root (will set HF_HOME there)")
+    ap.add_argument(
+        "--offline_only",
+        action="store_true",
+        help="Do not use network: only local cache/models are allowed",
+    )
 
     ap.add_argument(
         "--apply_time_shift",
@@ -334,6 +363,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         _ensure_dir(hf_home)
         os.environ.setdefault("HF_HOME", str(hf_home))
 
+    if bool(args.offline_only):
+        # Force offline behavior for Hugging Face libs.
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+
     # Lazy imports after env is configured.
     try:
         import whisperx  # type: ignore
@@ -361,12 +395,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     if cache_root:
         download_root = str(cache_root / "faster-whisper")
 
-    model = WhisperModel(
-        str(args.model or "medium"),
-        device=device,
-        compute_type=compute_type,
-        download_root=download_root,
-    )
+    model_kwargs: Dict[str, Any] = {
+        "device": device,
+        "compute_type": compute_type,
+        "download_root": download_root,
+    }
+    if bool(args.offline_only):
+        model_kwargs["local_files_only"] = True
+    model_kwargs = {k: v for k, v in model_kwargs.items() if v is not None}
+    model_kwargs, model_ignored = _filter_kwargs(getattr(WhisperModel, "__init__", WhisperModel), model_kwargs)
+
+    model = WhisperModel(str(args.model or "medium"), **model_kwargs)
 
     vad_method = str(args.vad_method or "silero").strip().lower()
     vad_filter = vad_method in ("silero", "true", "1", "yes", "on")
@@ -397,12 +436,23 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "text": str(getattr(seg, "text", "")),
             })
     except Exception as e:
-        raise SystemExit(f"Transcribe failed: {e}")
+        hint = ""
+        if bool(args.offline_only):
+            hint = " (offline_only=true: make sure ASR model is already cached locally)"
+        raise SystemExit(f"Transcribe failed: {e}{hint}")
 
     # 3) Align words using WhisperX align model
     lang = str(args.language or "ru")
     try:
-        align_model, metadata = whisperx.load_align_model(language_code=lang, device=device)
+        align_kwargs: Dict[str, Any] = {
+            "language_code": lang,
+            "device": device,
+        }
+        if bool(args.offline_only):
+            align_kwargs["local_files_only"] = True
+        align_kwargs, align_ignored = _filter_kwargs(whisperx.load_align_model, align_kwargs)
+
+        align_model, metadata = whisperx.load_align_model(**align_kwargs)
         aligned = whisperx.align(
             segments_out,
             align_model,
@@ -413,7 +463,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
         aligned_segments = aligned.get("segments", []) if isinstance(aligned, dict) else []
     except Exception as e:
-        raise SystemExit(f"Alignment failed: {e}")
+        hint = ""
+        if bool(args.offline_only):
+            hint = " (offline_only=true: make sure align model is already cached locally)"
+        raise SystemExit(f"Alignment failed: {e}{hint}")
 
     # 3.5) Estimate onset bias and optionally apply a global time shift.
     # Compare original ASR segment start -> first aligned word start.
@@ -462,8 +515,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         "vad_method": vad_method,
         "compute_type": compute_type,
         "cache_dir": str(cache_root) if cache_root else "",
+        "offlineOnly": bool(args.offline_only),
         "argsApplied": transcribe_kwargs,
-        "argsIgnored": sorted(set(ignored_keys + [a for a in unknown if a.startswith('--')])),
+        "argsIgnored": sorted(set(ignored_keys + model_ignored + align_ignored + [a for a in unknown if a.startswith('--')])),
         "unknownArgs": unknown,
         "segments": len(aligned_segments),
         "onsetBiasSec": onset_stats,

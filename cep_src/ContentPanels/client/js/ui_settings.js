@@ -54,7 +54,7 @@ function _settingsParseLinesToList(txt) {
 }
 
 function _settingsLoad() {
-    aeCall("getConfigForUI()", function (out) {
+    callHost("getConfigForUI", [], { module: "settings", timeoutMs: 10000 }, function (out) {
         if (!out || !out.ok) {
             uiAlert("Settings: failed to read config.json\n" + (out ? (out.error || out.result) : "Unknown"));
             return;
@@ -113,6 +113,9 @@ function _settingsLoad() {
         var wxDeviceModeEl = document.getElementById("settings-whisperx-device-mode");
         if (wxDeviceModeEl) wxDeviceModeEl.value = String(wxDeviceMode || "auto");
 
+        var wxOfflineEl = document.getElementById("settings-whisperx-offline-only");
+        if (wxOfflineEl) wxOfflineEl.checked = !!res.whisperxOfflineOnly;
+
         var wxAdvEnabled = !!res.whisperxAdvancedArgsEnabled;
         var wxAdvEl = document.getElementById("settings-whisperx-adv-enabled");
         if (wxAdvEl) wxAdvEl.checked = wxAdvEnabled;
@@ -147,7 +150,7 @@ function _settingsLoad() {
 }
 
 function _settingsBrowseSpeakersDb() {
-    aeCall("pickSpeakersDbPath()", function (out) {
+    callHost("pickSpeakersDbPath", [], { module: "settings", timeoutMs: 15000 }, function (out) {
         if (!out || !out.ok) {
             var err = out && out.error ? String(out.error) : "Unknown error";
             if (err == "CANCELLED") return;
@@ -225,6 +228,9 @@ function _settingsSave() {
     var wxAdvEl = document.getElementById("settings-whisperx-adv-enabled");
     var wxAdvEnabled = wxAdvEl ? !!wxAdvEl.checked : false;
 
+    var wxOfflineEl = document.getElementById("settings-whisperx-offline-only");
+    var wxOfflineOnly = wxOfflineEl ? !!wxOfflineEl.checked : false;
+
     var wxBeamEl = document.getElementById("settings-whisperx-beam");
     var wxBeam = _settingsParseInt(wxBeamEl ? wxBeamEl.value : "", 5);
     if (wxBeam < 1) wxBeam = 1;
@@ -256,6 +262,7 @@ function _settingsSave() {
         { key: "whisperxLanguage", value: String(wxLang || "ru") },
         { key: "whisperxDeviceMode", value: String(wxDeviceMode || "auto") },
         { key: "whisperxDevice", value: String(wxDeviceLegacy) },
+        { key: "whisperxOfflineOnly", value: !!wxOfflineOnly },
 
         { key: "whisperxAdvancedArgsEnabled", value: !!wxAdvEnabled },
         { key: "whisperxBeamSize", value: Number(wxBeam) },
@@ -277,8 +284,7 @@ function _settingsSave() {
         }
 
         var it = items[i];
-        var cmd = "setConfigValue(" + JSON.stringify(String(it.key)) + "," + JSON.stringify(it.value) + ")";
-        aeCall(cmd, function (out) {
+        callHost("setConfigValue", [String(it.key), it.value], { module: "settings", timeoutMs: 10000 }, function (out) {
             if (!out || !out.ok) {
                 uiAlert("Settings: failed to save.\n" + (out ? (out.error || out.result) : "Unknown"));
                 return;

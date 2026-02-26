@@ -72,7 +72,9 @@ function jsonImportSetQueue(list, sourcePath) {
     // The user will explicitly start the titles flow via the "Load Speaker" button in the Speaker Titles tab.
     if (JSON_IMPORT_ACTIVE) {
         _clearSpeakerFields(true);
-        try { csInterface.evalScript("removePreview()"); } catch (ePrev) {}
+        try {
+            callHost("removePreview", [], { module: "import", timeoutMs: 5000 }, function () {});
+        } catch (ePrev) {}
     }
 }
 
@@ -100,7 +102,7 @@ function jsonImportAdvanceAfterCreate() {
         JSON_IMPORT_QUEUE = [];
         JSON_IMPORT_INDEX = 0;
         _clearSpeakerFields(true);
-        csInterface.evalScript("removePreview()");
+        callHost("removePreview", [], { module: "import", timeoutMs: 5000 }, function () {});
         return true;
     }
 
@@ -252,7 +254,7 @@ function _startWordImportProgress(title) {
 
 function initJsonImportUI() {
     attachClick("btn-load-json", function () {
-        aeCall("importJsonFromDialog()", function (out) {
+        callHost("importJsonFromDialog", [], { module: "import", timeoutMs: 0 }, function (out) {
             if (!out || !out.ok) {
                 var err = out && out.error ? out.error : "Unknown error";
                 if (String(err) === "CANCELLED") return;
@@ -280,9 +282,7 @@ function initJsonImportUI() {
         }
 
         var stopProgress = _startWordImportProgress("Rebuild Subtitles");
-        var cmd = "rebuildSubtitlesFromJsonFile(" + JSON.stringify(String(JSON_IMPORT_SOURCE)) + ")";
-
-        aeCall(cmd, function (out) {
+        callHost("rebuildSubtitlesFromJsonFile", [String(JSON_IMPORT_SOURCE)], { module: "import" }, function (out) {
             if (!out || !out.ok) {
                 try { stopProgress(false); } catch (ePr0) {}
                 var err = (out && typeof out.error !== "undefined") ? String(out.error) : "";
@@ -308,7 +308,7 @@ function initJsonImportUI() {
 
 
     attachClick("btn-load-word", function () {
-        aeCall("pickWordFileForImport()", function (pick) {
+        callHost("pickWordFileForImport", [], { module: "import" }, function (pick) {
             if (!pick || !pick.ok) {
                 var pickErr = (pick && typeof pick.error !== "undefined") ? String(pick.error) : "";
                 if (pickErr === "CANCELLED") return;
@@ -332,7 +332,7 @@ function initJsonImportUI() {
 
             // Load Word flow: align work area end to selected/first video layer length.
             // Non-blocking for import; if no video layer, we just log.
-            aeCall("setWorkAreaEndToVideoLayer()", function (waOut) {
+            callHost("setWorkAreaEndToVideoLayer", [], { module: "import" }, function (waOut) {
                 if (!waOut || !waOut.ok) {
                     var waErr = waOut && waOut.error ? String(waOut.error) : "Unknown error";
                     logUiError("word.workArea", waErr);
@@ -342,8 +342,7 @@ function initJsonImportUI() {
             });
 
             var stopProgress = _startWordImportProgress("Load Word");
-            var cmd = "importWordFromFile(" + JSON.stringify(String(pickedPath)) + ")";
-            aeCall(cmd, function (out) {
+            callHost("importWordFromFile", [String(pickedPath)], { module: "import" }, function (out) {
                 if (!out || !out.ok) {
                     try { stopProgress(false); } catch (ePr0) {}
                     var err = (out && typeof out.error !== 'undefined') ? String(out.error) : '';

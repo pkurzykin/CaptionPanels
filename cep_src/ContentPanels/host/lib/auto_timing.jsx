@@ -505,6 +505,32 @@
         }
     }
 
+    function _writeApplyReportJson(dirPath, comp, applyResult, extra) {
+        try {
+            var baseDir = _normalizePath(dirPath);
+            if (!baseDir) return "";
+            _ensureFolder(baseDir);
+
+            var outPath = _normalizePath(baseDir + "/apply_report.json");
+            var payload = {
+                schemaVersion: 1,
+                generatedAt: _timestamp(),
+                comp: {
+                    name: comp && comp.name ? String(comp.name || "") : "",
+                    fps: comp ? (Number(comp.frameRate) || 0) : 0,
+                    duration: comp ? (Number(comp.duration) || 0) : 0
+                },
+                apply: (applyResult && typeof applyResult === "object") ? applyResult : {},
+                context: (extra && typeof extra === "object") ? extra : {}
+            };
+
+            if (!_writeJsonFile(outPath, payload)) return "";
+            return outPath;
+        } catch (e) {
+            return "";
+        }
+    }
+
     function _getCaptionPanelsDataRoot() {
         var raw = "";
         try { raw = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (e) {}
@@ -590,6 +616,12 @@
             addCandidate(toolRoots[i] + "/whisperx/venv/Scripts/python.exe");
             addCandidate(toolRoots[i] + "/whisperx/python.exe");
         }
+
+        // Legacy direct locations (kept for backward compatibility).
+        addCandidate("C:/AE/whisperx/.venv/Scripts/python.exe");
+        addCandidate("C:/AE/whisperx/venv/Scripts/python.exe");
+        addCandidate("C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe");
+        addCandidate("C:/CaptionPanelsLocal/CaptionPanelsTools/whisperx/.venv/Scripts/python.exe");
 
         for (var j = 0; j < candidates.length; j++) {
             var p = candidates[j];
@@ -786,11 +818,81 @@
         return null;
     }
 
+    function _formatSchemaErrors(report) {
+        if (!report || !(report.errors instanceof Array) || !report.errors.length) return "";
+        var lines = [];
+        var limit = 8;
+        for (var i = 0; i < report.errors.length && i < limit; i++) {
+            lines.push("- " + String(report.errors[i] || ""));
+        }
+        if (report.errors.length > limit) lines.push("- ...");
+        return lines.join("\n");
+    }
+
     function _readJsonFile(filePath) {
         var txt = _readFileText(filePath);
         var obj = _parseJsonSafe(txt);
         if (!obj) throw new Error("Invalid JSON: " + _normalizePath(filePath));
         return obj;
+    }
+
+    function _runAutoTimingPreflight() {
+        var result = {
+            ok: true,
+            failLines: [],
+            warnLines: [],
+            checks: []
+        };
+
+        try {
+            if (typeof getDeploymentChecks !== "function") return result;
+
+            var raw = getDeploymentChecks();
+            var parsed = _parseJsonSafe(String(raw || ""));
+            if (!parsed || !parsed.ok) {
+                // Do not hard-stop if diagnostics module is unavailable.
+                result.warnLines.push("preflight check is unavailable");
+                return result;
+            }
+
+            var payload = (parsed.result && typeof parsed.result === "object") ? parsed.result : {};
+            var checks = (payload.checks instanceof Array) ? payload.checks : [];
+            result.checks = checks;
+            var whisperCheckOk = false;
+            for (var wi = 0; wi < checks.length; wi++) {
+                var wc = checks[wi] || {};
+                var wName = String(wc.name || "").toLowerCase();
+                if (wName === "whisperx python" && !!wc.ok) {
+                    whisperCheckOk = true;
+                    break;
+                }
+            }
+
+            for (var i = 0; i < checks.length; i++) {
+                var c = checks[i] || {};
+                var level = String(c.level || "").toLowerCase();
+                var name = String(c.name || "check");
+                var details = String(c.details || "");
+                var line = "- " + name + (details ? (": " + details) : "");
+                var nameLc = name.toLowerCase();
+
+                // Auto Timing does not require word2json availability.
+                if (nameLc === "word2json.exe" && level === "fail") level = "warn";
+
+                // Auto Timing can run even if tools root check fails, as long as
+                // whisperx python was resolved via direct/legacy path.
+                if (nameLc === "tools root" && level === "fail" && whisperCheckOk) level = "warn";
+
+                if (level === "fail") result.failLines.push(line);
+                else if (level === "warn") result.warnLines.push(line);
+            }
+
+            if (result.failLines.length) result.ok = false;
+            return result;
+        } catch (e) {
+            result.warnLines.push("preflight exception: " + String((e && e.message) ? e.message : e));
+            return result;
+        }
     }
 
     function _asNum(v) {
@@ -920,127 +1022,6 @@
         if (a.key !== b.key) return false;
         // Keep only forward order; protects from accidental reverse pairs.
         return b.index > a.index;
-    }
-
-    function _refreshSubtitleBgFallback(comp) {
-        if (!comp) return false;
-
-        var BG_NAME = "subtitle_BG";
-        var BG_PREFIX = "subtitle_BG_";
-        var GAP_SEC = 1.0;
-        try {
-            var gv = Number(getConfigValue("subtitleBgGapSec", 1.0));
-            if (!isNaN(gv) && gv >= 0 && gv <= 10) GAP_SEC = gv;
-        } catch (eG) {}
-
-        var bg = null;
-        try { bg = comp.layer(BG_NAME); } catch (e0) { bg = null; }
-        if (!bg) {
-            for (var i = 1; i <= comp.numLayers; i++) {
-                var l0 = comp.layer(i);
-                if (l0 && l0.name && String(l0.name).indexOf(BG_PREFIX) === 0) {
-                    bg = l0;
-                    try { bg.name = BG_NAME; } catch (eRn) {}
-                    break;
-                }
-            }
-        }
-        if (!bg) return false;
-
-        for (var r = comp.numLayers; r >= 1; r--) {
-            var lr = comp.layer(r);
-            if (lr && lr.name && String(lr.name).indexOf(BG_PREFIX) === 0) {
-                try { lr.remove(); } catch (eRm) {}
-            }
-        }
-
-        var subs = [];
-        for (var s = 1; s <= comp.numLayers; s++) {
-            var sl = comp.layer(s);
-            if (!sl || !_isSubtitleLayerName(sl.name)) continue;
-            subs.push({
-                layer: sl,
-                start: Number(sl.inPoint) || 0,
-                end: Number(sl.outPoint) || 0
-            });
-        }
-        subs.sort(function (a, b) {
-            return (a.start === b.start) ? (a.end - b.end) : (a.start - b.start);
-        });
-
-        var groups = [];
-        if (subs.length > 0) {
-            var gs = subs[0].start;
-            var ge = subs[0].end;
-            for (var k = 1; k < subs.length; k++) {
-                var ss = subs[k].start;
-                var ee = subs[k].end;
-                if (ss - ge > GAP_SEC) {
-                    groups.push({ start: gs, end: ge });
-                    gs = ss;
-                    ge = ee;
-                } else {
-                    if (ee > ge) ge = ee;
-                }
-            }
-            groups.push({ start: gs, end: ge });
-        }
-
-        if (groups.length === 0) {
-            bg.inPoint = comp.time;
-            bg.outPoint = comp.time;
-            bg.startTime = comp.time;
-            return true;
-        }
-
-        for (var g = 0; g < groups.length; g++) {
-            var grp = groups[g];
-            var layer = bg;
-            if (g > 0) {
-                layer = bg.duplicate();
-                layer.name = BG_PREFIX + (g + 1);
-            }
-
-            layer.startTime = grp.start;
-            layer.inPoint = grp.start;
-            layer.outPoint = grp.end;
-
-            var anchor = null;
-            for (var j = 1; j <= comp.numLayers; j++) {
-                var la = comp.layer(j);
-                if (!la || !_isSubtitleLayerName(la.name)) continue;
-                if ((Number(la.inPoint) || 0) < grp.start || (Number(la.inPoint) || 0) > grp.end) continue;
-                if (!anchor || la.index > anchor.index) anchor = la;
-            }
-            if (anchor) {
-                try { layer.moveAfter(anchor); } catch (eMv) {}
-            }
-        }
-        return true;
-    }
-
-    function _refreshSubtitleBgAfterAutoTiming(comp) {
-        var ok = false;
-        try {
-            if (typeof loadModule === "function") {
-                // Reload on each apply to avoid stale/missing symbols from script eval order.
-                loadModule("subtitles.jsx");
-            }
-        } catch (eLm) {}
-
-        try {
-            if (typeof _updateSubtitleBg === "function") {
-                _updateSubtitleBg(comp);
-                ok = true;
-            }
-        } catch (eUp) {
-            ok = false;
-        }
-
-        if (!ok) {
-            try { ok = _refreshSubtitleBgFallback(comp); } catch (eFb) { ok = false; }
-        }
-        return ok;
     }
 
     function _buildTimingChanges(comp, alignmentObj) {
@@ -1196,6 +1177,15 @@
             if (!p) return respondErr("alignmentPath is empty");
 
             var alignmentObj = _readJsonFile(p);
+            if (typeof cpValidateAlignmentPayload === "function") {
+                var previewSchema = cpValidateAlignmentPayload(alignmentObj);
+                if (previewSchema && previewSchema.ok === false) {
+                    var previewDetails = _formatSchemaErrors(previewSchema);
+                    var previewMsg = "alignment.json schema validation failed.";
+                    if (previewDetails) previewMsg += "\n" + previewDetails;
+                    return respondErr(previewMsg);
+                }
+            }
             var res = _buildTimingChanges(comp, alignmentObj);
 
             // Keep preview small (UI can ask for full later)
@@ -1231,6 +1221,15 @@
             if (!p) return respondErr("alignmentPath is empty");
 
             var alignmentObj = _readJsonFile(p);
+            if (typeof cpValidateAlignmentPayload === "function") {
+                var applySchema = cpValidateAlignmentPayload(alignmentObj);
+                if (applySchema && applySchema.ok === false) {
+                    var applyDetails = _formatSchemaErrors(applySchema);
+                    var applyMsg = "alignment.json schema validation failed.";
+                    if (applyDetails) applyMsg += "\n" + applyDetails;
+                    return respondErr(applyMsg);
+                }
+            }
             var res = _buildTimingChanges(comp, alignmentObj);
 
             app.beginUndoGroup("CaptionPanels: Apply Auto Timing");
@@ -1259,9 +1258,6 @@
                     errors.push({ segId: ch.segId, error: eL.message });
                 }
             }
-
-            // Recompute subtitle_BG after timings changed.
-            try { _refreshSubtitleBgAfterAutoTiming(comp); } catch (eBg) {}
 
             // Build a concise reason histogram for skipped blocks (unmatched, layer missing, invalid).
             var reasonStats = {};
@@ -1348,6 +1344,16 @@
                 blocks: blocks
             };
 
+            if (typeof cpValidateBlocksPayload === "function") {
+                var blocksSchema = cpValidateBlocksPayload(payload);
+                if (blocksSchema && blocksSchema.ok === false) {
+                    var blocksDetails = _formatSchemaErrors(blocksSchema);
+                    var blocksMsg = "blocks.json schema validation failed.";
+                    if (blocksDetails) blocksMsg += "\n" + blocksDetails;
+                    return respondErr(blocksMsg);
+                }
+            }
+
             if (!_writeJsonFile(outPath, payload)) {
                 return respondErr("Cannot write blocks.json: " + outPath);
             }
@@ -1374,6 +1380,9 @@
     // - run alignment
     // - apply timings
     autoTimingRunWhisperXAndApply = function () {
+        var _failWithRun = function (stage, text) {
+            return respondErr(String(text || "Auto Timing failed"));
+        };
         try {
             if (!app || !app.project) return respondErr("No active project");
             var comp = app.project.activeItem;
@@ -1381,6 +1390,16 @@
 
             // Always use fresh config (paths/model can be changed via config.json).
             try { if (typeof reloadConfig === "function") reloadConfig(); } catch (eCfg) {}
+
+            var preflight = _runAutoTimingPreflight();
+            if (!preflight.ok) {
+                var preMsg = "Auto Timing preflight failed.";
+                if (preflight.failLines && preflight.failLines.length) {
+                    preMsg += "\n\nFix these items:";
+                    for (var pf = 0; pf < preflight.failLines.length; pf++) preMsg += "\n" + preflight.failLines[pf];
+                }
+                return respondErr(preMsg);
+            }
 
             var stamp = _timestamp();
 
@@ -1395,12 +1414,12 @@
             try { expObj = _parseJsonSafe(String(expRaw || "")); } catch (eParse) { expObj = null; }
             if (!expObj || !expObj.ok) {
                 var em = expObj && expObj.error ? String(expObj.error) : String(expRaw || "Export blocks failed");
-                return respondErr("Export blocks failed. " + em);
+                return _failWithRun("export_blocks", "Export blocks failed. " + em, { reason: "export_blocks_failed" });
             }
 
             var blocksPath = "";
             try { blocksPath = expObj.result && expObj.result.path ? String(expObj.result.path) : ""; } catch (eP) {}
-            if (!blocksPath) return respondErr("Export blocks: empty path");
+            if (!blocksPath) return _failWithRun("export_blocks", "Export blocks: empty path", { reason: "empty_blocks_path" });
 
             // 2) Detect video
             var videoPath = _detectVideoFileFromComp(comp);
@@ -1412,6 +1431,46 @@
 
             // Shared run folder name (safe)
             var runBase = _sanitizeFileBase(comp.name || "comp") + "_" + stamp;
+            var runRef = null;
+            var runManifestPath = "";
+
+            try {
+                if (typeof cpRunCreate === "function") {
+                    runRef = cpRunCreate("auto_timing", {
+                        runId: runBase,
+                        inputs: {
+                            compName: String(comp.name || ""),
+                            videoPath: _normalizePath(videoPath),
+                            fps: Number(comp.frameRate) || 0
+                        },
+                        meta: {
+                            configPath: String(getConfigPath ? getConfigPath() : "")
+                        }
+                    });
+                    if (runRef && runRef.manifestPath) runManifestPath = String(runRef.manifestPath || "");
+                    if (runRef && typeof cpRunUpdate === "function") {
+                        cpRunUpdate(runRef, {
+                            stage: "whisperx",
+                            outputs: { blocksPath: _normalizePath(blocksPath) }
+                        });
+                    }
+                }
+            } catch (eRunCreate) {}
+
+            _failWithRun = function (stage, text, extra) {
+                var msg = String(text || "Auto Timing failed");
+                if (runManifestPath) msg += "\nrunManifest=" + runManifestPath;
+                try {
+                    if (runRef && typeof cpRunFinalize === "function") {
+                        cpRunFinalize(runRef, "failed", {
+                            stage: String(stage || "failed"),
+                            error: String(text || ""),
+                            result: (extra && typeof extra === "object") ? extra : {}
+                        });
+                    }
+                } catch (eRunFail) {}
+                return respondErr(msg);
+            };
 
             // 3) Run WhisperX
             var pyResolved = _resolveWhisperPythonPath();
@@ -1419,7 +1478,7 @@
             if (!py) {
                 var triedPy = "";
                 try { triedPy = pyResolved.checked && pyResolved.checked.length ? ("\nChecked:\n- " + pyResolved.checked.join("\n- ")) : ""; } catch (eTpy) { triedPy = ""; }
-                return respondErr("Python not found. Check whisperxPythonPath/captionPanelsToolsRoot." + triedPy);
+                return _failWithRun("whisperx", "Python not found. Check whisperxPythonPath/captionPanelsToolsRoot." + triedPy, { reason: "python_not_found" });
             }
 
             var pyExe = "\"" + _toCmdWinPath(_normalizePath(py)) + "\"";
@@ -1451,6 +1510,8 @@
             }
             var wxAdv = false;
             try { wxAdv = !!getConfigValue("whisperxAdvancedArgsEnabled", false); } catch (eAx) { wxAdv = false; }
+            var wxOfflineOnly = false;
+            try { wxOfflineOnly = !!getConfigValue("whisperxOfflineOnly", false); } catch (eOff) { wxOfflineOnly = false; }
             var wxApplyShift = false;
             try { wxApplyShift = !!getConfigValue("whisperxApplyTimeShift", false); } catch (eSh) { wxApplyShift = false; }
 
@@ -1513,13 +1574,35 @@
             try {
                 var ffRaw = String(getConfigValue("ffmpegExePath", "") || "");
                 var ff = _resolvePathRelativeToConfig(ffRaw);
-                var toolsRootFf = _getCaptionPanelsToolsRoot();
                 var ffCandidates = [];
-                if (ff) ffCandidates.push(_normalizePath(ff));
-                if (toolsRootFf) {
-                    ffCandidates.push(_normalizePath(toolsRootFf + "/ffmpeg/ffmpeg.exe"));
-                    ffCandidates.push(_normalizePath(toolsRootFf + "/ffmpeg/bin/ffmpeg.exe"));
+                var ffSeen = {};
+
+                function addFfCandidate(p) {
+                    var n = _normalizePath(p);
+                    if (!n) return;
+                    if (ffSeen[n]) return;
+                    ffSeen[n] = true;
+                    ffCandidates.push(n);
                 }
+
+                addFfCandidate(ff);
+
+                var ffToolRoots = _buildToolsRootCandidates();
+                for (var ffRootIdx = 0; ffRootIdx < ffToolRoots.length; ffRootIdx++) {
+                    var ffRoot = ffToolRoots[ffRootIdx];
+                    addFfCandidate(ffRoot + "/ffmpeg/ffmpeg.exe");
+                    addFfCandidate(ffRoot + "/ffmpeg/bin/ffmpeg.exe");
+                    addFfCandidate(ffRoot + "/ffmpeg.exe");
+                }
+
+                // Legacy direct locations.
+                addFfCandidate("C:/AE/ffmpeg/ffmpeg.exe");
+                addFfCandidate("C:/AE/ffmpeg/bin/ffmpeg.exe");
+                addFfCandidate("C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe");
+                addFfCandidate("C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/bin/ffmpeg.exe");
+                addFfCandidate("C:/CaptionPanelsLocal/CaptionPanelsTools/ffmpeg/ffmpeg.exe");
+                addFfCandidate("C:/CaptionPanelsLocal/CaptionPanelsTools/ffmpeg/bin/ffmpeg.exe");
+
                 ff = "";
                 for (var ffIdx = 0; ffIdx < ffCandidates.length; ffIdx++) {
                     var cand = ffCandidates[ffIdx];
@@ -1539,7 +1622,7 @@
             } catch (eFf) {}
 
             var whisperBaseDir = _getAutoTimingWhisperXDir();
-            if (!whisperBaseDir) return respondErr("autoTimingWhisperXDir is empty");
+            if (!whisperBaseDir) return _failWithRun("whisperx", "autoTimingWhisperXDir is empty", { reason: "empty_whisperx_dir" });
             var whisperRunDir = _normalizePath(whisperBaseDir + "/" + runBase);
             _ensureFolder(whisperRunDir);
 
@@ -1549,7 +1632,7 @@
             if (!runnerRaw) runnerRaw = "host/tools/whisperx_runner/run_whisperx.py";
             var runnerPath = _resolvePathRelativeToRoot(runnerRaw);
             runnerPath = _normalizePath(runnerPath);
-            if (!(new File(runnerPath)).exists) return respondErr("WhisperX runner not found: " + runnerPath);
+            if (!(new File(runnerPath)).exists) return _failWithRun("whisperx", "WhisperX runner not found: " + runnerPath, { reason: "runner_not_found" });
 
             // Deterministic model cache root (offline-friendly)
             var cacheDir = "";
@@ -1565,7 +1648,7 @@
             if (_hasNonAscii(videoPathNorm)) {
                 var inputFile = _normalizePath(whisperRunDir + "/video_input_path.txt");
                 if (!_writeTextFile(inputFile, videoPathNorm + "\n")) {
-                    return respondErr("Cannot write WhisperX input path file: " + inputFile);
+                    return _failWithRun("whisperx", "Cannot write WhisperX input path file: " + inputFile, { reason: "input_file_write_failed" });
                 }
                 inputArg = ' --input_file "' + _toCmdWinPath(inputFile) + '"';
             } else {
@@ -1583,6 +1666,10 @@
 
             if (cacheDir) {
                 whisperBody += ' --cache_dir "' + _toCmdWinPath(_normalizePath(cacheDir)) + '"';
+            }
+
+            if (wxOfflineOnly) {
+                whisperBody += " --offline_only";
             }
 
             if (wxApplyShift) {
@@ -1652,7 +1739,12 @@
                 var tail = _readTailSafe(w.logPath, 2400);
                 if (tail) msg += "\n\n---- whisperx output (tail) ----\n" + tail;
 
-                return respondErr(msg);
+                return _failWithRun("whisperx", msg, {
+                    reason: "whisperx_failed",
+                    whisperxLog: String(w.logPath || ""),
+                    whisperxMetaLog: String(w.metaPath || ""),
+                    exitCode: Number(w.exitCode) || 0
+                });
             }
 
             // Read runner meta (if present) to report which args were applied/ignored.
@@ -1680,13 +1772,25 @@
             if (!whisperJson) {
                 var msg2 = "WhisperX runner did not produce JSON in: " + whisperRunDir;
                 if (w.logPath) msg2 += "\nlog=" + w.logPath;
-                return respondErr(msg2);
+                return _failWithRun("whisperx", msg2, { reason: "missing_whisperx_json" });
             }
+            try {
+                if (runRef && typeof cpRunUpdate === "function") {
+                    cpRunUpdate(runRef, {
+                        stage: "align",
+                        outputs: {
+                            whisperxDir: _normalizePath(whisperRunDir),
+                            whisperxJson: _normalizePath(whisperJson),
+                            whisperxLog: _normalizePath(String(w.logPath || ""))
+                        }
+                    });
+                }
+            } catch (eRunWhisper) {}
 
             // 4) Run alignment
 
             var alignBaseDir = _getAutoTimingAlignmentDir();
-            if (!alignBaseDir) return respondErr("autoTimingAlignmentDir is empty");
+            if (!alignBaseDir) return _failWithRun("align", "autoTimingAlignmentDir is empty", { reason: "empty_alignment_dir" });
             var alignRunDir = _normalizePath(alignBaseDir + "/" + runBase);
             _ensureFolder(alignRunDir);
 
@@ -1695,7 +1799,7 @@
             if (!scriptRaw) scriptRaw = "host/tools/transcribe_align/transcribe_align.py";
             var scriptPath = _resolvePathRelativeToRoot(scriptRaw);
             scriptPath = _normalizePath(scriptPath);
-            if (!(new File(scriptPath)).exists) return respondErr("transcribe_align.py not found: " + scriptPath);
+            if (!(new File(scriptPath)).exists) return _failWithRun("align", "transcribe_align.py not found: " + scriptPath, { reason: "align_script_not_found" });
 
             var minGapFrames = 1;
             try {
@@ -1714,15 +1818,31 @@
             if (a.exitCode !== 0) {
                 var msg3 = "Alignment failed (exit=" + a.exitCode + ")";
                 if (a.logPath) msg3 += "\nlog=" + a.logPath;
-                return respondErr(msg3);
+                return _failWithRun("align", msg3, {
+                    reason: "align_failed",
+                    alignLog: String(a.logPath || ""),
+                    exitCode: Number(a.exitCode) || 0
+                });
             }
 
             var alignmentPath = _normalizePath(alignRunDir + "/alignment.json");
             if (!(new File(alignmentPath)).exists) {
                 var msg4 = "alignment.json not found: " + alignmentPath;
                 if (a.logPath) msg4 += "\nlog=" + a.logPath;
-                return respondErr(msg4);
+                return _failWithRun("align", msg4, { reason: "missing_alignment_json" });
             }
+            try {
+                if (runRef && typeof cpRunUpdate === "function") {
+                    cpRunUpdate(runRef, {
+                        stage: "apply",
+                        outputs: {
+                            alignmentDir: _normalizePath(alignRunDir),
+                            alignmentPath: _normalizePath(alignmentPath),
+                            alignLog: _normalizePath(String(a.logPath || ""))
+                        }
+                    });
+                }
+            } catch (eRunAlign) {}
 
             // 5) Apply timings
             var applyRaw = autoTimingApply(alignmentPath);
@@ -1730,11 +1850,44 @@
             try { applyObj = _parseJsonSafe(String(applyRaw || "")); } catch (eA) { applyObj = null; }
             if (!applyObj || !applyObj.ok) {
                 var am = applyObj && applyObj.error ? String(applyObj.error) : String(applyRaw || "Apply failed");
-                return respondErr("Apply timings failed. " + am);
+                return _failWithRun("apply", "Apply timings failed. " + am, { reason: "apply_failed" });
             }
+
+            var applyReportPath = _writeApplyReportJson(alignRunDir, comp, applyObj.result, {
+                mode: "full_auto_timing",
+                runId: runBase,
+                alignmentPath: _normalizePath(alignmentPath),
+                blocksPath: _normalizePath(blocksPath),
+                whisperxJson: _normalizePath(whisperJson),
+                sourceVideo: _normalizePath(videoPath)
+            });
+
+            try {
+                if (runRef && typeof cpRunFinalize === "function") {
+                    cpRunFinalize(runRef, "completed", {
+                        stage: "done",
+                        outputs: {
+                            blocksPath: _normalizePath(blocksPath),
+                            whisperxJson: _normalizePath(whisperJson),
+                            alignmentPath: _normalizePath(alignmentPath),
+                            applyReportPath: _normalizePath(applyReportPath || "")
+                        },
+                        result: {
+                            total: Number((applyObj.result && applyObj.result.total) || 0),
+                            applied: Number((applyObj.result && applyObj.result.applied) || 0),
+                            missingCount: Number((applyObj.result && applyObj.result.missingCount) || 0),
+                            unmatchedCount: Number((applyObj.result && applyObj.result.unmatchedCount) || 0),
+                            invalidCount: Number((applyObj.result && applyObj.result.invalidCount) || 0),
+                            errorCount: Number((applyObj.result && applyObj.result.errorCount) || 0),
+                            reasonStats: (applyObj.result && applyObj.result.reasonStats) ? applyObj.result.reasonStats : {}
+                        }
+                    });
+                }
+            } catch (eRunDone) {}
 
             return respondOk({
                 runId: runBase,
+                runManifestPath: runManifestPath,
                 blocksPath: blocksPath,
                 videoPath: videoPath,
                 whisperxDeviceMode: deviceMode,
@@ -1744,19 +1897,261 @@
                 whisperxJson: whisperJson,
                 alignmentDir: alignRunDir,
                 alignmentPath: alignmentPath,
+                applyReportPath: applyReportPath,
                 whisperxLog: w.logPath,
                 whisperxFallbackLog: wFallbackLog,
                 alignLog: a.logPath,
                 whisperxArgs: wxArgs,
                 whisperxArgsIgnored: wxIgnored,
+                whisperxOfflineOnly: wxOfflineOnly,
                 whisperxApplyTimeShift: wxApplyShift,
                 whisperxTimeShiftAppliedSec: wxTimeShiftAppliedSec,
                 whisperxTimeShiftSuggestedSec: wxTimeShiftSuggestedSec,
                 whisperxOnsetBiasSec: wxOnsetBiasSec,
+                preflightWarnings: preflight.warnLines || [],
                 apply: applyObj.result
             });
         } catch (e) {
-            return respondErr(e.message);
+            var msgFatal = "";
+            try { msgFatal = (e && (e.message || e.description)) ? (e.message || e.description) : String(e); } catch (e2) { msgFatal = "Unknown error"; }
+            if (!msgFatal) msgFatal = "Unknown error";
+            return (typeof _failWithRun === "function")
+                ? _failWithRun("fatal", msgFatal, { reason: "exception" })
+                : respondErr(msgFatal);
+        }
+    };
+
+    // Fast path:
+    // - reuse latest successful/usable blocks + whisperx.json
+    // - rerun only align + apply
+    autoTimingRerunAlignmentAndApply = function () {
+        var _fail = function (stage, text, runRef, runManifestPath, extra) {
+            var msg = String(text || "Re-run Alignment failed");
+            if (runManifestPath) msg += "\nrunManifest=" + runManifestPath;
+            try {
+                if (runRef && typeof cpRunFinalize === "function") {
+                    cpRunFinalize(runRef, "failed", {
+                        stage: String(stage || "failed"),
+                        error: String(text || ""),
+                        result: (extra && typeof extra === "object") ? extra : {}
+                    });
+                }
+            } catch (eRunFail) {}
+            return respondErr(msg);
+        };
+
+        try {
+            if (!app || !app.project) return respondErr("No active project");
+            var comp = app.project.activeItem;
+            if (!comp || !(comp instanceof CompItem)) return respondErr("No active comp");
+
+            try { if (typeof reloadConfig === "function") reloadConfig(); } catch (eCfg) {}
+
+            var preflight = _runAutoTimingPreflight();
+            if (!preflight.ok) {
+                var preMsg = "Re-run Alignment preflight failed.";
+                if (preflight.failLines && preflight.failLines.length) {
+                    preMsg += "\n\nFix these items:";
+                    for (var pf = 0; pf < preflight.failLines.length; pf++) preMsg += "\n" + preflight.failLines[pf];
+                }
+                return respondErr(preMsg);
+            }
+
+            var latest = null;
+            try {
+                if (typeof cpRunFindLatest === "function") {
+                    latest = cpRunFindLatest("auto_timing", {
+                        status: ["completed"],
+                        hasOutputs: ["blocksPath", "whisperxJson"]
+                    });
+                }
+                if (!latest && typeof cpRunGetLatest === "function") latest = cpRunGetLatest("auto_timing");
+            } catch (eLatest) { latest = null; }
+            if (!latest || typeof latest !== "object") {
+                return respondErr("No previous auto_timing run found. Run full Auto Timing first.");
+            }
+
+            var sourceRunId = String(latest.runId || "");
+            var outputs = (latest.outputs && typeof latest.outputs === "object") ? latest.outputs : {};
+            var blocksPath = _normalizePath(String(outputs.blocksPath || ""));
+            var whisperxJson = _normalizePath(String(outputs.whisperxJson || ""));
+
+            if (!blocksPath || !(new File(blocksPath)).exists) {
+                return respondErr("Re-run Alignment: blocksPath is missing in latest completed run.");
+            }
+            if (!whisperxJson || !(new File(whisperxJson)).exists) {
+                return respondErr("Re-run Alignment: whisperxJson is missing in latest completed run.");
+            }
+
+            var stamp = _timestamp();
+            var runBase = _sanitizeFileBase(comp.name || "comp") + "_" + stamp + "_align";
+
+            var runRef = null;
+            var runManifestPath = "";
+            try {
+                if (typeof cpRunCreate === "function") {
+                    runRef = cpRunCreate("auto_timing", {
+                        runId: runBase,
+                        inputs: {
+                            sourceRunId: sourceRunId,
+                            compName: String(comp.name || ""),
+                            blocksPath: blocksPath,
+                            whisperxJson: whisperxJson,
+                            fps: Number(comp.frameRate) || 0
+                        },
+                        meta: {
+                            mode: "rerun_alignment",
+                            configPath: String(getConfigPath ? getConfigPath() : "")
+                        }
+                    });
+                    if (runRef && runRef.manifestPath) runManifestPath = String(runRef.manifestPath || "");
+                }
+            } catch (eRunCreate) {}
+
+            var logsDir = _getAutoTimingLogsDir();
+            if (!logsDir) return _fail("align", "autoTimingLogsDir is empty", runRef, runManifestPath, { reason: "empty_logs_dir" });
+            _ensureFolder(logsDir);
+
+            var pyResolved = _resolveWhisperPythonPath();
+            var py = String(pyResolved.path || "");
+            if (!py) {
+                var triedPy = "";
+                try { triedPy = pyResolved.checked && pyResolved.checked.length ? ("\nChecked:\n- " + pyResolved.checked.join("\n- ")) : ""; } catch (eTpy) { triedPy = ""; }
+                return _fail("align", "Python not found. Check whisperxPythonPath/captionPanelsToolsRoot." + triedPy, runRef, runManifestPath, { reason: "python_not_found" });
+            }
+            var pyExe = "\"" + _toCmdWinPath(_normalizePath(py)) + "\"";
+
+            var alignBaseDir = _getAutoTimingAlignmentDir();
+            if (!alignBaseDir) return _fail("align", "autoTimingAlignmentDir is empty", runRef, runManifestPath, { reason: "empty_alignment_dir" });
+            var alignRunDir = _normalizePath(alignBaseDir + "/" + runBase);
+            _ensureFolder(alignRunDir);
+
+            var scriptRaw = "";
+            try { scriptRaw = String(getConfigValue("transcribeAlignScriptPath", "") || ""); } catch (eS) { scriptRaw = ""; }
+            if (!scriptRaw) scriptRaw = "host/tools/transcribe_align/transcribe_align.py";
+            var scriptPath = _resolvePathRelativeToRoot(scriptRaw);
+            scriptPath = _normalizePath(scriptPath);
+            if (!(new File(scriptPath)).exists) {
+                return _fail("align", "transcribe_align.py not found: " + scriptPath, runRef, runManifestPath, { reason: "align_script_not_found" });
+            }
+
+            var minGapFrames = 1;
+            try {
+                var mg = Number(getConfigValue("autoTimingMinGapFrames", 1));
+                if (!isNaN(mg) && mg >= 0) minGapFrames = mg;
+            } catch (eMg) { minGapFrames = 1; }
+
+            try {
+                if (runRef && typeof cpRunUpdate === "function") {
+                    cpRunUpdate(runRef, {
+                        stage: "align",
+                        outputs: {
+                            blocksPath: blocksPath,
+                            whisperxJson: whisperxJson
+                        }
+                    });
+                }
+            } catch (eRunUpdate0) {}
+
+            var lang = "";
+            try { lang = String(getConfigValue("whisperxLanguage", "ru") || "ru"); } catch (eL) { lang = "ru"; }
+
+            var alignBody = pyExe + ' "' + _toCmdWinPath(scriptPath) + '"' +
+                ' --blocks "' + _toCmdWinPath(_normalizePath(blocksPath)) + '"' +
+                ' --whisperx-json "' + _toCmdWinPath(_normalizePath(whisperxJson)) + '"' +
+                ' --out-dir "' + _toCmdWinPath(_normalizePath(alignRunDir)) + '"' +
+                ' --lang ' + lang +
+                ' --min-gap-frames ' + String(minGapFrames);
+
+            var a = _runCmdBody(alignBody, "align_rerun", logsDir, stamp);
+            if (a.exitCode !== 0) {
+                var msg3 = "Alignment failed (exit=" + a.exitCode + ")";
+                if (a.logPath) msg3 += "\nlog=" + a.logPath;
+                return _fail("align", msg3, runRef, runManifestPath, {
+                    reason: "align_failed",
+                    alignLog: String(a.logPath || ""),
+                    exitCode: Number(a.exitCode) || 0
+                });
+            }
+
+            var alignmentPath = _normalizePath(alignRunDir + "/alignment.json");
+            if (!(new File(alignmentPath)).exists) {
+                var msg4 = "alignment.json not found: " + alignmentPath;
+                if (a.logPath) msg4 += "\nlog=" + a.logPath;
+                return _fail("align", msg4, runRef, runManifestPath, { reason: "missing_alignment_json" });
+            }
+
+            try {
+                if (runRef && typeof cpRunUpdate === "function") {
+                    cpRunUpdate(runRef, {
+                        stage: "apply",
+                        outputs: {
+                            alignmentDir: _normalizePath(alignRunDir),
+                            alignmentPath: _normalizePath(alignmentPath),
+                            alignLog: _normalizePath(String(a.logPath || ""))
+                        }
+                    });
+                }
+            } catch (eRunUpdate1) {}
+
+            var applyRaw = autoTimingApply(alignmentPath);
+            var applyObj = null;
+            try { applyObj = _parseJsonSafe(String(applyRaw || "")); } catch (eA) { applyObj = null; }
+            if (!applyObj || !applyObj.ok) {
+                var am = applyObj && applyObj.error ? String(applyObj.error) : String(applyRaw || "Apply failed");
+                return _fail("apply", "Apply timings failed. " + am, runRef, runManifestPath, { reason: "apply_failed" });
+            }
+
+            var applyReportPath = _writeApplyReportJson(alignRunDir, comp, applyObj.result, {
+                mode: "rerun_alignment",
+                runId: runBase,
+                sourceRunId: sourceRunId,
+                alignmentPath: _normalizePath(alignmentPath),
+                blocksPath: _normalizePath(blocksPath),
+                whisperxJson: _normalizePath(whisperxJson)
+            });
+
+            try {
+                if (runRef && typeof cpRunFinalize === "function") {
+                    cpRunFinalize(runRef, "completed", {
+                        stage: "done",
+                        outputs: {
+                            blocksPath: _normalizePath(blocksPath),
+                            whisperxJson: _normalizePath(whisperxJson),
+                            alignmentPath: _normalizePath(alignmentPath),
+                            applyReportPath: _normalizePath(applyReportPath || "")
+                        },
+                        result: {
+                            sourceRunId: sourceRunId,
+                            total: Number((applyObj.result && applyObj.result.total) || 0),
+                            applied: Number((applyObj.result && applyObj.result.applied) || 0),
+                            missingCount: Number((applyObj.result && applyObj.result.missingCount) || 0),
+                            unmatchedCount: Number((applyObj.result && applyObj.result.unmatchedCount) || 0),
+                            invalidCount: Number((applyObj.result && applyObj.result.invalidCount) || 0),
+                            errorCount: Number((applyObj.result && applyObj.result.errorCount) || 0),
+                            reasonStats: (applyObj.result && applyObj.result.reasonStats) ? applyObj.result.reasonStats : {}
+                        }
+                    });
+                }
+            } catch (eRunDone) {}
+
+            return respondOk({
+                runId: runBase,
+                sourceRunId: sourceRunId,
+                runManifestPath: runManifestPath,
+                blocksPath: blocksPath,
+                whisperxJson: whisperxJson,
+                alignmentPath: alignmentPath,
+                applyReportPath: applyReportPath,
+                alignLog: a.logPath,
+                preflightWarnings: preflight.warnLines || [],
+                apply: applyObj.result
+            });
+        } catch (e) {
+            var msg = "";
+            try { msg = (e && (e.message || e.description)) ? (e.message || e.description) : String(e); } catch (e2) { msg = "Unknown error"; }
+            if (!msg) msg = "Unknown error";
+            return respondErr(msg);
         }
     };
 
@@ -1770,6 +2165,7 @@
             $.global.autoTimingApply = autoTimingApply;
             $.global.autoTimingApplyFromDialog = autoTimingApplyFromDialog;
             $.global.autoTimingRunWhisperXAndApply = autoTimingRunWhisperXAndApply;
+            $.global.autoTimingRerunAlignmentAndApply = autoTimingRerunAlignmentAndApply;
         }
     } catch (eG) {}
 })();

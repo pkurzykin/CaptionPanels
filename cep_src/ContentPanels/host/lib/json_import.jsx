@@ -34,7 +34,11 @@
         for (var i = 0; i < arr.length; i++) {
             var g = arr[i] || {};
             if (i > 0) out += ",";
-            out += "{\"text\":\"" + _escapeString(g.text) + "\",\"time\":" + (Number(g.time) || 0) + "}";
+            out += "{\"text\":\"" + _escapeString(g.text) + "\",\"time\":" + (Number(g.time) || 0) +
+                ",\"pin\":\"" + _escapeString(g.pin || "") + "\"" +
+                ",\"anchorLayer\":\"" + _escapeString(g.anchorLayer || "") + "\"" +
+                ",\"anchorType\":\"" + _escapeString(g.anchorType || "") + "\"" +
+                ",\"anchorBatch\":" + (Number(g.anchorBatch) || 0) + "}";
         }
         out += "]";
         return out;
@@ -57,6 +61,17 @@
             "\"speakers\":" + _jsonSpeakersArray(speakers || []) + "," +
             "\"branding\":{\"head\":\"" + head + "\",\"topic\":\"" + topic + "\",\"geotags\":" + geos + "}" +
         "},\"error\":\"\"}";
+    }
+
+    function _formatSchemaErrors(report) {
+        if (!report || !(report.errors instanceof Array) || report.errors.length === 0) return "";
+        var lines = [];
+        var limit = 8;
+        for (var i = 0; i < report.errors.length && i < limit; i++) {
+            lines.push("- " + String(report.errors[i] || ""));
+        }
+        if (report.errors.length > limit) lines.push("- ...");
+        return lines.join("\n");
     }
 
     function _readJsonFile(path) {
@@ -178,6 +193,42 @@
         }
     }
 
+    function _predictFirstGeneratedLayerName(comp, isItalic) {
+        var typeUpper = isItalic ? "SYNCH" : "VOICEOVER";
+        var batch = 0;
+        try {
+            if (typeof _nextSubtitleBatchIndex === "function") {
+                batch = Number(_nextSubtitleBatchIndex(comp, typeUpper)) || 0;
+            }
+        } catch (e) {
+            batch = 0;
+        }
+        if (batch <= 0) return "";
+        return "Sub_" + typeUpper + "_" + batch + "_1";
+    }
+
+    function _parseAnchorMetaFromLayerName(name) {
+        var s = String(name || "");
+        var m = s.match(/^Sub_(VOICEOVER|SYNCH)_(\d+)_/i);
+        if (!m) return { type: "", batch: 0 };
+        var typeUpper = String(m[1] || "").toUpperCase();
+        var batch = parseInt(m[2], 10);
+        if (isNaN(batch) || batch <= 0) batch = 0;
+        return { type: typeUpper, batch: batch };
+    }
+
+    function _hasFutureVoiceoverBeforeNextGeotag(segments, fromIndex) {
+        var arr = segments || [];
+        for (var i = fromIndex + 1; i < arr.length; i++) {
+            var seg = arr[i] || {};
+            var t = _toLower(seg.type);
+            if (!t) continue;
+            if (t === "geotag") return false;
+            if (t === "voiceover") return true;
+        }
+        return false;
+    }
+
     importJsonFromDialog = function () {
         var file = File.openDialog("Выберите JSON", "*.json");
         if (!file) return _jsonErr("CANCELLED");
@@ -235,6 +286,16 @@
                 return _jsonErr("Legacy JSON schema is not supported");
             }
 
+            if (typeof cpValidateImportPayload === "function") {
+                var schemaReport = cpValidateImportPayload(data);
+                if (schemaReport && schemaReport.ok === false) {
+                    var details = _formatSchemaErrors(schemaReport);
+                    var errMsg = "Import JSON schema validation failed.";
+                    if (details) errMsg += "\n" + details;
+                    return _jsonErr(errMsg);
+                }
+            }
+
             var startTime = comp.time;
             var speakersQueue = [];
             // De-dupe speakers suggested for title creation. In real projects the same speaker
@@ -253,18 +314,52 @@
             }
 
             var geotags = [];
+            var pendingGeotags = [];
             for (var i = 0; i < segments.length; i++) {
                 var seg = segments[i] || {};
                 var t = _toLower(seg.type);
                 if (!t) continue;
 
                 if (t === "geotag") {
-                    geotags.push({ text: _cleanGeotagText(seg.text || ""), time: comp.time, pin: seg.pin || "" });
+                    var g = {
+                        text: _cleanGeotagText(seg.text || ""),
+                        time: comp.time,
+                        pin: seg.pin || "",
+                        anchorLayer: ""
+                    };
+                    if (String(g.pin || "").toLowerCase() === "start") {
+                        geotags.push(g);
+                    } else {
+                        pendingGeotags.push(g);
+                    }
                     continue;
                 }
 
                 if (t === "voiceover" || _isSyncType(t)) {
                     var italic = _isSyncType(t);
+                    var anchorLayer = _predictFirstGeneratedLayerName(comp, italic);
+                    var attachPendingNow = false;
+                    if (!italic) {
+                        // Prefer anchoring geotag to the next VO block.
+                        attachPendingNow = true;
+                    } else {
+                        // For SYNCH, only attach if there is no VO before the next geotag.
+                        attachPendingNow = !_hasFutureVoiceoverBeforeNextGeotag(segments, i);
+                    }
+
+                    if (pendingGeotags.length > 0 && attachPendingNow) {
+                        for (var pg = 0; pg < pendingGeotags.length; pg++) {
+                            var gg = pendingGeotags[pg];
+                            if (anchorLayer) {
+                                gg.anchorLayer = anchorLayer;
+                                var am = _parseAnchorMetaFromLayerName(anchorLayer);
+                                gg.anchorType = am.type;
+                                gg.anchorBatch = am.batch;
+                            }
+                            geotags.push(gg);
+                        }
+                        pendingGeotags = [];
+                    }
                     generateSubs(seg.text || "", italic, true);
                     counts.blocks++;
                     if (italic) counts.synch++; else counts.voiceover++;
@@ -282,6 +377,11 @@
                         }
                     }
                 }
+            }
+
+            if (pendingGeotags.length > 0) {
+                for (var pg2 = 0; pg2 < pendingGeotags.length; pg2++) geotags.push(pendingGeotags[pg2]);
+                pendingGeotags = [];
             }
 
             var endTime = comp.time;
