@@ -33,6 +33,10 @@ Note:
 3. Сборка AEGP через `msbuild` (если `msbuild` найден).
 4. Вызов `scripts/package.ps1` для формирования `dist/CaptionPanels`.
 
+Для .NET tools-сборки:
+- если `DOTNET_CLI_HOME`/`NUGET_PACKAGES` не заданы извне, `build.ps1` направляет их в `dist/_build/tools/...`;
+- это уменьшает зависимость от user-home прав на runner/локальной машине.
+
 Полезные флаги:
 - `-SkipTools` — пропустить сборку tools.
 - `-SkipAegp` — пропустить сборку AEGP.

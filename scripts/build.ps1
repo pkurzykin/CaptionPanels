@@ -72,6 +72,35 @@ function Build-Word2Json {
         throw "dotnet SDK not found. Install .NET SDK 8+ or run with -SkipTools."
     }
 
+    # Keep dotnet first-run artifacts and NuGet cache inside project build area when env vars are not provided.
+    $toolsBuildRoot = Get-CaptionPanelsToolsBuildRoot -DistRoot $DistRoot
+    $dotnetCliHome = $env:DOTNET_CLI_HOME
+    if ([string]::IsNullOrWhiteSpace($dotnetCliHome)) {
+        $dotnetCliHome = Join-Path $toolsBuildRoot "dotnet-home"
+        $env:DOTNET_CLI_HOME = $dotnetCliHome
+    }
+
+    if (!(Test-Path -LiteralPath $dotnetCliHome -PathType Container)) {
+        New-Item -ItemType Directory -Path $dotnetCliHome -Force | Out-Null
+    }
+
+    $nugetPackages = $env:NUGET_PACKAGES
+    if ([string]::IsNullOrWhiteSpace($nugetPackages)) {
+        $nugetPackages = Join-Path $toolsBuildRoot "nuget-packages"
+        $env:NUGET_PACKAGES = $nugetPackages
+    }
+
+    if (!(Test-Path -LiteralPath $nugetPackages -PathType Container)) {
+        New-Item -ItemType Directory -Path $nugetPackages -Force | Out-Null
+    }
+
+    if ([string]::IsNullOrWhiteSpace($env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE)) {
+        $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = "1"
+    }
+    if ([string]::IsNullOrWhiteSpace($env:DOTNET_CLI_TELEMETRY_OPTOUT)) {
+        $env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+    }
+
     Invoke-External -Executable $dotnetCmd.Source -Arguments @("restore", $project)
     Invoke-External -Executable $dotnetCmd.Source -Arguments @("build", $project, "-c", $Configuration)
 
