@@ -21,11 +21,13 @@ This repo is the **private dev** source. Releases are published to a **public re
 
 On `git push --tags` (e.g., `v2.1.0`), the workflow:
 
-1) Runs `scripts/package_release.ps1` (internally runs `scripts/package.ps1`)
-2) Builds canonical layout in `dist/CaptionPanels`
-3) Creates `dist/CaptionPanels_<ver>_win.zip` from `dist/CaptionPanels`
-4) Verifies zip layout (`plugin/`, `tools/`, `config.default.json`, `BUILDINFO.txt`)
-5) Copies the zip into the public release repo:
+1) Runs preflight: `scripts/preflight.ps1 -Strict -SkipAegpChecks`
+2) Builds tools runtime: `scripts/build.ps1 -Configuration Release -SkipAegp -SkipPackage`
+3) Runs `scripts/package_release.ps1` (internally runs `scripts/package.ps1`)
+4) Builds canonical layout in `dist/CaptionPanels`
+5) Creates `dist/CaptionPanels_<ver>_win.zip` from `dist/CaptionPanels`
+6) Verifies zip layout (`plugin/`, `tools/`, `config.default.json`, `BUILDINFO.txt`, `tools/word2json/word2json.exe`)
+7) Copies the zip into the public release repo:
    `releases/v<ver>/CaptionPanels_<ver>_win.zip`
    + `sha256.txt`
 
@@ -46,4 +48,5 @@ Output:
 ## Notes
 
 - The workflow **does not build** the .aex, it packages an already built plugin via `scripts/package.ps1`.
+- The workflow **does build tools runtime** (`word2json` publish) before packaging to keep release payload deterministic.
 - If you want full CI build, add a build step before packaging on the runner.

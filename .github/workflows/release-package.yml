@@ -21,6 +21,14 @@ jobs:
             throw "Policy violation: dist/ contains tracked files. dist/ must remain build output only."
           }
 
+      - name: Preflight (strict, release packaging mode)
+        shell: pwsh
+        run: .\scripts\preflight.ps1 -Strict -SkipAegpChecks
+
+      - name: Build tools runtime (Release, no AEGP/package)
+        shell: pwsh
+        run: .\scripts\build.ps1 -Configuration Release -SkipAegp -SkipPackage
+
       - name: Package plugin
         shell: pwsh
         run: .\\scripts\\package_release.ps1 -Version $env:GITHUB_REF_NAME
@@ -45,6 +53,9 @@ jobs:
             "plugin\\config.json",
             "plugin\\speakers.json",
             "tools\\word2json\\README.md",
+            "tools\\word2json\\word2json.exe",
+            "tools\\word2json\\word2json.rules.json",
+            "tools\\word2json\\runtime\\win-x64\\self-contained\\word2json.exe",
             "tools\\transcribe_align\\transcribe_align.py",
             "config.default.json",
             "BUILDINFO.txt"
