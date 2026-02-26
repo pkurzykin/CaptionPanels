@@ -62,9 +62,13 @@ legacy_cep/       архив CEP версии
 Если задан `logsRoot`, то логи пишутся в `<logsRoot>\logs\`.
 
 ## Документация
-- Общее по плагину и bridge: `aex_bridge/README.md`
-- Ключи конфига: `docs/CONFIG_REFERENCE.md`
-- Деплой на рабочие ПК: `docs/DEPLOYMENT_GUIDE.md`
-- Диагностика типовых ошибок: `docs/TROUBLESHOOTING.md`
-- Схемы JSON и runtime-валидация: `docs/SCHEMAS_REFERENCE_RU.md`
-- Дорожная карта: `docs/ARCHITECTURE_ROADMAP_RU.md`
+- Индекс документации: [docs/README.md](docs/README.md)
+- Раздел для разработчиков:
+  - [docs/dev/architecture.md](docs/dev/architecture.md)
+  - [docs/dev/build.md](docs/dev/build.md)
+  - [docs/dev/deployment.md](docs/dev/deployment.md)
+- Раздел спецификаций: [docs/spec/README.md](docs/spec/README.md)
+- Раздел пользовательской документации: [docs/user/README.md](docs/user/README.md)
+- Общее по плагину и bridge: [aex_bridge/README.md](aex_bridge/README.md)
+- Ключи конфига: [docs/CONFIG_REFERENCE.md](docs/CONFIG_REFERENCE.md)
+- Диагностика типовых ошибок: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
