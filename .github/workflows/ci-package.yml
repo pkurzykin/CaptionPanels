@@ -12,6 +12,8 @@ on:
 jobs:
   package-dist:
     runs-on: windows-latest
+    env:
+      CI_NUGET_SOURCES: ${{ vars.CI_NUGET_SOURCES }}
 
     steps:
       - name: Checkout
@@ -37,7 +39,22 @@ jobs:
 
       - name: Build and package (Release, no AEGP)
         shell: pwsh
-        run: .\scripts\build.ps1 -Configuration Release -SkipAegp -AllowMissingAex
+        run: |
+          $buildArgs = @("-Configuration", "Release", "-SkipAegp", "-AllowMissingAex")
+
+          if (-not [string]::IsNullOrWhiteSpace($env:CI_NUGET_SOURCES)) {
+            $sources = @(
+              $env:CI_NUGET_SOURCES -split "[,;`r`n]+" |
+              ForEach-Object { $_.Trim() } |
+              Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+            )
+
+            foreach ($source in $sources) {
+              $buildArgs += @("-NuGetSource", $source)
+            }
+          }
+
+          & .\scripts\build.ps1 @buildArgs
 
       - name: Verify dist layout
         shell: pwsh
