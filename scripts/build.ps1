@@ -50,7 +50,7 @@ function Invoke-External {
     & $Executable @Arguments
 
     if ($LASTEXITCODE -ne 0) {
-        throw "Command failed with exit code $LASTEXITCODE: $Executable $($Arguments -join ' ')"
+        throw "Command failed with exit code $($LASTEXITCODE): $Executable $($Arguments -join ' ')"
     }
 }
 
@@ -148,7 +148,14 @@ if (!$SkipPackage) {
         throw "Missing package script: $packageScript"
     }
 
-    $packageArgs = @(
+    $packageParams = @{
+        PluginName = $PluginName
+        Version    = $resolvedVersion
+        OutDir     = $distRoot
+        BuildRoot  = $resolvedBuildRoot
+    }
+
+    $packageArgsForLog = @(
         "-PluginName", $PluginName,
         "-Version", $resolvedVersion,
         "-OutDir", $distRoot,
@@ -156,11 +163,12 @@ if (!$SkipPackage) {
     )
 
     if ($AllowMissingAex -or $SkipAegp) {
-        $packageArgs += "-AllowMissingAex"
+        $packageParams["AllowMissingAex"] = $true
+        $packageArgsForLog += "-AllowMissingAex"
     }
 
-    Write-Host ("> {0} {1}" -f $packageScript, ($packageArgs -join " "))
-    & $packageScript @packageArgs
+    Write-Host ("> {0} {1}" -f $packageScript, ($packageArgsForLog -join " "))
+    & $packageScript @packageParams
 } else {
     Write-Host "Skipping packaging (-SkipPackage)."
 }
