@@ -38,7 +38,7 @@
 ## Binary policy (current)
 
 - Уже присутствующие бинарники в tool-папках не удаляются автоматически и не ломают упаковку.
-- Папки `obj/`, `.git/`, `.vs/`, `Debug/`, `Release/` не попадают в инсталляционный payload.
+- Папки `bin/`, `obj/`, `x64/`, `.git/`, `.vs/`, `Debug/`, `Release/` не попадают в инсталляционный payload.
 
 ## Preferred future model (documented only)
 

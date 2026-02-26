@@ -67,7 +67,7 @@ New-Item -ItemType Directory -Path $pluginRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $toolsRoot -Force | Out-Null
 
 $pluginExcludedDirs = @("bin", "obj", ".git", ".vs", "x64", "Debug", "Release")
-$toolsExcludedDirs = @("obj", ".git", ".vs", "Debug", "Release")
+$toolsExcludedDirs = @("bin", "obj", "x64", ".git", ".vs", "Debug", "Release")
 $excludedFiles = @(".DS_Store", "._.DS_Store")
 
 if (Test-Path -LiteralPath $aexPath) {
