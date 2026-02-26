@@ -2,43 +2,43 @@
 
 ## Scope
 
-This document describes the current build flow and the target standardized build contract.
+Документ фиксирует текущий процесс сборки и операционный контракт поставки.
 
 ## Prerequisites
 
 - Windows 10/11
 - Adobe After Effects 2024+
-- Visual Studio 2022 with C++ toolchain (`v143`)
+- Visual Studio 2022 (`v143`, Desktop development with C++)
 - After Effects SDK (`AE_SDK_ROOT`)
 - WebView2 SDK (`WEBVIEW2_SDK`)
 - PowerShell 7+
 
-## Default build configuration
+## Build configuration policy
 
-- Default configuration is `Release`.
-- Use `Debug` only when explicitly required for diagnostics.
+- Конфигурация по умолчанию: `Release`.
+- `Debug` использовать только по явному запросу для диагностики.
 
-## Current build flow
+## Build flow (current)
 
-1. Open `aegp_src/CaptionPanels/Win/CaptionPanels.sln`.
-2. Ensure env variables are resolved:
+1. Открой `aegp_src/CaptionPanels/Win/CaptionPanels.sln`.
+2. Проверь переменные:
    - `AE_SDK_ROOT`
-   - `AE_PLUGIN_BUILD_DIR` (default `C:\AE\PluginBuild`)
    - `WEBVIEW2_SDK`
-3. Build `Release | x64`.
+   - `AE_PLUGIN_BUILD_DIR` (если нужен контролируемый локальный build-output)
+3. Собери `Release | x64`.
 
-Expected output:
-- `AE_PLUGIN_BUILD_DIR\AEGP\CaptionPanels\CaptionPanels.aex`
+Промежуточный результат сборки:
+- `AE_PLUGIN_BUILD_DIR\AEGP\CaptionPanels\CaptionPanels.aex` (или эквивалент по окружению).
 
-Current release packaging helper:
-- `scripts/package_release.ps1` packages an already built plugin into a zip under `dist/`.
+## Packaging contract
 
-## Target standardized build contract
+- Инсталляционный источник должен формироваться в `dist/CaptionPanels`.
+- Допустимо использовать текущий helper `scripts/package_release.ps1` для формирования release-артефактов в `dist/`.
+- Для деплоя на рабочие машины используется только содержимое `dist/CaptionPanels` (или эквивалент после распаковки release zip).
 
-Planned in dedicated build PRs:
-- `scripts/paths.ps1`: central path resolver.
-- `scripts/package.ps1`: creates reproducible `dist/CaptionPanels` layout.
-- `scripts/build.ps1`: one-button Release build and packaging entrypoint.
+## Planned script standardization
 
-Contract:
-- `dist/CaptionPanels` is the single source used for manual installation.
+Планируемые скрипты (в отдельных PR):
+- `scripts/paths.ps1` — единый резолвер путей.
+- `scripts/package.ps1` — воспроизводимая укладка `dist/CaptionPanels`.
+- `scripts/build.ps1` — единая точка входа build+package (Release).

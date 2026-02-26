@@ -9,6 +9,9 @@
   - [`dev/deployment.md`](dev/deployment.md)
 - Spec docs: [`spec/README.md`](spec/README.md)
 
+Installation contract reference:
+- `dist/CaptionPanels` is the single source for deployment payload.
+
 ## Existing reference documents
 
 - Config reference: [`CONFIG_REFERENCE.md`](CONFIG_REFERENCE.md)

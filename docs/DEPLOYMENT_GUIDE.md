@@ -12,8 +12,9 @@
 
 ## 0) Коротко: что вообще ставим
 
-1) AE-плагин (AEX) + ресурсы панели (`client/`, `host/`, …)
-2) Внешние утилиты:
+1) Инсталляционный payload из `dist/CaptionPanels` (единый источник установки).
+2) AE-плагин (AEX) + ресурсы панели (`client/`, `host/`, …)
+3) Внешние утилиты:
    - `word2json.exe` (Word -> JSON)
    - WhisperX окружение (Python venv + пакеты) для распознавания/таймингов
    - (опционально) `ffmpeg.exe` portable
@@ -47,7 +48,7 @@
 
 ## 2) Установка AEX (плагина)
 
-Ставим вручную копированием.
+Ставим вручную копированием из `dist/CaptionPanels`.
 
 Типовой путь (может отличаться в зависимости от версии AE):
 - `C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\CaptionPanels\`
@@ -56,6 +57,10 @@
 - `CaptionPanels.aex`
 - ресурсы панели (папки `client/`, `host/`, и т.д.)
 - `config.json` (shipped config внутри папки плагина — базовые дефолты)
+
+Важно:
+- не использовать промежуточные build-папки как источник деплоя;
+- рабочий источник установки — только `dist/CaptionPanels`.
 
 ---
 

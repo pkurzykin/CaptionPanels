@@ -27,6 +27,10 @@ On `git push --tags` (e.g., `v2.1.0`), the workflow:
    `releases/v<ver>/CaptionPanels_<ver>_win.zip`
    + `sha256.txt`
 
+Install note:
+- Release zip is the distributable artifact.
+- For deployment, unpack and stage payload as `dist/CaptionPanels` (single installation source).
+
 ## Manual packaging (local)
 
 ```powershell

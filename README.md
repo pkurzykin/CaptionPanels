@@ -1,74 +1,63 @@
 # CaptionPanels
 
-AEGP‑плагин для After Effects 2024+ (Windows 10/11) с UI на WebView2 и JSX‑мостом.
-Текущая версия: 2.4.1.
+AEGP‑плагин для Adobe After Effects 2024+ (Windows 10/11) с UI на WebView2 и JSX‑мостом.
+
+## Контракт поставки и запуска
+
+- Единый источник установки: `dist/CaptionPanels`.
+- Установка в After Effects: копирование payload из `dist/CaptionPanels` в `...\Support Files\Plug-ins\CaptionPanels\`.
+- Runtime‑каталоги вне репозитория:
+  - инструменты: `C:\CaptionPanelsLocal\CaptionPanelTools\...`
+  - данные и логи: `C:\CaptionPanelsLocal\CaptionPanelsData\...`
 
 ## Минимальные требования для разработки
+
 - Windows 10/11
 - Adobe After Effects 2024+
 - Visual Studio 2022 (`v143`, workload: Desktop development with C++)
 - After Effects SDK (`AE_SDK_ROOT`)
 - WebView2 SDK (`WEBVIEW2_SDK`)
-- PowerShell 7+ (для packaging-скриптов)
+- PowerShell 7+
 
-## Структура
+## Структура репозитория
+
 ```
-aegp_src/         исходники AEGP (Windows)
-cep_src/          UI (HTML/JS) + JSX (host)
-aex_bridge/       билд/установка/примечания
-legacy_cep/       архив CEP версии
+aegp_src/       исходники AEGP
+cep_src/        UI (HTML/JS) + JSX host
+tools/          внешние утилиты и deploy-скрипты
+scripts/        build/package/release-скрипты
+docs/           пользовательская, dev и spec документация
+dist/           build output (не коммитится)
 ```
 
-## Сборка (Windows)
-1) Открой `aegp_src/CaptionPanels/Win/CaptionPanels.sln` (VS 2022, v143).
-2) Проверь переменные:
-   - `AE_SDK_ROOT` (дефолт задан в .vcxproj)
-   - `AE_PLUGIN_BUILD_DIR` (дефолт: `C:\AE\PluginBuild`)
-   - `WEBVIEW2_SDK` (NuGet: `C:\Users\<you>\.nuget\packages\microsoft.web.webview2\<version>`)
-3) Собери `Release | x64`.
+## Сборка (Windows, Release по умолчанию)
 
-После сборки плагин будет в `AE_PLUGIN_BUILD_DIR\AEGP\CaptionPanels\`.
+1. Открой `aegp_src/CaptionPanels/Win/CaptionPanels.sln` (VS 2022, v143).
+2. Проверь переменные окружения:
+   - `AE_SDK_ROOT`
+   - `WEBVIEW2_SDK`
+   - `AE_PLUGIN_BUILD_DIR` (если используется локальный build output)
+3. Собери `Release | x64`.
+4. Подготовь инсталляционный payload в `dist/CaptionPanels` (через packaging flow проекта).
 
-## Установка
-Скопируй папку `CaptionPanels` в:
-`C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\`
+Важно: для установки на рабочие машины используем только `dist/CaptionPanels`, а не промежуточные build-папки Visual Studio.
 
-## Конфиг (runtime)
-Файл `config.json` читается при старте AE. Приоритет поиска:
-1) `%APPDATA%\CaptionPanels\config.json` (рекомендуется для смены пути без админ‑прав)
-2) `<plugin_root>/config.json`
+## Runtime config
 
-Примечание: изменения из окна Settings сохраняются в `%APPDATA%\CaptionPanels\config.json` (файл создается автоматически).
+`config.json` читается в приоритете:
+1. `%APPDATA%\CaptionPanels\config.json`
+2. `<plugin_root>\config.json`
 
-Ключи:
-- `speakersDbPath` — путь к общей базе спикеров
-- `topicOptions` — список рубрик для TOPIC (выпадающий список), массив строк
-- `enableLogs` — включить диагностические логи (true/false)
-- `logsRoot` — кастомная папка для логов (если пусто — AppData)
-- `subtitleCharsPerLine` — лимит символов в строке (субтитры), по умолчанию 60
-- `captionPanelsDataRoot` — единый корень данных плагина (рекомендуется: `C:\CaptionPanelsLocal\CaptionPanelsData`)
-- `captionPanelsToolsRoot` — единый корень внешних утилит (рекомендуется: `C:\CaptionPanelsLocal\CaptionPanelTools`)
-- `word2jsonExePath` — путь к `word2json.exe` (Word .docx -> .json), рекомендуется: `C:\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.exe`
-- `word2jsonOutDir` — куда сохранять JSON после конвертации, рекомендуется: `C:\CaptionPanelsLocal\CaptionPanelsData\word2json` (если пусто — `captionPanelsDataRoot\word2json`)
-- `word2jsonLogsDir` — куда сохранять логи импорта Word, рекомендуется: `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs` (если пусто — берется `autoTimingLogsDir`, далее fallback в `captionPanelsDataRoot\auto_timing\logs`)
-- `autoTimingOutDir` — корневая папка данных Auto Timing (если пусто — `captionPanelsDataRoot\auto_timing`)
-- `autoTimingMinGapFrames` — минимальный зазор между соседними блоками разных групп при Auto Timing (в кадрах)
-- `whisperxApplyTimeShift` — глобальный time shift (рекомендуется `false`, включать только для диагностики)
-- `whisperxDeviceMode` — режим выбора устройства для WhisperX: `auto` (рекомендуется, CUDA с fallback на CPU), `cuda`, `cpu`
-
-## Логи
-При `enableLogs: true` логи пишутся в:
-`C:\Users\<you>\AppData\Roaming\CaptionPanels\logs\captionpanels_YYYYMMDD.log`
-Если задан `logsRoot`, то логи пишутся в `<logsRoot>\logs\`.
+Изменения из окна Settings сохраняются в `%APPDATA%\CaptionPanels\config.json`.
+Подробно по ключам: [docs/CONFIG_REFERENCE.md](docs/CONFIG_REFERENCE.md).
 
 ## Документация
-- Индекс документации: [docs/README.md](docs/README.md)
-- Раздел для разработчиков:
+
+- Индекс: [docs/README.md](docs/README.md)
+- Dev:
   - [docs/dev/architecture.md](docs/dev/architecture.md)
   - [docs/dev/build.md](docs/dev/build.md)
   - [docs/dev/deployment.md](docs/dev/deployment.md)
-- Раздел спецификаций: [docs/spec/README.md](docs/spec/README.md)
-- Раздел пользовательской документации: [docs/user/README.md](docs/user/README.md)
-- Общее по плагину и bridge: [aex_bridge/README.md](aex_bridge/README.md)
-- Ключи конфига: [docs/CONFIG_REFERENCE.md](docs/CONFIG_REFERENCE.md)
-- Диагностика типовых ошибок: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+- User: [docs/user/README.md](docs/user/README.md)
+- Spec: [docs/spec/README.md](docs/spec/README.md)
+- Troubleshooting: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)

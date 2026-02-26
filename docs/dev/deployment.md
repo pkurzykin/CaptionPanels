@@ -2,31 +2,32 @@
 
 ## Scope
 
-Deployment mode today is manual. This document fixes the deployment contract for engineers and release owners.
+Текущий режим деплоя: ручной. Этот документ фиксирует контракт установки.
 
 ## Manual deployment (current)
 
-1. Prepare a plugin package payload (current helper: `scripts/package_release.ps1` for zip artifacts).
-2. Extract/copy plugin folder `CaptionPanels` to After Effects Plug-ins directory on target machine:
-   - Example: `C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\CaptionPanels`
-3. Ensure runtime config exists as needed:
-   - Primary: `%APPDATA%\CaptionPanels\config.json`
-   - Fallback: `<plugin_root>\config.json`
-4. Verify external tools/data roots under `C:\CaptionPanelsLocal\...` are available for the deployed environment.
+1. Подготовь инсталляционный payload в `dist/CaptionPanels`.
+2. Скопируй payload в каталог плагинов After Effects:
+   - пример: `C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\CaptionPanels`
+3. Проверь конфиг:
+   - primary: `%APPDATA%\CaptionPanels\config.json`
+   - fallback: `<plugin_root>\config.json`
+4. Проверь доступность runtime-корней:
+   - `C:\CaptionPanelsLocal\CaptionPanelTools\...`
+   - `C:\CaptionPanelsLocal\CaptionPanelsData\...`
 
-## Deployment contract (target)
+## Deployment contract
 
-- `dist/CaptionPanels` must be the single source of truth for installation artifacts.
-- Package content is expected to include plugin payload and required runtime tool/config assets.
-- Manual copy from `dist/CaptionPanels` remains the default deployment operation.
+- Единый источник установки: `dist/CaptionPanels`.
+- Промежуточные build-папки (например, Visual Studio output) не используются как источник деплоя.
+- Ручное копирование из `dist/CaptionPanels` остаётся базовым способом установки.
 
 ## Future plan (documented only, not implemented)
 
-- Introduce an admin-oriented deployment script `deploy.ps1`.
-- Script responsibilities (planned):
-  - validate prerequisites
-  - copy plugin payload to AE Plug-ins path
-  - provision runtime roots under `C:\CaptionPanelsLocal`
-  - emit deployment report/log
+Планируется `deploy.ps1` (admin-oriented), который будет:
+- проверять prerequisites;
+- копировать payload в AE Plug-ins;
+- валидировать/provision `C:\CaptionPanelsLocal\...`;
+- формировать отчёт о деплое.
 
-This plan is intentionally documented here and must not be implemented until explicitly approved.
+Скрипт не реализуется до явного одобрения.

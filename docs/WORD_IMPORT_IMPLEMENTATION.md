@@ -140,4 +140,4 @@ Mitigations:
 - `cep_src/ContentPanels/client/js/ui_import.js` (wire UI)
 - `cep_src/ContentPanels/client/js/main.js` (load host module)
 - `cep_src/ContentPanels/config.json` (new keys)
-- `README.md`, `aex_bridge/README.md` (document new config keys)
+- `README.md`, `docs/CONFIG_REFERENCE.md` (document new config keys)
