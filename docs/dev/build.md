@@ -60,6 +60,18 @@
 - `dist/CaptionPanels/config.default.json`
 - `dist/CaptionPanels/BUILDINFO.txt`
 
-## Planned next step
+## CI status
 
-- Интеграция one-button pipeline в CI выполняется только по отдельному запросу.
+- CI packaging подключен по отдельному запросу и покрывает проверку packaging-контракта.
+
+## CI packaging
+
+- Workflow: `.github/workflows/ci-package.yml`.
+- Триггеры: `pull_request` (если изменяются `scripts/**`, `cep_src/**`, `tools/**`) и `workflow_dispatch`.
+- В CI используется:
+  - `scripts/build.ps1 -Configuration Release -SkipAegp -AllowMissingAex`
+  - проверка обязательного layout в `dist/CaptionPanels`
+  - публикация артефакта `CaptionPanels-dist`
+
+Ограничение:
+- CI workflow не собирает AEGP (`-SkipAegp`) и валидирует packaging-контракт для `dist/CaptionPanels`.

@@ -1,0 +1,55 @@
+name: CI Package
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ci-package.yml"
+      - "scripts/**"
+      - "cep_src/**"
+      - "tools/**"
+  workflow_dispatch:
+
+jobs:
+  package-dist:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build and package (Release, no AEGP)
+        shell: pwsh
+        run: .\scripts\build.ps1 -Configuration Release -SkipAegp -AllowMissingAex
+
+      - name: Verify dist layout
+        shell: pwsh
+        run: |
+          $required = @(
+            "dist/CaptionPanels/plugin/client/index.html",
+            "dist/CaptionPanels/plugin/host/index.jsx",
+            "dist/CaptionPanels/plugin/config.json",
+            "dist/CaptionPanels/plugin/speakers.json",
+            "dist/CaptionPanels/tools/word2json/README.md",
+            "dist/CaptionPanels/tools/transcribe_align/transcribe_align.py",
+            "dist/CaptionPanels/config.default.json",
+            "dist/CaptionPanels/BUILDINFO.txt"
+          )
+
+          foreach ($path in $required) {
+            if (!(Test-Path -LiteralPath $path)) {
+              throw "Missing expected path: $path"
+            }
+          }
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CaptionPanels-dist
+          path: dist/CaptionPanels
+          if-no-files-found: error
+          retention-days: 14

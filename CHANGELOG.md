@@ -14,6 +14,7 @@
 - Build pipeline: добавлен `scripts/build.ps1` как one-button сценарий (по умолчанию `Release`) для сборки tools, сборки AEGP через `msbuild` (если найден) и вызова `scripts/package.ps1`.
 - CEP layering: исходники перестроены в `cep_src/{ui,host,jsx,shared}` с механическим переносом через `git mv`; UI переведен на единый публичный API-слой `CPHostAPI`, добавлен `docs/dev/cep-structure.md`, обновлены packaging-paths и документация по новым путям.
 - Tools layout: нормализована per-tool упаковка (`word2json`, `transcribe_align`, `deploy`), сборка `word2json` переведена в `dist/_build/tools/...`, добавлен overlay runtime в `dist/CaptionPanels/tools/word2json/runtime/win-x64/self-contained` с сохранением совместимого `word2json.exe` в корне tool-папки и обновлена dev-документация.
+- CI packaging: добавлен workflow `.github/workflows/ci-package.yml` для PR/manual-проверки packaging-контракта (`Release`, `-SkipAegp`, `-AllowMissingAex`) и публикации артефакта `CaptionPanels-dist` из `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
 - Branding: после `Create Branding` принудительный пересчет `subtitle_BG` сохраняется (host + fallback), чтобы не терялся после правок логики head_topic.
 - Auto Timing: после применения таймингов добавлен более надежный пересчет `subtitle_BG` (с fallback-алгоритмом, если модуль `subtitles.jsx` не подгрузился).
