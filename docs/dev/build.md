@@ -16,6 +16,7 @@
 Note:
 - Full production build target is Windows.
 - For non-Windows smoke runs via `pwsh`, default `BuildRoot` resolves to a temp path (`.../CaptionPanelsBuild`) unless `-BuildRoot` or `AE_PLUGIN_BUILD_DIR` is provided.
+- NuGet client входит в .NET SDK; отдельная установка `nuget.exe` обычно не требуется.
 
 ## Build configuration policy
 

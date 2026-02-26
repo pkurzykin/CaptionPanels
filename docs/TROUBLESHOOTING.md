@@ -158,6 +158,24 @@
 - нажми `Reload` в панели после полной загрузки проекта;
 - приложи `Diagnostics` snapshot + хвост лога `captionpanels_YYYYMMDD.log`.
 
+## 15) `dotnet restore` / `NU1301` при `scripts/build.ps1`
+
+Симптом:
+- build падает на `dotnet restore` с ошибками `NU1301` (не удается загрузить индекс сервиса).
+
+Важно:
+- отдельный `nuget.exe` обычно не нужен; NuGet client уже входит в .NET SDK.
+
+Проверь:
+- доступ к NuGet feed (например `https://api.nuget.org/v3/index.json`);
+- proxy/firewall правила на машине;
+- список источников:
+  - `dotnet nuget list source`
+
+Быстрые команды:
+- `dotnet --info`
+- `dotnet nuget list source`
+
 ## Где смотреть логи
 
 - Word import:

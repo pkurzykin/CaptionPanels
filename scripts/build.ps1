@@ -101,7 +101,30 @@ function Build-Word2Json {
         $env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
     }
 
-    Invoke-External -Executable $dotnetCmd.Source -Arguments @("restore", $project)
+    try {
+        Invoke-External -Executable $dotnetCmd.Source -Arguments @("restore", $project)
+    } catch {
+        $nugetSourcesText = ""
+        try {
+            $nugetSourcesText = (& $dotnetCmd.Source "nuget" "list" "source" 2>$null | Out-String).Trim()
+        } catch {}
+
+        $hint = @(
+            "dotnet restore failed for word2json."
+            "NuGet client is bundled with .NET SDK; separate nuget.exe installation is usually not required."
+            "Check network/proxy access to NuGet feeds and verify configured sources."
+            "Helpful checks:"
+            "  dotnet --info"
+            "  dotnet nuget list source"
+        )
+
+        if (![string]::IsNullOrWhiteSpace($nugetSourcesText)) {
+            $hint += "Configured sources:"
+            $hint += $nugetSourcesText
+        }
+
+        throw ($_.Exception.Message + "`n" + ($hint -join "`n"))
+    }
     Invoke-External -Executable $dotnetCmd.Source -Arguments @("build", $project, "-c", $Configuration)
 
     $publishDir = Get-CaptionPanelsWord2JsonPublishRoot -DistRoot $DistRoot
