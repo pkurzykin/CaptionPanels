@@ -171,6 +171,8 @@
 - proxy/firewall правила на машине;
 - список источников:
   - `dotnet nuget list source`
+- если user-level `~/.nuget/NuGet/NuGet.Config` недоступен, укажи явный конфиг:
+  - `pwsh -NoProfile -File .\scripts\build.ps1 -NuGetConfigFile <path-to-NuGet.Config> ...`
 
 Быстрые команды:
 - `dotnet --info`
