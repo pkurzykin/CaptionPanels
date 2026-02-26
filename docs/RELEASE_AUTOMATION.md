@@ -21,15 +21,18 @@ This repo is the **private dev** source. Releases are published to a **public re
 
 On `git push --tags` (e.g., `v2.1.0`), the workflow:
 
-1) Runs `scripts/package_release.ps1`
-2) Creates `dist/CaptionPanels_<ver>_win.zip`
-3) Copies the zip into the public release repo:
+1) Runs `scripts/package_release.ps1` (internally runs `scripts/package.ps1`)
+2) Builds canonical layout in `dist/CaptionPanels`
+3) Creates `dist/CaptionPanels_<ver>_win.zip` from `dist/CaptionPanels`
+4) Verifies zip layout (`plugin/`, `tools/`, `config.default.json`, `BUILDINFO.txt`)
+5) Copies the zip into the public release repo:
    `releases/v<ver>/CaptionPanels_<ver>_win.zip`
    + `sha256.txt`
 
 Install note:
 - Release zip is the distributable artifact.
-- For deployment, unpack and stage payload as `dist/CaptionPanels` (single installation source).
+- Zip root equals `dist/CaptionPanels` payload (`plugin/`, `tools/`, `config.default.json`, `BUILDINFO.txt`).
+- For deployment, unpack zip content into `dist/CaptionPanels` target on destination machine.
 
 ## Manual packaging (local)
 
@@ -42,5 +45,5 @@ Output:
 
 ## Notes
 
-- The workflow **does not build** the .aex, it only packages it.
+- The workflow **does not build** the .aex, it packages an already built plugin via `scripts/package.ps1`.
 - If you want full CI build, add a build step before packaging on the runner.

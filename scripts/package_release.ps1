@@ -1,3 +1,4 @@
+[CmdletBinding()]
 param(
     [string]$Version = "",
     [string]$OutDir = "",
@@ -6,64 +7,39 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+. (Join-Path $PSScriptRoot "paths.ps1")
 
-if ([string]::IsNullOrWhiteSpace($OutDir)) {
-    $OutDir = Join-Path $repoRoot "dist"
+$repoRoot = Get-CaptionPanelsRepoRoot -ScriptRoot $PSScriptRoot
+$distRoot = Get-CaptionPanelsDistRoot -RepoRoot $repoRoot -OutDir $OutDir
+$resolvedBuildRoot = Get-CaptionPanelsBuildRoot -BuildRoot $BuildRoot
+$resolvedVersion = Get-CaptionPanelsVersion -RepoRoot $repoRoot -Version $Version
+
+$packageScript = Join-Path $PSScriptRoot "package.ps1"
+if (!(Test-Path -LiteralPath $packageScript -PathType Leaf)) {
+    throw "Missing package script: $packageScript"
 }
 
-if ([string]::IsNullOrWhiteSpace($Version)) {
-    if ($env:GITHUB_REF_NAME) {
-        $Version = $env:GITHUB_REF_NAME
-    } else {
-        $corePath = Join-Path $repoRoot "cep_src/ui/js/app_core.js"
-        if (Test-Path $corePath) {
-            $core = Get-Content $corePath -Raw
-            if ($core -match 'UI_VERSION\s*=\s*\"([^\"]+)\"') {
-                $Version = $matches[1]
-            }
-        }
-    }
+$packageParams = @{
+    PluginName = $PluginName
+    Version    = $resolvedVersion
+    OutDir     = $distRoot
+    BuildRoot  = $resolvedBuildRoot
 }
 
-if ([string]::IsNullOrWhiteSpace($Version)) {
-    throw "Version is not set. Pass -Version or set GITHUB_REF_NAME."
+Write-Host ("Packaging dist layout via package.ps1 (Version={0})" -f $resolvedVersion)
+& $packageScript @packageParams
+
+$stageRoot = Join-Path $distRoot $PluginName
+if (!(Test-Path -LiteralPath $stageRoot -PathType Container)) {
+    throw "Expected package root not found after package.ps1: $stageRoot"
 }
 
-$ver = $Version
-if ($ver.StartsWith("v")) { $ver = $ver.Substring(1) }
-
-if ([string]::IsNullOrWhiteSpace($BuildRoot)) {
-    if ($env:AE_PLUGIN_BUILD_DIR) {
-        $BuildRoot = $env:AE_PLUGIN_BUILD_DIR
-    } else {
-        $BuildRoot = "C:\AE\PluginBuild"
-    }
+$zipPath = Join-Path $distRoot ($PluginName + "_" + $resolvedVersion + "_win.zip")
+if (Test-Path -LiteralPath $zipPath -PathType Leaf) {
+    Remove-Item -LiteralPath $zipPath -Force
 }
-
-$pluginRoot = Join-Path $BuildRoot ("AEGP\" + $PluginName)
-$aexPath = Join-Path $pluginRoot ($PluginName + ".aex")
-
-if (!(Test-Path $aexPath)) {
-    throw "Missing built plugin: $aexPath"
-}
-
-$stageRoot = Join-Path $OutDir $PluginName
-if (Test-Path $stageRoot) { Remove-Item $stageRoot -Recurse -Force }
-New-Item -ItemType Directory -Path $stageRoot | Out-Null
-
-Copy-Item $aexPath $stageRoot -Force
-Copy-Item (Join-Path $repoRoot "cep_src/ui") (Join-Path $stageRoot "client") -Recurse -Force
-Copy-Item (Join-Path $repoRoot "cep_src/jsx") (Join-Path $stageRoot "host") -Recurse -Force
-Copy-Item (Join-Path $repoRoot "cep_src/host/public_api.js") (Join-Path $stageRoot "host/public_api.js") -Force
-Copy-Item (Join-Path $repoRoot "cep_src/shared/config.json") (Join-Path $stageRoot "config.json") -Force
-Copy-Item (Join-Path $repoRoot "cep_src/shared/speakers.json") (Join-Path $stageRoot "speakers.json") -Force
-Copy-Item (Join-Path $repoRoot "aex_bridge/README.md") (Join-Path $stageRoot "README.md") -Force
-
-if (!(Test-Path $OutDir)) { New-Item -ItemType Directory -Path $OutDir | Out-Null }
-$zipPath = Join-Path $OutDir ($PluginName + "_" + $ver + "_win.zip")
-if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 
 Compress-Archive -Path (Join-Path $stageRoot "*") -DestinationPath $zipPath
 

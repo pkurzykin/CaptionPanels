@@ -80,7 +80,7 @@ Preflight-проверка окружения:
   - `scripts/package.ps1` — укладка deployment-layout.
 - `scripts/package.ps1` использует lock-файл `dist/.package.lock`, чтобы блокировать параллельные упаковки одного и того же `dist`.
 - `scripts/package.ps1` копирует tools по per-tool каталогам (`word2json`, `transcribe_align`, `deploy`) и, при наличии publish-выхода, добавляет runtime `word2json` в `dist/CaptionPanels/tools/word2json/runtime/win-x64/self-contained`.
-- Текущий release helper `scripts/package_release.ps1` остаётся для zip-артефактов CI/release.
+- `scripts/package_release.ps1` теперь использует `scripts/package.ps1` как источник layout и архивирует именно `dist/CaptionPanels` в `dist/CaptionPanels_<ver>_win.zip`.
 - Детальный контракт по tools-layout: `docs/dev/tools-layout.md`.
 
 Команда упаковки:
