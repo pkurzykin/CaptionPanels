@@ -8,6 +8,8 @@ on:
 jobs:
   package:
     runs-on: [self-hosted, windows]
+    env:
+      RELEASE_NUGET_SOURCES: ${{ secrets.RELEASE_NUGET_SOURCES }}
     steps:
       - name: Checkout dev repo
         uses: actions/checkout@v4

@@ -29,6 +29,7 @@
 - Release packaging: `scripts/package_release.ps1` переведен на единый источник layout через `scripts/package.ps1` (zip формируется из `dist/CaptionPanels`), а в `release-package.yml` добавлена проверка структуры release-архива.
 - Release workflow: перед packaging добавлены `preflight.ps1 -Strict -SkipAegpChecks` и `build.ps1 -Configuration Release -SkipAegp -SkipPackage`, а verify-step теперь требует `tools/word2json/word2json.exe` и runtime в zip.
 - Release NuGet sources: в `release-package.yml` добавлен optional env `RELEASE_NUGET_SOURCES` (разделители `,`/`;`/newline), который маппится в повторяемые `-NuGetSource` для `build.ps1` на этапе tools-runtime build.
+- Release NuGet wiring: `release-package.yml` теперь явно пробрасывает `secrets.RELEASE_NUGET_SOURCES` в env job, чтобы optional source override реально работал на runner.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
 - Branding: после `Create Branding` принудительный пересчет `subtitle_BG` сохраняется (host + fallback), чтобы не терялся после правок логики head_topic.

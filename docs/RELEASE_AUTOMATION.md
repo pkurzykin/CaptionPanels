@@ -11,6 +11,7 @@ This repo is the **private dev** source. Releases are published to a **public re
    - `RELEASE_REPO` = `pkurzykin/CaptionPanels-Release`
    - `RELEASE_REPO_TOKEN` = your PAT
    - Optional for corporate/offline mirrors: `RELEASE_NUGET_SOURCES` = one or more NuGet URLs (separator: comma, semicolon, or newline).
+   - `release-package.yml` reads `RELEASE_NUGET_SOURCES` directly from GitHub Secrets and passes it to the tools-build step.
 4) **Self‑hosted Windows runner**:
    - Must have AE SDK, Visual Studio build, and access to the built plugin.
    - Runner labels: `self-hosted`, `windows`.
