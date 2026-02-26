@@ -75,7 +75,10 @@ function Build-Word2Json {
     Invoke-External -Executable $dotnetCmd.Source -Arguments @("restore", $project)
     Invoke-External -Executable $dotnetCmd.Source -Arguments @("build", $project, "-c", $Configuration)
 
-    $publishDir = Join-Path $DistRoot "word2json/win-x64/self-contained/publish"
+    $publishDir = Get-CaptionPanelsWord2JsonPublishRoot -DistRoot $DistRoot
+    if (Test-Path -LiteralPath $publishDir) {
+        Remove-Item -LiteralPath $publishDir -Recurse -Force
+    }
     New-Item -ItemType Directory -Path $publishDir -Force | Out-Null
     Invoke-External -Executable $dotnetCmd.Source -Arguments @(
         "publish",

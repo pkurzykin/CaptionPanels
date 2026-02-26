@@ -66,7 +66,8 @@ if (Test-Path -LiteralPath $packageRoot) {
 New-Item -ItemType Directory -Path $pluginRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $toolsRoot -Force | Out-Null
 
-$excludedDirs = @("bin", "obj", ".git", ".vs", "x64", "Debug", "Release")
+$pluginExcludedDirs = @("bin", "obj", ".git", ".vs", "x64", "Debug", "Release")
+$toolsExcludedDirs = @("obj", ".git", ".vs", "Debug", "Release")
 $excludedFiles = @(".DS_Store", "._.DS_Store")
 
 if (Test-Path -LiteralPath $aexPath) {
@@ -85,13 +86,13 @@ $publicApiPath = Join-Path $repoRoot "cep_src/host/public_api.js"
 Copy-DirectoryFiltered `
     -Source $uiRoot `
     -Destination (Join-Path $pluginRoot "client") `
-    -ExcludeDirectoryNames $excludedDirs `
+    -ExcludeDirectoryNames $pluginExcludedDirs `
     -ExcludeFileNames $excludedFiles
 
 Copy-DirectoryFiltered `
     -Source $jsxRoot `
     -Destination (Join-Path $pluginRoot "host") `
-    -ExcludeDirectoryNames $excludedDirs `
+    -ExcludeDirectoryNames $pluginExcludedDirs `
     -ExcludeFileNames $excludedFiles
 
 if (!(Test-Path -LiteralPath $publicApiPath)) {
@@ -103,11 +104,44 @@ Copy-Item -LiteralPath (Join-Path $sharedRoot "config.json") -Destination (Join-
 Copy-Item -LiteralPath (Join-Path $sharedRoot "speakers.json") -Destination (Join-Path $pluginRoot "speakers.json") -Force
 Copy-Item -LiteralPath (Join-Path $sharedRoot "config.json") -Destination (Join-Path $packageRoot "config.default.json") -Force
 
-Copy-DirectoryFiltered `
-    -Source (Join-Path $repoRoot "tools") `
-    -Destination $toolsRoot `
-    -ExcludeDirectoryNames $excludedDirs `
-    -ExcludeFileNames $excludedFiles
+$toolsSourceRoot = Join-Path $repoRoot "tools"
+$toolFolders = @("word2json", "transcribe_align", "deploy")
+foreach ($toolFolder in $toolFolders) {
+    $toolSource = Join-Path $toolsSourceRoot $toolFolder
+    if (!(Test-Path -LiteralPath $toolSource -PathType Container)) {
+        throw "Missing tool source directory: $toolSource"
+    }
+
+    Copy-DirectoryFiltered `
+        -Source $toolSource `
+        -Destination (Join-Path $toolsRoot $toolFolder) `
+        -ExcludeDirectoryNames $toolsExcludedDirs `
+        -ExcludeFileNames $excludedFiles
+}
+
+$word2jsonPublishRoot = Get-CaptionPanelsWord2JsonPublishRoot -DistRoot $distRoot
+$word2jsonRuntimeIncluded = $false
+if (Test-Path -LiteralPath $word2jsonPublishRoot -PathType Container) {
+    $word2jsonToolRoot = Join-Path $toolsRoot "word2json"
+    $word2jsonRuntimeRoot = Join-Path $word2jsonToolRoot "runtime/win-x64/self-contained"
+
+    Copy-DirectoryFiltered `
+        -Source $word2jsonPublishRoot `
+        -Destination $word2jsonRuntimeRoot `
+        -ExcludeFileNames $excludedFiles
+
+    $word2jsonExePath = Join-Path $word2jsonPublishRoot "word2json.exe"
+    if (Test-Path -LiteralPath $word2jsonExePath -PathType Leaf) {
+        Copy-Item -LiteralPath $word2jsonExePath -Destination (Join-Path $word2jsonToolRoot "word2json.exe") -Force
+    }
+
+    $word2jsonRulesPath = Join-Path $word2jsonPublishRoot "word2json.rules.json"
+    if (Test-Path -LiteralPath $word2jsonRulesPath -PathType Leaf) {
+        Copy-Item -LiteralPath $word2jsonRulesPath -Destination (Join-Path $word2jsonToolRoot "word2json.rules.json") -Force
+    }
+
+    $word2jsonRuntimeIncluded = $true
+}
 
 $gitCommit = "unknown"
 $gitBranch = "unknown"
@@ -129,6 +163,8 @@ $buildInfo = @(
     "BuildRoot=$resolvedBuildRoot"
     "AexPath=$aexPath"
     "AexIncluded=$([bool](Test-Path -LiteralPath $aexPath))"
+    "Word2JsonPublishRoot=$word2jsonPublishRoot"
+    "Word2JsonRuntimeIncluded=$word2jsonRuntimeIncluded"
     "Layout=plugin/,tools/,config.default.json"
 )
 

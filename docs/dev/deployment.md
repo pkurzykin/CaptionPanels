@@ -11,7 +11,9 @@
    - packaging-only: `pwsh -NoProfile -File .\scripts\package.ps1`
 2. Скопируй `dist/CaptionPanels/plugin` в каталог плагинов After Effects:
    - пример: `C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\CaptionPanels`
-3. Скопируй `dist/CaptionPanels/tools/*` в `C:\CaptionPanelsLocal\CaptionPanelTools\...` по принятой раскладке.
+3. Скопируй `dist/CaptionPanels/tools/*` в `C:\CaptionPanelsLocal\CaptionPanelTools\...` по принятой раскладке (одна папка на tool).
+   - Для `word2json` prefer runtime-каталог: `word2json\runtime\win-x64\self-contained\`.
+   - Для обратной совместимости может присутствовать `word2json\word2json.exe` в корне tool-папки.
 4. При необходимости используй `dist/CaptionPanels/config.default.json` как baseline для `%APPDATA%\CaptionPanels\config.json`.
 5. Проверь конфиг:
    - primary: `%APPDATA%\CaptionPanels\config.json`
@@ -27,6 +29,7 @@
 - Источник tool payload: `dist/CaptionPanels/tools`.
 - Промежуточные build-папки (например, Visual Studio output) не используются как источник деплоя.
 - Ручное копирование из `dist/CaptionPanels` остаётся базовым способом установки.
+- Детали структуры tools и future-модели: `docs/dev/tools-layout.md`.
 
 ## Future plan (documented only, not implemented)
 

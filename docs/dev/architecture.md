@@ -29,6 +29,7 @@ Runtime-каталоги находятся вне репозитория:
 Legacy CEP assets are stored in `archive/legacy_cep`.
 
 Детали по слоям CEP: `docs/dev/cep-structure.md`.
+Детали по структуре tools: `docs/dev/tools-layout.md`.
 
 ## Packaging and installation contract
 

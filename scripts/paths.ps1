@@ -77,3 +77,20 @@ function Get-CaptionPanelsVersion {
 
     return $resolved
 }
+
+function Get-CaptionPanelsToolsBuildRoot {
+    param(
+        [Parameter(Mandatory = $true)][string]$DistRoot
+    )
+
+    return (Join-Path $DistRoot "_build/tools")
+}
+
+function Get-CaptionPanelsWord2JsonPublishRoot {
+    param(
+        [Parameter(Mandatory = $true)][string]$DistRoot
+    )
+
+    $toolsBuildRoot = Get-CaptionPanelsToolsBuildRoot -DistRoot $DistRoot
+    return (Join-Path $toolsBuildRoot "word2json/win-x64/self-contained/publish")
+}

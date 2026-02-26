@@ -8,6 +8,7 @@
   - [`dev/build.md`](dev/build.md)
   - [`dev/deployment.md`](dev/deployment.md)
   - [`dev/cep-structure.md`](dev/cep-structure.md)
+  - [`dev/tools-layout.md`](dev/tools-layout.md)
 - Spec docs: [`spec/README.md`](spec/README.md)
 
 Installation contract reference:
