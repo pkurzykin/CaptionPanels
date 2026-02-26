@@ -1,35 +1,57 @@
-# macOS
+# OS files
 .DS_Store
 ._.DS_Store
+Thumbs.db
+Desktop.ini
 
-# Node / tooling
+# Local agent instructions
+AGENTS.md
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node / frontend tooling
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
 
 # Logs
 logs/
+*.log
 
-# Build/dist (будем генерировать)
+# Build / dist
 dist/
 
-# Visual Studio / C++ build artifacts (когда появятся)
+# Visual Studio / C++ build artifacts
 aegp_src/**/.vs/
 aegp_src/**/x64/
 aegp_src/**/Debug/
 aegp_src/**/Release/
 aegp_src/**/obj/
+aex_bridge/**/.vs/
+aex_bridge/**/x64/
+aex_bridge/**/Debug/
+aex_bridge/**/Release/
+aex_bridge/**/obj/
 *.VC.db
 *.VC.opendb
 *.suo
 *.user
 *.pdb
 *.ilk
-*.log
-aex_bridge/**/.vs/
-aex_bridge/**/x64/
-aex_bridge/**/Debug/
-aex_bridge/**/Release/
-aex_bridge/**/obj/
-
 
 # C# / dotnet (tools)
 tools/**/bin/
@@ -38,5 +60,3 @@ tools/**/obj/
 # Temporary files
 *.tmp
 *.temp
-
-AGENTS.md

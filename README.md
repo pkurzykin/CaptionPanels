@@ -3,6 +3,14 @@
 AEGP‑плагин для After Effects 2024+ (Windows 10/11) с UI на WebView2 и JSX‑мостом.
 Текущая версия: 2.4.1.
 
+## Минимальные требования для разработки
+- Windows 10/11
+- Adobe After Effects 2024+
+- Visual Studio 2022 (`v143`, workload: Desktop development with C++)
+- After Effects SDK (`AE_SDK_ROOT`)
+- WebView2 SDK (`WEBVIEW2_SDK`)
+- PowerShell 7+ (для packaging-скриптов)
+
 ## Структура
 ```
 aegp_src/         исходники AEGP (Windows)
