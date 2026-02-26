@@ -106,7 +106,7 @@ Preflight-проверка окружения:
   - policy guard: `dist/` не должен содержать tracked-файлы (`git ls-files -- dist` должен быть пустым);
   - `scripts/preflight.ps1 -Strict -SkipAegpChecks`
   - `scripts/build.ps1 -Configuration Release -SkipAegp -AllowMissingAex`
-  - проверка обязательного layout в `dist/CaptionPanels`
+  - проверка обязательного layout в `dist/CaptionPanels` (включая `tools/word2json/word2json.exe` и runtime overlay)
   - публикация артефакта `CaptionPanels-dist`
 
 Ограничение:
