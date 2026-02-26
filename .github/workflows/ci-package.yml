@@ -22,6 +22,10 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Preflight (strict, CI packaging mode)
+        shell: pwsh
+        run: .\scripts\preflight.ps1 -Strict -SkipAegpChecks
+
       - name: Build and package (Release, no AEGP)
         shell: pwsh
         run: .\scripts\build.ps1 -Configuration Release -SkipAegp -AllowMissingAex

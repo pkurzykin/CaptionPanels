@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [switch]$Strict
+    [switch]$Strict,
+    [switch]$SkipAegpChecks
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,6 +25,7 @@ $results = @()
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $distRoot = Join-Path $repoRoot "dist"
+$toolsBuildRoot = Join-Path $distRoot "_build/tools"
 
 # PowerShell
 $psVersion = $PSVersionTable.PSVersion
@@ -38,6 +40,25 @@ $dotnetCmd = Get-Command dotnet -ErrorAction SilentlyContinue
 if ($null -eq $dotnetCmd) {
     Add-CheckResult -Name "dotnet" -Status "FAIL" -Details "dotnet SDK not found in PATH."
 } else {
+    # Align with build.ps1: isolate dotnet first-run artifacts and cache in dist/_build/tools when env vars are not provided.
+    $dotnetCliHome = $env:DOTNET_CLI_HOME
+    if ([string]::IsNullOrWhiteSpace($dotnetCliHome)) {
+        $dotnetCliHome = Join-Path $toolsBuildRoot "dotnet-home"
+        $env:DOTNET_CLI_HOME = $dotnetCliHome
+    }
+    if (!(Test-Path -LiteralPath $dotnetCliHome -PathType Container)) {
+        New-Item -ItemType Directory -Path $dotnetCliHome -Force | Out-Null
+    }
+
+    $nugetPackages = $env:NUGET_PACKAGES
+    if ([string]::IsNullOrWhiteSpace($nugetPackages)) {
+        $nugetPackages = Join-Path $toolsBuildRoot "nuget-packages"
+        $env:NUGET_PACKAGES = $nugetPackages
+    }
+    if (!(Test-Path -LiteralPath $nugetPackages -PathType Container)) {
+        New-Item -ItemType Directory -Path $nugetPackages -Force | Out-Null
+    }
+
     $dotnetVersionText = ""
     try {
         $dotnetVersionText = (& $dotnetCmd.Source --version).Trim()
@@ -63,35 +84,39 @@ if ($null -eq $dotnetCmd) {
     }
 }
 
-# msbuild (for AEGP)
-$msbuildCmd = Get-Command msbuild -ErrorAction SilentlyContinue
-if ($null -ne $msbuildCmd) {
-    Add-CheckResult -Name "MSBuild" -Status "PASS" -Details ("Found: {0}" -f $msbuildCmd.Source)
+if ($SkipAegpChecks) {
+    Add-CheckResult -Name "AEGP checks" -Status "PASS" -Details "Skipped (-SkipAegpChecks)."
 } else {
-    Add-CheckResult -Name "MSBuild" -Status "WARN" -Details "msbuild not found; AEGP build will be skipped by build.ps1."
-}
-
-# AEGP env checks
-if ($IsWindows) {
-    $aeSdk = $env:AE_SDK_ROOT
-    if ([string]::IsNullOrWhiteSpace($aeSdk)) {
-        Add-CheckResult -Name "AE_SDK_ROOT" -Status "WARN" -Details "Environment variable is not set."
-    } elseif (Test-Path -LiteralPath $aeSdk) {
-        Add-CheckResult -Name "AE_SDK_ROOT" -Status "PASS" -Details $aeSdk
+    # msbuild (for AEGP)
+    $msbuildCmd = Get-Command msbuild -ErrorAction SilentlyContinue
+    if ($null -ne $msbuildCmd) {
+        Add-CheckResult -Name "MSBuild" -Status "PASS" -Details ("Found: {0}" -f $msbuildCmd.Source)
     } else {
-        Add-CheckResult -Name "AE_SDK_ROOT" -Status "WARN" -Details ("Path not found: {0}" -f $aeSdk)
+        Add-CheckResult -Name "MSBuild" -Status "WARN" -Details "msbuild not found; AEGP build will be skipped by build.ps1."
     }
 
-    $webView2 = $env:WEBVIEW2_SDK
-    if ([string]::IsNullOrWhiteSpace($webView2)) {
-        Add-CheckResult -Name "WEBVIEW2_SDK" -Status "WARN" -Details "Environment variable is not set."
-    } elseif (Test-Path -LiteralPath $webView2) {
-        Add-CheckResult -Name "WEBVIEW2_SDK" -Status "PASS" -Details $webView2
+    # AEGP env checks
+    if ($IsWindows) {
+        $aeSdk = $env:AE_SDK_ROOT
+        if ([string]::IsNullOrWhiteSpace($aeSdk)) {
+            Add-CheckResult -Name "AE_SDK_ROOT" -Status "WARN" -Details "Environment variable is not set."
+        } elseif (Test-Path -LiteralPath $aeSdk) {
+            Add-CheckResult -Name "AE_SDK_ROOT" -Status "PASS" -Details $aeSdk
+        } else {
+            Add-CheckResult -Name "AE_SDK_ROOT" -Status "WARN" -Details ("Path not found: {0}" -f $aeSdk)
+        }
+
+        $webView2 = $env:WEBVIEW2_SDK
+        if ([string]::IsNullOrWhiteSpace($webView2)) {
+            Add-CheckResult -Name "WEBVIEW2_SDK" -Status "WARN" -Details "Environment variable is not set."
+        } elseif (Test-Path -LiteralPath $webView2) {
+            Add-CheckResult -Name "WEBVIEW2_SDK" -Status "PASS" -Details $webView2
+        } else {
+            Add-CheckResult -Name "WEBVIEW2_SDK" -Status "WARN" -Details ("Path not found: {0}" -f $webView2)
+        }
     } else {
-        Add-CheckResult -Name "WEBVIEW2_SDK" -Status "WARN" -Details ("Path not found: {0}" -f $webView2)
+        Add-CheckResult -Name "AEGP platform" -Status "WARN" -Details ("Current platform is non-Windows ({0}); AEGP build is Windows-only." -f [System.Runtime.InteropServices.RuntimeInformation]::OSDescription)
     }
-} else {
-    Add-CheckResult -Name "AEGP platform" -Status "WARN" -Details ("Current platform is non-Windows ({0}); AEGP build is Windows-only." -f [System.Runtime.InteropServices.RuntimeInformation]::OSDescription)
 }
 
 # Required scripts

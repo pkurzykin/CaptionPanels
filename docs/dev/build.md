@@ -27,6 +27,7 @@ Note:
 
 Preflight-проверка окружения:
 - `pwsh -NoProfile -File .\scripts\preflight.ps1`
+- Для CI packaging (строгий режим без AEGP-gate): `pwsh -NoProfile -File .\scripts\preflight.ps1 -Strict -SkipAegpChecks`
 
 Рекомендуемый one-button запуск:
 - `pwsh -NoProfile -File .\scripts\build.ps1`
@@ -45,6 +46,10 @@ Preflight-проверка окружения:
 - базовые env-переменные для AEGP,
 - наличие ключевых build/package скриптов,
 - доступ на запись в `dist/`.
+
+Примечание:
+- Флаг `-SkipAegpChecks` отключает проверки `msbuild`/`AE_SDK_ROOT`/`WEBVIEW2_SDK` и нужен для CI-сценариев, где AEGP-сборка явно пропущена.
+- `preflight.ps1`, как и `build.ps1`, при отсутствии внешних переменных использует `DOTNET_CLI_HOME` и `NUGET_PACKAGES` внутри `dist/_build/tools/...`, чтобы не зависеть от прав на user-home.
 
 Для .NET tools-сборки:
 - если `DOTNET_CLI_HOME`/`NUGET_PACKAGES` не заданы извне, `build.ps1` направляет их в `dist/_build/tools/...`;
@@ -96,6 +101,7 @@ Preflight-проверка окружения:
 - Workflow: `.github/workflows/ci-package.yml`.
 - Триггеры: `pull_request` (если изменяются `scripts/**`, `cep_src/**`, `tools/**`) и `workflow_dispatch`.
 - В CI используется:
+  - `scripts/preflight.ps1 -Strict -SkipAegpChecks`
   - `scripts/build.ps1 -Configuration Release -SkipAegp -AllowMissingAex`
   - проверка обязательного layout в `dist/CaptionPanels`
   - публикация артефакта `CaptionPanels-dist`
