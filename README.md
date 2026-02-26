@@ -27,6 +27,7 @@ cep_src/        UI (HTML/JS) + JSX host
 tools/          внешние утилиты и deploy-скрипты
 scripts/        build/package/release-скрипты
 docs/           пользовательская, dev и spec документация
+archive/        архив устаревших компонентов (не runtime)
 dist/           build output (не коммитится)
 ```
 

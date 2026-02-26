@@ -23,7 +23,10 @@ Runtime-каталоги находятся вне репозитория:
 - `tools/` — исходники внешних утилит и deploy-инструменты.
 - `scripts/` — build/package/release-скрипты.
 - `docs/` — документация (`user`, `dev`, `spec`).
+- `archive/` — архив исторических компонентов, не участвующих в активном runtime/build.
 - `dist/` — build output, не source-controlled.
+
+Legacy CEP assets are stored in `archive/legacy_cep`.
 
 ## Packaging and installation contract
 

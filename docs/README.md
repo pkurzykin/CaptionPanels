@@ -11,6 +11,7 @@
 
 Installation contract reference:
 - `dist/CaptionPanels` is the single source for deployment payload.
+- Archived legacy assets are documented in [`../archive/README.md`](../archive/README.md).
 
 ## Existing reference documents
 
