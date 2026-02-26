@@ -13,6 +13,10 @@
 - WebView2 SDK (`WEBVIEW2_SDK`)
 - PowerShell 7+
 
+Note:
+- Full production build target is Windows.
+- For non-Windows smoke runs via `pwsh`, default `BuildRoot` resolves to a temp path (`.../CaptionPanelsBuild`) unless `-BuildRoot` or `AE_PLUGIN_BUILD_DIR` is provided.
+
 ## Build configuration policy
 
 - Конфигурация по умолчанию: `Release`.

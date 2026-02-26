@@ -60,7 +60,18 @@ $toolsRoot = Join-Path $packageRoot "tools"
 $aexPath = Get-CaptionPanelsBuiltAexPath -BuildRoot $resolvedBuildRoot -PluginName $PluginName
 
 if (Test-Path -LiteralPath $packageRoot) {
-    Remove-Item -LiteralPath $packageRoot -Recurse -Force
+    try {
+        Remove-Item -LiteralPath $packageRoot -Recurse -Force -ErrorAction Stop
+    } catch {
+        if (Test-Path -LiteralPath $packageRoot) {
+            Start-Sleep -Milliseconds 200
+            Remove-Item -LiteralPath $packageRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    if (Test-Path -LiteralPath $packageRoot) {
+        throw "Failed to clean package root: $packageRoot"
+    }
 }
 
 New-Item -ItemType Directory -Path $pluginRoot -Force | Out-Null

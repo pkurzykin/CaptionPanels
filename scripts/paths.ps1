@@ -21,7 +21,11 @@ function Get-CaptionPanelsBuildRoot {
         return $env:AE_PLUGIN_BUILD_DIR
     }
 
-    return "C:\AE\PluginBuild"
+    if ($IsWindows) {
+        return "C:\AE\PluginBuild"
+    }
+
+    return (Join-Path ([System.IO.Path]::GetTempPath()) "CaptionPanelsBuild")
 }
 
 function Get-CaptionPanelsDistRoot {
