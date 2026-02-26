@@ -25,6 +25,9 @@ Note:
 
 ## Build flow (current)
 
+Preflight-проверка окружения:
+- `pwsh -NoProfile -File .\scripts\preflight.ps1`
+
 Рекомендуемый one-button запуск:
 - `pwsh -NoProfile -File .\scripts\build.ps1`
 
@@ -35,6 +38,13 @@ Note:
 4. Вызов `scripts/package.ps1` для формирования `dist/CaptionPanels`.
 
 `scripts/build.ps1` использует lock-файл `dist/.build.lock`, чтобы блокировать параллельные build-запуски в одном `dist`.
+
+`scripts/preflight.ps1` проверяет:
+- `pwsh`/`dotnet`/`msbuild` наличие,
+- чтение NuGet sources,
+- базовые env-переменные для AEGP,
+- наличие ключевых build/package скриптов,
+- доступ на запись в `dist/`.
 
 Для .NET tools-сборки:
 - если `DOTNET_CLI_HOME`/`NUGET_PACKAGES` не заданы извне, `build.ps1` направляет их в `dist/_build/tools/...`;
