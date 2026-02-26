@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://captionpanels.local/spec/results.schema.json",
   "title": "CaptionPanels Run Manifest",
-  "description": "Schema for run manifests (run.json) produced by host/lib/run_registry.jsx.",
+  "description": "Schema for run manifests (run.json) produced by jsx/lib/run_registry.jsx.",
   "type": "object",
   "required": [
     "schemaVersion",

@@ -13,7 +13,7 @@
 
 ## Runtime-валидация в плагине
 
-Host-модуль: `cep_src/ContentPanels/host/lib/schema_validation.jsx`.
+Host-модуль: `cep_src/jsx/lib/schema_validation.jsx`.
 
 Что валидируется в рантайме:
 

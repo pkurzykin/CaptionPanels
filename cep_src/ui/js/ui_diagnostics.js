@@ -152,7 +152,7 @@ function _diagBuildText(snapshot, history) {
 
 function _diagRefresh() {
     _diagSetText("diag-content", "Loading diagnostics...");
-    callHost("getDiagnosticsSnapshot", [], { module: "diagnostics", timeoutMs: 10000 }, function (out) {
+    CPHostAPI.call("getDiagnosticsSnapshot", [], { module: "diagnostics", timeoutMs: 10000 }, function (out) {
         if (!out || !out.ok) {
             var err = out && (out.error || out.result) ? String(out.error || out.result) : "Unknown error";
             _diagSetText("diag-content", "Diagnostics failed:\n" + err);
@@ -161,7 +161,7 @@ function _diagRefresh() {
         }
 
         var snap = out.result || {};
-        var hist = (typeof getHostCallHistory === "function") ? getHostCallHistory(20) : [];
+        var hist = (window.CPHostAPI && typeof CPHostAPI.history === "function") ? CPHostAPI.history(20) : [];
         _diagSetText("diag-content", _diagBuildText(snap, hist));
     });
 }

@@ -17,7 +17,7 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
     if ($env:GITHUB_REF_NAME) {
         $Version = $env:GITHUB_REF_NAME
     } else {
-        $corePath = Join-Path $repoRoot "cep_src/ContentPanels/client/js/app_core.js"
+        $corePath = Join-Path $repoRoot "cep_src/ui/js/app_core.js"
         if (Test-Path $corePath) {
             $core = Get-Content $corePath -Raw
             if ($core -match 'UI_VERSION\s*=\s*\"([^\"]+)\"') {
@@ -54,10 +54,11 @@ if (Test-Path $stageRoot) { Remove-Item $stageRoot -Recurse -Force }
 New-Item -ItemType Directory -Path $stageRoot | Out-Null
 
 Copy-Item $aexPath $stageRoot -Force
-Copy-Item (Join-Path $repoRoot "cep_src/ContentPanels/client") (Join-Path $stageRoot "client") -Recurse -Force
-Copy-Item (Join-Path $repoRoot "cep_src/ContentPanels/host") (Join-Path $stageRoot "host") -Recurse -Force
-Copy-Item (Join-Path $repoRoot "cep_src/ContentPanels/config.json") (Join-Path $stageRoot "config.json") -Force
-Copy-Item (Join-Path $repoRoot "cep_src/ContentPanels/speakers.json") (Join-Path $stageRoot "speakers.json") -Force
+Copy-Item (Join-Path $repoRoot "cep_src/ui") (Join-Path $stageRoot "client") -Recurse -Force
+Copy-Item (Join-Path $repoRoot "cep_src/jsx") (Join-Path $stageRoot "host") -Recurse -Force
+Copy-Item (Join-Path $repoRoot "cep_src/host/public_api.js") (Join-Path $stageRoot "host/public_api.js") -Force
+Copy-Item (Join-Path $repoRoot "cep_src/shared/config.json") (Join-Path $stageRoot "config.json") -Force
+Copy-Item (Join-Path $repoRoot "cep_src/shared/speakers.json") (Join-Path $stageRoot "speakers.json") -Force
 Copy-Item (Join-Path $repoRoot "aex_bridge/README.md") (Join-Path $stageRoot "README.md") -Force
 
 if (!(Test-Path $OutDir)) { New-Item -ItemType Directory -Path $OutDir | Out-Null }

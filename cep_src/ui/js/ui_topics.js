@@ -49,7 +49,7 @@ function renderTopicDropdown() {
 function loadTopicOptionsFromConfig() {
     // Optional: overrides TOPIC_OPTIONS from config.json if present.
     // Safe to call multiple times.
-    callHost("getConfigForUI", [], { module: "topics", timeoutMs: 10000 }, function (out) {
+    CPHostAPI.call("getConfigForUI", [], { module: "topics", timeoutMs: 10000 }, function (out) {
         if (!out || !out.ok) return;
         var res = out.result || {};
         if (res.topicOptions && res.topicOptions.length) {

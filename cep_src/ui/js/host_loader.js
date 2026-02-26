@@ -2,7 +2,7 @@
 // Sequential JSX module loader
 
 function loadHostModules(modules, cb) {
-    var extensionPath = getExtensionRootPath();
+    var extensionPath = CPHostAPI.extensionRoot();
     var list = modules || [];
     var i = 0;
 
@@ -12,12 +12,12 @@ function loadHostModules(modules, cb) {
             return;
         }
         var name = list[i++];
-        callHost("loadModule", [name], { module: "loader", timeoutMs: 15000 }, function () {
+        CPHostAPI.call("loadModule", [name], { module: "loader", timeoutMs: 15000 }, function () {
             next();
         });
     }
 
-    callHost("initPath", [extensionPath], { module: "loader", timeoutMs: 10000 }, function () {
+    CPHostAPI.call("initPath", [extensionPath], { module: "loader", timeoutMs: 10000 }, function () {
         next();
     });
 }

@@ -17,7 +17,7 @@ function runCreateBrandingWorkflow() {
     }
 
     function _runHost(cmd, logTag) {
-        return callHost("", [], { module: "branding", rawScript: cmd, timeoutMs: 20000 }).then(function (out) {
+        return CPHostAPI.call("", [], { module: "branding", rawScript: cmd, timeoutMs: 20000 }).then(function (out) {
             if (!out || !out.ok) {
                 var err = out && out.error ? String(out.error) : "Unknown error";
                 throw new Error(err);
@@ -46,7 +46,7 @@ function runCreateBrandingWorkflow() {
     // Recompute subtitle_BG after all branding layers are placed.
     // Keep a raw-script fallback to avoid silent regressions if named host calls break.
     chain = chain.then(function () {
-        return callHost("refreshSubtitleBgForActiveComp", [], { module: "branding", timeoutMs: 15000 });
+        return CPHostAPI.call("refreshSubtitleBgForActiveComp", [], { module: "branding", timeoutMs: 15000 });
     }).then(function (bgOut) {
         if (bgOut && bgOut.ok) {
             logUi("refreshSubtitleBgForActiveComp");

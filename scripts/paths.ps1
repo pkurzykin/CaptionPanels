@@ -58,7 +58,7 @@ function Get-CaptionPanelsVersion {
     }
 
     if ([string]::IsNullOrWhiteSpace($resolved)) {
-        $corePath = Join-Path $RepoRoot "cep_src/ContentPanels/client/js/app_core.js"
+        $corePath = Join-Path $RepoRoot "cep_src/ui/js/app_core.js"
         if (Test-Path $corePath) {
             $core = Get-Content $corePath -Raw
             if ($core -match 'UI_VERSION\s*=\s*"([^"]+)"') {

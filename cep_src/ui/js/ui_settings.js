@@ -54,7 +54,7 @@ function _settingsParseLinesToList(txt) {
 }
 
 function _settingsLoad() {
-    callHost("getConfigForUI", [], { module: "settings", timeoutMs: 10000 }, function (out) {
+    CPHostAPI.call("getConfigForUI", [], { module: "settings", timeoutMs: 10000 }, function (out) {
         if (!out || !out.ok) {
             uiAlert("Settings: failed to read config.json\n" + (out ? (out.error || out.result) : "Unknown"));
             return;
@@ -150,7 +150,7 @@ function _settingsLoad() {
 }
 
 function _settingsBrowseSpeakersDb() {
-    callHost("pickSpeakersDbPath", [], { module: "settings", timeoutMs: 15000 }, function (out) {
+    CPHostAPI.call("pickSpeakersDbPath", [], { module: "settings", timeoutMs: 15000 }, function (out) {
         if (!out || !out.ok) {
             var err = out && out.error ? String(out.error) : "Unknown error";
             if (err == "CANCELLED") return;
@@ -284,7 +284,7 @@ function _settingsSave() {
         }
 
         var it = items[i];
-        callHost("setConfigValue", [String(it.key), it.value], { module: "settings", timeoutMs: 10000 }, function (out) {
+        CPHostAPI.call("setConfigValue", [String(it.key), it.value], { module: "settings", timeoutMs: 10000 }, function (out) {
             if (!out || !out.ok) {
                 uiAlert("Settings: failed to save.\n" + (out ? (out.error || out.result) : "Unknown"));
                 return;

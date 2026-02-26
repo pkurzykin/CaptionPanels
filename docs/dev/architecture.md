@@ -19,7 +19,7 @@ Runtime-каталоги находятся вне репозитория:
 ## Repository layout
 
 - `aegp_src/` — исходники AEGP и platform-проекты.
-- `cep_src/` — UI панели, JSX host, встроенные helper-скрипты.
+- `cep_src/` — слой CEP-исходников (`ui/`, `host/`, `jsx/`, `shared/`).
 - `tools/` — исходники внешних утилит и deploy-инструменты.
 - `scripts/` — build/package/release-скрипты.
 - `docs/` — документация (`user`, `dev`, `spec`).
@@ -27,6 +27,8 @@ Runtime-каталоги находятся вне репозитория:
 - `dist/` — build output, не source-controlled.
 
 Legacy CEP assets are stored in `archive/legacy_cep`.
+
+Детали по слоям CEP: `docs/dev/cep-structure.md`.
 
 ## Packaging and installation contract
 

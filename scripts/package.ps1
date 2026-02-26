@@ -77,22 +77,31 @@ if (Test-Path -LiteralPath $aexPath) {
     Write-Warning "Built plugin not found, packaging without .aex: $aexPath"
 }
 
-$panelRoot = Join-Path $repoRoot "cep_src/ContentPanels"
+$uiRoot = Join-Path $repoRoot "cep_src/ui"
+$jsxRoot = Join-Path $repoRoot "cep_src/jsx"
+$sharedRoot = Join-Path $repoRoot "cep_src/shared"
+$publicApiPath = Join-Path $repoRoot "cep_src/host/public_api.js"
+
 Copy-DirectoryFiltered `
-    -Source (Join-Path $panelRoot "client") `
+    -Source $uiRoot `
     -Destination (Join-Path $pluginRoot "client") `
     -ExcludeDirectoryNames $excludedDirs `
     -ExcludeFileNames $excludedFiles
 
 Copy-DirectoryFiltered `
-    -Source (Join-Path $panelRoot "host") `
+    -Source $jsxRoot `
     -Destination (Join-Path $pluginRoot "host") `
     -ExcludeDirectoryNames $excludedDirs `
     -ExcludeFileNames $excludedFiles
 
-Copy-Item -LiteralPath (Join-Path $panelRoot "config.json") -Destination (Join-Path $pluginRoot "config.json") -Force
-Copy-Item -LiteralPath (Join-Path $panelRoot "speakers.json") -Destination (Join-Path $pluginRoot "speakers.json") -Force
-Copy-Item -LiteralPath (Join-Path $panelRoot "config.json") -Destination (Join-Path $packageRoot "config.default.json") -Force
+if (!(Test-Path -LiteralPath $publicApiPath)) {
+    throw "Missing public API layer file: $publicApiPath"
+}
+
+Copy-Item -LiteralPath $publicApiPath -Destination (Join-Path $pluginRoot "host/public_api.js") -Force
+Copy-Item -LiteralPath (Join-Path $sharedRoot "config.json") -Destination (Join-Path $pluginRoot "config.json") -Force
+Copy-Item -LiteralPath (Join-Path $sharedRoot "speakers.json") -Destination (Join-Path $pluginRoot "speakers.json") -Force
+Copy-Item -LiteralPath (Join-Path $sharedRoot "config.json") -Destination (Join-Path $packageRoot "config.default.json") -Force
 
 Copy-DirectoryFiltered `
     -Source (Join-Path $repoRoot "tools") `

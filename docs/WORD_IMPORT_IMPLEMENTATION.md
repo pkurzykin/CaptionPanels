@@ -44,16 +44,16 @@ Build & publish:
 ### 2) Plugin integration (AE side)
 
 UI:
-- `cep_src/ContentPanels/client/index.html`: new button `btn-load-word` ("📄 Load Word").
-- `cep_src/ContentPanels/client/js/ui_import.js`: click handler calls host function `importWordFromDialog()`.
+- `cep_src/ui/index.html`: new button `btn-load-word` ("📄 Load Word").
+- `cep_src/ui/js/ui_import.js`: click handler calls host function `importWordFromDialog()`.
 
 Host (JSX):
-- `cep_src/ContentPanels/host/lib/word_import.jsx`: implements:
+- `cep_src/jsx/lib/word_import.jsx`: implements:
   - `importWordFromDialog()` — shows `.docx` picker.
   - `importWordFromFile(path)` — runs the converter and then calls `importJsonFromFile(outJsonPath)`.
 
 The existing JSON import logic is reused as-is:
-- `cep_src/ContentPanels/host/lib/json_import.jsx` (`importJsonFromFile`).
+- `cep_src/jsx/lib/json_import.jsx` (`importJsonFromFile`).
 
 ---
 
@@ -75,7 +75,7 @@ New keys:
 
 
 Sample config is updated:
-- `cep_src/ContentPanels/config.json`
+- `cep_src/shared/config.json`
 
 ---
 
@@ -135,9 +135,9 @@ Mitigations:
 ## What changed (files)
 
 - `tools/word2json/**` (new)
-- `cep_src/ContentPanels/host/lib/word_import.jsx` (new)
-- `cep_src/ContentPanels/client/index.html` (add button)
-- `cep_src/ContentPanels/client/js/ui_import.js` (wire UI)
-- `cep_src/ContentPanels/client/js/main.js` (load host module)
-- `cep_src/ContentPanels/config.json` (new keys)
+- `cep_src/jsx/lib/word_import.jsx` (new)
+- `cep_src/ui/index.html` (add button)
+- `cep_src/ui/js/ui_import.js` (wire UI)
+- `cep_src/ui/js/main.js` (load host module)
+- `cep_src/shared/config.json` (new keys)
 - `README.md`, `docs/CONFIG_REFERENCE.md` (document new config keys)

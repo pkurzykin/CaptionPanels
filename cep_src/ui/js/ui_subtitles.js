@@ -11,7 +11,7 @@ function generateSubtitles(isItalic) {
     var jumpEl = document.getElementById("chk-playhead-jump");
     var jump = jumpEl ? !!jumpEl.checked : false;
 
-    callHost("generateSubs", [safeTxt, !!isItalic, !!jump], { module: "subtitles", timeoutMs: 15000 }, function (out) {
+    CPHostAPI.call("generateSubs", [safeTxt, !!isItalic, !!jump], { module: "subtitles", timeoutMs: 15000 }, function (out) {
         if (!out || !out.ok) {
             var err = out && (out.error || out.result) ? String(out.error || out.result) : "Unknown error";
             uiAlert("Generate subtitles failed.\n" + err);
@@ -34,7 +34,7 @@ function initSubtitlesUI() {
 
     // Глубокая чистка
     attachClick("btn-deep-clean", function () {
-        callHost("deepCleanProject", [], { module: "subtitles", timeoutMs: 30000 }, function (out) {
+        CPHostAPI.call("deepCleanProject", [], { module: "subtitles", timeoutMs: 30000 }, function (out) {
             if (!out || !out.ok) {
                 var err = out && (out.error || out.result) ? String(out.error || out.result) : "Unknown error";
                 uiAlert("FixTypography failed.\n" + err);

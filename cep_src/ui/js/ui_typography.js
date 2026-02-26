@@ -148,7 +148,7 @@ function _typoCollectSkipList() {
 }
 
 function openTypographyScan() {
-    callHost("scanTypographyIssues", [], { module: "typography", timeoutMs: 30000 }, function (out) {
+    CPHostAPI.call("scanTypographyIssues", [], { module: "typography", timeoutMs: 30000 }, function (out) {
         if (!out || !out.ok) {
             uiAlert("FixTypography: ошибка сканирования.\n" + (out ? (out.error || out.result) : "Unknown"));
             return;
@@ -172,7 +172,7 @@ function initTypographyUI() {
     }
 
     attachClick("btn-typo-fix-all", function () {
-        callHost("applyTypographyFixes", [[]], { module: "typography", timeoutMs: 45000 }, function (out) {
+        CPHostAPI.call("applyTypographyFixes", [[]], { module: "typography", timeoutMs: 45000 }, function (out) {
             if (!out || !out.ok) {
                 uiAlert("FixTypography: ошибка.\n" + (out ? (out.error || out.result) : "Unknown"));
                 return;
@@ -185,7 +185,7 @@ function initTypographyUI() {
 
     attachClick("btn-typo-fix-except", function () {
         var skip = _typoCollectSkipList();
-        callHost("applyTypographyFixes", [skip], { module: "typography", timeoutMs: 45000 }, function (out) {
+        CPHostAPI.call("applyTypographyFixes", [skip], { module: "typography", timeoutMs: 45000 }, function (out) {
             if (!out || !out.ok) {
                 uiAlert("FixTypography: ошибка.\n" + (out ? (out.error || out.result) : "Unknown"));
                 return;

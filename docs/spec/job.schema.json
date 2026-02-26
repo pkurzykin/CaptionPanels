@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://captionpanels.local/spec/job.schema.json",
   "title": "CaptionPanels Job Request",
-  "description": "Schema for job payload consumed by host/lib/job_runner.jsx.",
+  "description": "Schema for job payload consumed by jsx/lib/job_runner.jsx.",
   "type": "object",
   "required": ["schemaVersion", "type"],
   "additionalProperties": true,

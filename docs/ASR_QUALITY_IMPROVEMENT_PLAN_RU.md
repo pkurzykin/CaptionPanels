@@ -67,8 +67,8 @@
 - CLI WhisperX принимает нужные параметры.
 
 Что делаем:
-- В `cep_src/ContentPanels/config.json` добавляем новые поля (см. список выше).
-- В `cep_src/ContentPanels/host/lib/auto_timing.jsx`:
+- В `cep_src/shared/config.json` добавляем новые поля (см. список выше).
+- В `cep_src/jsx/lib/auto_timing.jsx`:
   - читаем новые поля,
   - собираем команду WhisperX с дополнительными флагами,
   - логируем итоговую команду в `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs`.
@@ -78,7 +78,7 @@
 - CLI WhisperX не даёт настроить то, что нам нужно.
 
 Что делаем:
-- Создаём `cep_src/ContentPanels/host/tools/whisperx_runner/run_whisperx.py`.
+- Создаём `cep_src/jsx/tools/whisperx_runner/run_whisperx.py`.
 - Плагин вызывает не `-m whisperx ...`, а:
   - `python.exe run_whisperx.py --video ... --out-dir ... --model ... --beam-size ...` и т.д.
 - Внутри `run_whisperx.py` используем Python API WhisperX/faster-whisper и выставляем параметры напрямую.

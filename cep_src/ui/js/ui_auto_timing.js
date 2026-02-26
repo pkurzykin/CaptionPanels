@@ -277,7 +277,7 @@ function initAutoTimingUI() {
 
         var stopProgress = _startAutoTimingProgress();
 
-        callHost("autoTimingRunWhisperXAndApply", [], { module: "autoTiming", timeoutMs: 0 }, function (out) {
+        CPHostAPI.call("autoTimingRunWhisperXAndApply", [], { module: "autoTiming", timeoutMs: 0 }, function (out) {
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = prevText;
@@ -321,7 +321,7 @@ function initAutoTimingUI() {
 
         var stopProgress = _startRerunAlignmentProgress();
 
-        callHost("autoTimingRerunAlignmentAndApply", [], { module: "autoTiming", timeoutMs: 0 }, function (out) {
+        CPHostAPI.call("autoTimingRerunAlignmentAndApply", [], { module: "autoTiming", timeoutMs: 0 }, function (out) {
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = prevText;

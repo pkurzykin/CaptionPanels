@@ -17,7 +17,7 @@ function getSpeakerData() {
 
 function triggerSpeakerPreview() {
     var d = getSpeakerData();
-    callHost("updateSpeakerPreview", [d.name, d.job, d.side, d.size, Number(d.bgOffset || 0), !!d.soloTitle], { module: "speakers", timeoutMs: 10000 }, function (out) {
+    CPHostAPI.call("updateSpeakerPreview", [d.name, d.job, d.side, d.size, Number(d.bgOffset || 0), !!d.soloTitle], { module: "speakers", timeoutMs: 10000 }, function (out) {
         if (!out || !out.ok) {
             var err = out && (out.error || out.result) ? String(out.error || out.result) : "Unknown error";
             logUiError("speakers.preview", err);
@@ -153,7 +153,7 @@ function initSpeakersUI() {
                 return;
             }
 
-            callHost("addSpeakerToDb", [name, job], { module: "speakers", timeoutMs: 15000 }, function (out) {
+            CPHostAPI.call("addSpeakerToDb", [name, job], { module: "speakers", timeoutMs: 15000 }, function (out) {
                 var res = out.result || "";
                 if (out.ok && res === "OK") {
                     SPEAKERS_DB.push({ name: name, job: job });
@@ -178,7 +178,7 @@ function initSpeakersUI() {
     // Кнопка создания
     attachClick("btn-create-title", function () {
         var d = getSpeakerData();
-        callHost("createSpeakerTitle", [d.name, d.job, d.side, d.size, Number(d.bgOffset || 0), !!d.soloTitle], { module: "speakers", timeoutMs: 20000 }, function (out) {
+        CPHostAPI.call("createSpeakerTitle", [d.name, d.job, d.side, d.size, Number(d.bgOffset || 0), !!d.soloTitle], { module: "speakers", timeoutMs: 20000 }, function (out) {
             if (!out || !out.ok) {
                 var err = out && (out.error || out.result) ? (out.error || out.result) : "Unknown error";
                 uiAlert("Не удалось создать титр.\n" + err);
@@ -219,7 +219,7 @@ function initSpeakersUI() {
         var jobInput = document.getElementById("input-job");
         if (nameInput) nameInput.value = "";
         if (jobInput) jobInput.value = "";
-        callHost("removePreview", [], { module: "speakers", timeoutMs: 5000 }, function (out) {
+        CPHostAPI.call("removePreview", [], { module: "speakers", timeoutMs: 5000 }, function (out) {
             if (!out || !out.ok) {
                 var err = out && (out.error || out.result) ? String(out.error || out.result) : "Unknown error";
                 logUiError("speakers.preview.remove", err);
@@ -244,7 +244,7 @@ function initSpeakersUI() {
 
     // TRIM
     attachClick("btn-trim", function () {
-        callHost("trimLayersInsideSelectedPrecomp", [], { module: "speakers", timeoutMs: 15000 }, function (out) {
+        CPHostAPI.call("trimLayersInsideSelectedPrecomp", [], { module: "speakers", timeoutMs: 15000 }, function (out) {
             if (!out || !out.ok) {
                 var err = out && (out.error || out.result) ? String(out.error || out.result) : "Unknown error";
                 uiAlert("Trim failed.\n" + err);

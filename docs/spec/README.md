@@ -9,9 +9,9 @@ Current v1 schemas:
 - [`config.schema.json`](config.schema.json)
   - `config.json` contract (sectioned format + legacy flat keys for compatibility).
 - [`job.schema.json`](job.schema.json)
-  - job contract for `host/lib/job_runner.jsx` (`schemaVersion=1`, `type`, `payload`).
+  - job contract for `jsx/lib/job_runner.jsx` (`schemaVersion=1`, `type`, `payload`).
 - [`results.schema.json`](results.schema.json)
-  - run manifest contract (`run.json`) for `host/lib/run_registry.jsx`.
+  - run manifest contract (`run.json`) for `jsx/lib/run_registry.jsx`.
 
 Related runtime schemas (payload-level validation):
 - [`../schemas/import.schema.json`](../schemas/import.schema.json)

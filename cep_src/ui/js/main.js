@@ -2,7 +2,7 @@
 // Speakers DB helpers are in speakers_db.js
 
 window.onload = function() {
-    var extensionPath = getExtensionRootPath();
+    var extensionPath = CPHostAPI.extensionRoot();
     var HOST_STARTUP_DELAY_MS = 1200;
 
     // ЦЕПОЧКА ЗАГРУЗКИ JSX
