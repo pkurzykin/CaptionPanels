@@ -8,6 +8,7 @@ param(
     [string]$BuildRoot = "",
     [string]$OutDir = "",
     [string]$NuGetConfigFile = "",
+    [string[]]$NuGetSource = @(),
     [switch]$SkipTools,
     [switch]$SkipAegp,
     [switch]$SkipPackage,
@@ -60,7 +61,8 @@ function Build-Word2Json {
         [Parameter(Mandatory = $true)][string]$RepoRoot,
         [Parameter(Mandatory = $true)][string]$Configuration,
         [Parameter(Mandatory = $true)][string]$DistRoot,
-        [string]$NuGetConfigFile = ""
+        [string]$NuGetConfigFile = "",
+        [string[]]$NuGetSource = @()
     )
 
     $project = Join-Path $RepoRoot "tools/word2json/src/Word2Json/Word2Json.csproj"
@@ -103,23 +105,47 @@ function Build-Word2Json {
         $env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
     }
 
+    $resolvedNuGetSources = @(
+        $NuGetSource |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        ForEach-Object { $_.Trim() }
+    )
+
+    if (($resolvedNuGetSources.Count -gt 0) -and (-not [string]::IsNullOrWhiteSpace($NuGetConfigFile))) {
+        throw "Use either -NuGetConfigFile or -NuGetSource, not both."
+    }
+
     $resolvedNuGetConfig = $NuGetConfigFile
     if ([string]::IsNullOrWhiteSpace($resolvedNuGetConfig)) {
         $resolvedNuGetConfig = Join-Path $toolsBuildRoot "NuGet.Config"
-        if (!(Test-Path -LiteralPath $resolvedNuGetConfig -PathType Leaf)) {
-            $nugetConfigContent = @(
-                '<?xml version="1.0" encoding="utf-8"?>'
-                '<configuration>'
-                '  <packageSources>'
-                '    <clear />'
-                '    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />'
-                '  </packageSources>'
-                '</configuration>'
-            )
-            Set-Content -LiteralPath $resolvedNuGetConfig -Value $nugetConfigContent -Encoding utf8
-        }
     } elseif (!(Test-Path -LiteralPath $resolvedNuGetConfig -PathType Leaf)) {
         throw "NuGet config file not found: $resolvedNuGetConfig"
+    }
+
+    if (($resolvedNuGetSources.Count -gt 0) -or !(Test-Path -LiteralPath $resolvedNuGetConfig -PathType Leaf)) {
+        if ($resolvedNuGetSources.Count -eq 0) {
+            $resolvedNuGetSources = @("https://api.nuget.org/v3/index.json")
+        }
+
+        $nugetConfigContent = @(
+            '<?xml version="1.0" encoding="utf-8"?>'
+            '<configuration>'
+            '  <packageSources>'
+            '    <clear />'
+        )
+
+        for ($i = 0; $i -lt $resolvedNuGetSources.Count; $i++) {
+            $sourceUrl = $resolvedNuGetSources[$i]
+            $escapedSourceUrl = [System.Security.SecurityElement]::Escape($sourceUrl)
+            $nugetConfigContent += ('    <add key="source{0}" value="{1}" protocolVersion="3" />' -f ($i + 1), $escapedSourceUrl)
+        }
+
+        $nugetConfigContent += @(
+            '  </packageSources>'
+            '</configuration>'
+        )
+
+        Set-Content -LiteralPath $resolvedNuGetConfig -Value $nugetConfigContent -Encoding utf8
     }
 
     Write-Host ("NuGet config: {0}" -f $resolvedNuGetConfig)
@@ -206,7 +232,12 @@ Write-Host ("Dist root:     {0}" -f $distRoot)
 Write-Host ("Version:       {0}" -f $resolvedVersion)
 
 if (!$SkipTools) {
-    Build-Word2Json -RepoRoot $repoRoot -Configuration $Configuration -DistRoot $distRoot -NuGetConfigFile $NuGetConfigFile
+    Build-Word2Json `
+        -RepoRoot $repoRoot `
+        -Configuration $Configuration `
+        -DistRoot $distRoot `
+        -NuGetConfigFile $NuGetConfigFile `
+        -NuGetSource $NuGetSource
 } else {
     Write-Host "Skipping tools build (-SkipTools)."
 }

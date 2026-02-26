@@ -173,6 +173,8 @@
   - `dotnet nuget list source`
 - если user-level `~/.nuget/NuGet/NuGet.Config` недоступен, укажи явный конфиг:
   - `pwsh -NoProfile -File .\scripts\build.ps1 -NuGetConfigFile <path-to-NuGet.Config> ...`
+- если нужен корпоративный mirror, передай source прямо в build:
+  - `pwsh -NoProfile -File .\scripts\build.ps1 -NuGetSource <mirror-url> ...`
 
 Быстрые команды:
 - `dotnet --info`

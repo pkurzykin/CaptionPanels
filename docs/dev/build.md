@@ -44,8 +44,10 @@ Note:
 - `-SkipPackage` — пропустить упаковку.
 - `-AllowMissingAex` — разрешить упаковку без собранного `.aex`.
 - `-NuGetConfigFile <path>` — использовать явный `NuGet.Config` для `dotnet restore`.
+- `-NuGetSource <url>` — указать один или несколько NuGet source URL (флаг можно повторять).
 
 По умолчанию `build.ps1` генерирует/использует локальный `NuGet.Config` в `dist/_build/tools/NuGet.Config`, чтобы не зависеть от недоступного `~/.nuget/NuGet/NuGet.Config`.
+Если задан `-NuGetSource`, скрипт генерирует `NuGet.Config` из переданных sources.
 
 Ручной fallback (при необходимости):
 1. Открой `aegp_src/CaptionPanels/Win/CaptionPanels.sln`.
