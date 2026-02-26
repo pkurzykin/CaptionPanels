@@ -32,13 +32,21 @@
 
 ## Packaging contract
 
-- Инсталляционный источник должен формироваться в `dist/CaptionPanels`.
-- Допустимо использовать текущий helper `scripts/package_release.ps1` для формирования release-артефактов в `dist/`.
-- Для деплоя на рабочие машины используется только содержимое `dist/CaptionPanels` (или эквивалент после распаковки release zip).
+- Инсталляционный источник формируется в `dist/CaptionPanels`.
+- Упаковка выполняется через:
+  - `scripts/paths.ps1` — единый резолвер путей.
+  - `scripts/package.ps1` — укладка deployment-layout.
+- Текущий release helper `scripts/package_release.ps1` остаётся для zip-артефактов CI/release.
 
-## Planned script standardization
+Команда упаковки:
+- `pwsh -NoProfile -File .\scripts\package.ps1`
 
-Планируемые скрипты (в отдельных PR):
-- `scripts/paths.ps1` — единый резолвер путей.
-- `scripts/package.ps1` — воспроизводимая укладка `dist/CaptionPanels`.
+Результирующая структура:
+- `dist/CaptionPanels/plugin/`
+- `dist/CaptionPanels/tools/`
+- `dist/CaptionPanels/config.default.json`
+- `dist/CaptionPanels/BUILDINFO.txt`
+
+## Planned next step
+
 - `scripts/build.ps1` — единая точка входа build+package (Release).

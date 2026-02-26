@@ -11,6 +11,7 @@
 
 Installation contract reference:
 - `dist/CaptionPanels` is the single source for deployment payload.
+- canonical layout: `plugin/`, `tools/`, `config.default.json`, `BUILDINFO.txt`.
 - Archived legacy assets are documented in [`../archive/README.md`](../archive/README.md).
 
 ## Existing reference documents

@@ -5,7 +5,7 @@ AEGP‑плагин для Adobe After Effects 2024+ (Windows 10/11) с UI на 
 ## Контракт поставки и запуска
 
 - Единый источник установки: `dist/CaptionPanels`.
-- Установка в After Effects: копирование payload из `dist/CaptionPanels` в `...\Support Files\Plug-ins\CaptionPanels\`.
+- Установка в After Effects: копирование payload из `dist/CaptionPanels/plugin` в `...\Support Files\Plug-ins\CaptionPanels\`.
 - Runtime‑каталоги вне репозитория:
   - инструменты: `C:\CaptionPanelsLocal\CaptionPanelTools\...`
   - данные и логи: `C:\CaptionPanelsLocal\CaptionPanelsData\...`
@@ -39,9 +39,10 @@ dist/           build output (не коммитится)
    - `WEBVIEW2_SDK`
    - `AE_PLUGIN_BUILD_DIR` (если используется локальный build output)
 3. Собери `Release | x64`.
-4. Подготовь инсталляционный payload в `dist/CaptionPanels` (через packaging flow проекта).
+4. Подготовь инсталляционный payload:
+   - `pwsh -NoProfile -File .\scripts\package.ps1`
 
-Важно: для установки на рабочие машины используем только `dist/CaptionPanels`, а не промежуточные build-папки Visual Studio.
+Важно: для установки на рабочие машины используем только `dist/CaptionPanels` (включая `plugin/` и `tools/`), а не промежуточные build-папки Visual Studio.
 
 ## Runtime config
 

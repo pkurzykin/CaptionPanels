@@ -31,7 +31,10 @@ Legacy CEP assets are stored in `archive/legacy_cep`.
 ## Packaging and installation contract
 
 - `dist/CaptionPanels` — единый источник установки.
-- Payload из `dist/CaptionPanels` копируется в каталог AE Plug-ins.
+- Plugin payload: `dist/CaptionPanels/plugin`.
+- Tools payload: `dist/CaptionPanels/tools`.
+- Baseline config: `dist/CaptionPanels/config.default.json`.
+- Build metadata: `dist/CaptionPanels/BUILDINFO.txt`.
 - Runtime tools/data/logs обслуживаются через `C:\CaptionPanelsLocal\...`.
 
 ## Stability constraints

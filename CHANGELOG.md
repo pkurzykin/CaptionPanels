@@ -9,6 +9,7 @@
 - Docs: добавлена структурированная иерархия `docs/user`, `docs/dev`, `docs/spec`; добавлены базовые dev-документы (`architecture`, `build`, `deployment`) и обновлены ссылки из `README`.
 - Docs audit: README и ключевые dev/deployment документы выровнены под контракт `dist/CaptionPanels -> AE Plug-ins + C:\CaptionPanelsLocal`; удалены устаревшие инструкции по прямому деплою из промежуточных build-папок.
 - Repository structure: `legacy_cep` перемещен в `archive/legacy_cep` через `git mv`; добавлен `archive/README.md` и обновлены обзорные ссылки документации.
+- Build packaging: добавлены `scripts/paths.ps1` и `scripts/package.ps1`; внедрен reproducible layout `dist/CaptionPanels` (`plugin/`, `tools/`, `config.default.json`, `BUILDINFO.txt`) с идемпотентной упаковкой.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
 - Branding: после `Create Branding` принудительный пересчет `subtitle_BG` сохраняется (host + fallback), чтобы не терялся после правок логики head_topic.
 - Auto Timing: после применения таймингов добавлен более надежный пересчет `subtitle_BG` (с fallback-алгоритмом, если модуль `subtitles.jsx` не подгрузился).

@@ -13,6 +13,10 @@
 ## 0) Коротко: что вообще ставим
 
 1) Инсталляционный payload из `dist/CaptionPanels` (единый источник установки).
+   - `plugin/` — содержимое для папки AE Plug-ins
+   - `tools/` — утилиты для `C:\CaptionPanelsLocal\CaptionPanelTools\...`
+   - `config.default.json` — baseline-конфиг
+   - `BUILDINFO.txt` — метаданные сборки/упаковки
 2) AE-плагин (AEX) + ресурсы панели (`client/`, `host/`, …)
 3) Внешние утилиты:
    - `word2json.exe` (Word -> JSON)
@@ -48,7 +52,7 @@
 
 ## 2) Установка AEX (плагина)
 
-Ставим вручную копированием из `dist/CaptionPanels`.
+Ставим вручную копированием из `dist/CaptionPanels/plugin`.
 
 Типовой путь (может отличаться в зависимости от версии AE):
 - `C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\CaptionPanels\`
@@ -61,6 +65,9 @@
 Важно:
 - не использовать промежуточные build-папки как источник деплоя;
 - рабочий источник установки — только `dist/CaptionPanels`.
+
+Рекомендуемый шаг:
+- инструменты из `dist/CaptionPanels/tools` разместить в `C:\CaptionPanelsLocal\CaptionPanelTools\...`.
 
 ---
 

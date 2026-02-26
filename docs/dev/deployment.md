@@ -6,19 +6,24 @@
 
 ## Manual deployment (current)
 
-1. Подготовь инсталляционный payload в `dist/CaptionPanels`.
-2. Скопируй payload в каталог плагинов After Effects:
+1. Подготовь инсталляционный payload:
+   - `pwsh -NoProfile -File .\scripts\package.ps1`
+2. Скопируй `dist/CaptionPanels/plugin` в каталог плагинов After Effects:
    - пример: `C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\CaptionPanels`
-3. Проверь конфиг:
+3. Скопируй `dist/CaptionPanels/tools/*` в `C:\CaptionPanelsLocal\CaptionPanelTools\...` по принятой раскладке.
+4. При необходимости используй `dist/CaptionPanels/config.default.json` как baseline для `%APPDATA%\CaptionPanels\config.json`.
+5. Проверь конфиг:
    - primary: `%APPDATA%\CaptionPanels\config.json`
    - fallback: `<plugin_root>\config.json`
-4. Проверь доступность runtime-корней:
+6. Проверь доступность runtime-корней:
    - `C:\CaptionPanelsLocal\CaptionPanelTools\...`
    - `C:\CaptionPanelsLocal\CaptionPanelsData\...`
 
 ## Deployment contract
 
 - Единый источник установки: `dist/CaptionPanels`.
+- Источник plugin payload: `dist/CaptionPanels/plugin`.
+- Источник tool payload: `dist/CaptionPanels/tools`.
 - Промежуточные build-папки (например, Visual Studio output) не используются как источник деплоя.
 - Ручное копирование из `dist/CaptionPanels` остаётся базовым способом установки.
 
