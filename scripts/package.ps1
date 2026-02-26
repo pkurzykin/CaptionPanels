@@ -60,6 +60,7 @@ $toolsRoot = Join-Path $packageRoot "tools"
 $aexPath = Get-CaptionPanelsBuiltAexPath -BuildRoot $resolvedBuildRoot -PluginName $PluginName
 
 if (Test-Path -LiteralPath $packageRoot) {
+    $stalePackageRoot = $null
     try {
         Remove-Item -LiteralPath $packageRoot -Recurse -Force -ErrorAction Stop
     } catch {
@@ -70,7 +71,14 @@ if (Test-Path -LiteralPath $packageRoot) {
     }
 
     if (Test-Path -LiteralPath $packageRoot) {
-        throw "Failed to clean package root: $packageRoot"
+        $stalePackageRoot = "$packageRoot._stale_$([guid]::NewGuid().ToString('N'))"
+        try {
+            Move-Item -LiteralPath $packageRoot -Destination $stalePackageRoot -Force -ErrorAction Stop
+            Write-Warning "Package root cleanup fallback: moved stale path to $stalePackageRoot"
+            Remove-Item -LiteralPath $stalePackageRoot -Recurse -Force -ErrorAction SilentlyContinue
+        } catch {
+            throw "Failed to clean package root: $packageRoot"
+        }
     }
 }
 
