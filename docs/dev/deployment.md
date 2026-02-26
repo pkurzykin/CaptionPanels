@@ -7,7 +7,8 @@
 ## Manual deployment (current)
 
 1. Подготовь инсталляционный payload:
-   - `pwsh -NoProfile -File .\scripts\package.ps1`
+   - full one-button: `pwsh -NoProfile -File .\scripts\build.ps1`
+   - packaging-only: `pwsh -NoProfile -File .\scripts\package.ps1`
 2. Скопируй `dist/CaptionPanels/plugin` в каталог плагинов After Effects:
    - пример: `C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\CaptionPanels`
 3. Скопируй `dist/CaptionPanels/tools/*` в `C:\CaptionPanelsLocal\CaptionPanelTools\...` по принятой раскладке.

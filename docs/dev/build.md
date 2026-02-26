@@ -20,15 +20,26 @@
 
 ## Build flow (current)
 
-1. Открой `aegp_src/CaptionPanels/Win/CaptionPanels.sln`.
-2. Проверь переменные:
-   - `AE_SDK_ROOT`
-   - `WEBVIEW2_SDK`
-   - `AE_PLUGIN_BUILD_DIR` (если нужен контролируемый локальный build-output)
-3. Собери `Release | x64`.
+Рекомендуемый one-button запуск:
+- `pwsh -NoProfile -File .\scripts\build.ps1`
 
-Промежуточный результат сборки:
-- `AE_PLUGIN_BUILD_DIR\AEGP\CaptionPanels\CaptionPanels.aex` (или эквивалент по окружению).
+Что делает `scripts/build.ps1`:
+1. `Release` по умолчанию.
+2. Сборка .NET утилит (если есть проект, например `word2json`).
+3. Сборка AEGP через `msbuild` (если `msbuild` найден).
+4. Вызов `scripts/package.ps1` для формирования `dist/CaptionPanels`.
+
+Полезные флаги:
+- `-SkipTools` — пропустить сборку tools.
+- `-SkipAegp` — пропустить сборку AEGP.
+- `-SkipPackage` — пропустить упаковку.
+- `-AllowMissingAex` — разрешить упаковку без собранного `.aex`.
+
+Ручной fallback (при необходимости):
+1. Открой `aegp_src/CaptionPanels/Win/CaptionPanels.sln`.
+2. Проверь `AE_SDK_ROOT`, `WEBVIEW2_SDK`, `AE_PLUGIN_BUILD_DIR`.
+3. Собери `Release | x64`.
+4. Запусти `pwsh -NoProfile -File .\scripts\package.ps1`.
 
 ## Packaging contract
 
@@ -49,4 +60,4 @@
 
 ## Planned next step
 
-- `scripts/build.ps1` — единая точка входа build+package (Release).
+- Интеграция one-button pipeline в CI выполняется только по отдельному запросу.

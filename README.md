@@ -33,14 +33,14 @@ dist/           build output (не коммитится)
 
 ## Сборка (Windows, Release по умолчанию)
 
-1. Открой `aegp_src/CaptionPanels/Win/CaptionPanels.sln` (VS 2022, v143).
-2. Проверь переменные окружения:
-   - `AE_SDK_ROOT`
-   - `WEBVIEW2_SDK`
-   - `AE_PLUGIN_BUILD_DIR` (если используется локальный build output)
-3. Собери `Release | x64`.
-4. Подготовь инсталляционный payload:
-   - `pwsh -NoProfile -File .\scripts\package.ps1`
+Рекомендуемый запуск:
+- `pwsh -NoProfile -File .\scripts\build.ps1`
+
+Скрипт:
+- использует `Release` по умолчанию;
+- собирает tools (если применимо);
+- собирает AEGP через `msbuild` (если найден);
+- формирует `dist/CaptionPanels` через `scripts/package.ps1`.
 
 Важно: для установки на рабочие машины используем только `dist/CaptionPanels` (включая `plugin/` и `tools/`), а не промежуточные build-папки Visual Studio.
 
