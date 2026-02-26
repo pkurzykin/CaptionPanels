@@ -82,6 +82,7 @@ Preflight-проверка окружения:
 - `scripts/package.ps1` копирует tools по per-tool каталогам (`word2json`, `transcribe_align`, `deploy`) и, при наличии publish-выхода, добавляет runtime `word2json` в `dist/CaptionPanels/tools/word2json/runtime/win-x64/self-contained`.
 - `scripts/package_release.ps1` теперь использует `scripts/package.ps1` как источник layout и архивирует именно `dist/CaptionPanels` в `dist/CaptionPanels_<ver>_win.zip`.
 - Release workflow (`.github/workflows/release-package.yml`) перед `package_release.ps1` выполняет `preflight.ps1 -Strict -SkipAegpChecks` и `build.ps1 -Configuration Release -SkipAegp -SkipPackage`, чтобы гарантировать включение tools-runtime в release zip.
+- Для release workflow можно задать секрет `RELEASE_NUGET_SOURCES` (URL через `,`/`;`/newline); значения пробрасываются как повторяемые `-NuGetSource` в `build.ps1`.
 - Детальный контракт по tools-layout: `docs/dev/tools-layout.md`.
 
 Команда упаковки:
