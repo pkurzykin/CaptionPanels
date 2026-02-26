@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://captionpanels.local/spec/results.schema.json",
+  "title": "CaptionPanels Run Manifest",
+  "description": "Schema for run manifests (run.json) produced by host/lib/run_registry.jsx.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "runId",
+    "status",
+    "stage",
+    "createdAt",
+    "updatedAt",
+    "inputs",
+    "outputs",
+    "meta",
+    "result",
+    "error",
+    "paths"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "kind": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stage": {
+      "type": "string",
+      "minLength": 1
+    },
+    "createdAt": {
+      "type": "string",
+      "pattern": "^[0-9]{8}_[0-9]{6}$"
+    },
+    "updatedAt": {
+      "type": "string",
+      "pattern": "^[0-9]{8}_[0-9]{6}$"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "error": {
+      "type": "string"
+    },
+    "paths": {
+      "type": "object",
+      "required": ["runDir", "manifestPath"],
+      "additionalProperties": true,
+      "properties": {
+        "runDir": { "type": "string", "minLength": 1 },
+        "manifestPath": { "type": "string", "minLength": 1 }
+      }
+    },
+    "_path": {
+      "type": "string"
+    }
+  }
+}

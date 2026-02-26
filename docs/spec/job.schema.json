@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://captionpanels.local/spec/job.schema.json",
+  "title": "CaptionPanels Job Request",
+  "description": "Schema for job payload consumed by host/lib/job_runner.jsx.",
+  "type": "object",
+  "required": ["schemaVersion", "type"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "type": {
+      "type": "string",
+      "enum": ["generateSubs", "deepCleanProject"]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "text": { "type": "string" },
+        "italic": { "type": "boolean" },
+        "jumpPlayhead": { "type": "boolean" }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "type": { "const": "generateSubs" } },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "text": { "type": "string" },
+              "italic": { "type": "boolean" },
+              "jumpPlayhead": { "type": "boolean" }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "deepCleanProject" } },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  ]
+}

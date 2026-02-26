@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://captionpanels.local/spec/config.schema.json",
+  "title": "CaptionPanels Config",
+  "description": "Schema for config.json (sectioned format with legacy flat keys for backward compatibility).",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "speakers": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "dbPath": { "type": "string" },
+        "topicOptions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enable": { "type": "boolean" },
+        "root": { "type": "string" }
+      }
+    },
+    "subtitle": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "charsPerLine": { "type": "integer", "minimum": 20, "maximum": 200 },
+        "shortWordMaxLen": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "bgGapSec": { "type": "number", "minimum": 0 }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "dataRoot": { "type": "string" },
+        "toolsRoot": { "type": "string" },
+        "word2jsonExePath": { "type": "string" },
+        "word2jsonOutDir": { "type": "string" },
+        "word2jsonLogsDir": { "type": "string" },
+        "autoTimingOutDir": { "type": "string" },
+        "autoTimingBlocksDir": { "type": "string" },
+        "autoTimingWhisperXDir": { "type": "string" },
+        "autoTimingAlignmentDir": { "type": "string" },
+        "autoTimingLogsDir": { "type": "string" },
+        "ffmpegExePath": { "type": "string" }
+      }
+    },
+    "asr": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "whisperxPythonPath": { "type": "string" },
+        "runnerScriptPath": { "type": "string" },
+        "model": { "type": "string" },
+        "language": { "type": "string" },
+        "deviceMode": { "type": "string", "enum": ["auto", "cuda", "cpu"] },
+        "device": { "type": "string" },
+        "vadMethod": { "type": "string" },
+        "offlineOnly": { "type": "boolean" },
+        "applyTimeShift": { "type": "boolean" },
+        "minGapFrames": { "type": "integer", "minimum": 0 },
+        "advancedArgsEnabled": { "type": "boolean" },
+        "beamSize": { "type": "integer", "minimum": 1 },
+        "temperature": { "type": "number" },
+        "noSpeechThreshold": { "type": "number" },
+        "logprobThreshold": { "type": "number" },
+        "conditionOnPreviousText": { "type": "boolean" },
+        "extraArgs": { "type": "string" }
+      }
+    },
+    "transcribe": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "alignScriptPath": { "type": "string" }
+      }
+    },
+
+    "speakersDbPath": { "type": "string" },
+    "topicOptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "enableLogs": { "type": "boolean" },
+    "logsRoot": { "type": "string" },
+    "subtitleCharsPerLine": { "type": "integer", "minimum": 20, "maximum": 200 },
+    "subtitleShortWordMaxLen": { "type": "integer", "minimum": 1, "maximum": 10 },
+    "subtitleBgGapSec": { "type": "number", "minimum": 0 },
+
+    "captionPanelsDataRoot": { "type": "string" },
+    "captionPanelsToolsRoot": { "type": "string" },
+    "word2jsonExePath": { "type": "string" },
+    "word2jsonOutDir": { "type": "string" },
+    "word2jsonLogsDir": { "type": "string" },
+    "autoTimingOutDir": { "type": "string" },
+    "autoTimingBlocksDir": { "type": "string" },
+    "autoTimingWhisperXDir": { "type": "string" },
+    "autoTimingAlignmentDir": { "type": "string" },
+    "autoTimingLogsDir": { "type": "string" },
+    "ffmpegExePath": { "type": "string" },
+
+    "whisperxPythonPath": { "type": "string" },
+    "whisperxRunnerScriptPath": { "type": "string" },
+    "whisperxModel": { "type": "string" },
+    "whisperxLanguage": { "type": "string" },
+    "whisperxDeviceMode": { "type": "string", "enum": ["auto", "cuda", "cpu"] },
+    "whisperxDevice": { "type": "string" },
+    "whisperxVadMethod": { "type": "string" },
+    "whisperxOfflineOnly": { "type": "boolean" },
+    "whisperxApplyTimeShift": { "type": "boolean" },
+    "autoTimingMinGapFrames": { "type": "integer", "minimum": 0 },
+    "whisperxAdvancedArgsEnabled": { "type": "boolean" },
+    "whisperxBeamSize": { "type": "integer", "minimum": 1 },
+    "whisperxTemperature": { "type": "number" },
+    "whisperxNoSpeechThreshold": { "type": "number" },
+    "whisperxLogprobThreshold": { "type": "number" },
+    "whisperxConditionOnPreviousText": { "type": "boolean" },
+    "whisperxExtraArgs": { "type": "string" },
+
+    "transcribeAlignScriptPath": { "type": "string" }
+  }
+}

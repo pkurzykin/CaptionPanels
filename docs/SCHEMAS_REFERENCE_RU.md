@@ -7,6 +7,9 @@
 - `docs/schemas/import.schema.json` — входной JSON для импорта текста/сегментов.
 - `docs/schemas/blocks.schema.json` — экспорт subtitle blocks из AE.
 - `docs/schemas/alignment.schema.json` — результат align-пайплайна для применения таймингов.
+- `docs/spec/config.schema.json` — контракт `config.json` (секционный формат + legacy flat-ключи).
+- `docs/spec/job.schema.json` — контракт job-файлов для `job_runner`.
+- `docs/spec/results.schema.json` — контракт run-manifest (`run.json`) для реестра запусков.
 
 ## Runtime-валидация в плагине
 

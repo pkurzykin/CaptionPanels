@@ -4,6 +4,7 @@
 ### Added
 - Speaker Titles: добавлен режим `solo_title` (чекбокс). В этом режиме используется шаблон `name_title_solo`, а текст из поля «ФИО» подставляется в слой `Job_title`.
 - Stage 3.2: добавлены формальные JSON-схемы в `docs/schemas/` (`import`, `blocks`, `alignment`) и справка `docs/SCHEMAS_REFERENCE_RU.md`.
+- Spec v1: добавлены базовые контракты в `docs/spec/` (`config.schema.json`, `job.schema.json`, `results.schema.json`) и обновлена спецификационная документация.
 
 ### Changed
 - Docs: добавлена структурированная иерархия `docs/user`, `docs/dev`, `docs/spec`; добавлены базовые dev-документы (`architecture`, `build`, `deployment`) и обновлены ссылки из `README`.
