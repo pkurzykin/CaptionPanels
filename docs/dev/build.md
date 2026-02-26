@@ -105,7 +105,7 @@ Preflight-проверка окружения:
 - В CI используется:
   - policy guard: `dist/` не должен содержать tracked-файлы (`git ls-files -- dist` должен быть пустым);
   - `scripts/preflight.ps1 -Strict -SkipAegpChecks`
-  - `scripts/build.ps1 -Configuration Release -SkipAegp -AllowMissingAex` (при наличии `vars.CI_NUGET_SOURCES` workflow добавляет повторяемые `-NuGetSource`)
+  - `scripts/build.ps1 -Configuration Release -SkipAegp -AllowMissingAex` (workflow добавляет повторяемые `-NuGetSource` из `workflow_dispatch input ci_nuget_sources`, иначе из `vars.CI_NUGET_SOURCES`)
   - проверка обязательного layout в `dist/CaptionPanels` (включая `tools/word2json/word2json.exe` и runtime overlay)
   - публикация артефакта `CaptionPanels-dist`
 

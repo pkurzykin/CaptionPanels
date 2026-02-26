@@ -8,11 +8,17 @@ on:
       - "cep_src/**"
       - "tools/**"
   workflow_dispatch:
+    inputs:
+      ci_nuget_sources:
+        description: "Optional NuGet source URLs for build.ps1 (-NuGetSource). Separators: comma, semicolon, newline."
+        required: false
+        type: string
 
 jobs:
   package-dist:
     runs-on: windows-latest
     env:
+      CI_NUGET_SOURCES_INPUT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ci_nuget_sources || '' }}
       CI_NUGET_SOURCES: ${{ vars.CI_NUGET_SOURCES }}
 
     steps:
@@ -42,9 +48,14 @@ jobs:
         run: |
           $buildArgs = @("-Configuration", "Release", "-SkipAegp", "-AllowMissingAex")
 
-          if (-not [string]::IsNullOrWhiteSpace($env:CI_NUGET_SOURCES)) {
+          $nugetSourcesRaw = $env:CI_NUGET_SOURCES_INPUT
+          if ([string]::IsNullOrWhiteSpace($nugetSourcesRaw)) {
+            $nugetSourcesRaw = $env:CI_NUGET_SOURCES
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($nugetSourcesRaw)) {
             $sources = @(
-              $env:CI_NUGET_SOURCES -split "[,;`r`n]+" |
+              $nugetSourcesRaw -split "[,;`r`n]+" |
               ForEach-Object { $_.Trim() } |
               Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
             )
