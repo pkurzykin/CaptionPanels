@@ -38,3 +38,5 @@ tools/**/obj/
 # Temporary files
 *.tmp
 *.temp
+
+AGENTS.md
