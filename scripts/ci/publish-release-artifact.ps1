@@ -32,19 +32,59 @@ if (-not (Test-Path -LiteralPath $ReleaseRepoPath -PathType Container)) {
     throw "Release repository path not found: $ReleaseRepoPath"
 }
 
-$destinationDir = Join-Path $ReleaseRepoPath ("releases/v{0}" -f $normalizedVersion)
-New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
 $releaseRelativeDir = Join-Path "releases" ("v{0}" -f $normalizedVersion)
 $releaseRelativeDir = $releaseRelativeDir -replace "\\", "/"
 
-$destinationZip = Join-Path $destinationDir $zipFileName
-Copy-Item -LiteralPath $sourceZip -Destination $destinationZip -Force
-
-$hashPath = Join-Path $destinationDir "sha256.txt"
-(Get-FileHash -LiteralPath $sourceZip -Algorithm SHA256).Hash | Out-File -LiteralPath $hashPath -Encoding ascii
-
 Push-Location $ReleaseRepoPath
 try {
+    $insideWorkTree = (git rev-parse --is-inside-work-tree).Trim()
+    if ($LASTEXITCODE -ne 0 -or $insideWorkTree -ne "true") {
+        throw "Release repository path is not a git working tree: $ReleaseRepoPath"
+    }
+
+    $statusLines = @(git status --porcelain)
+    if ($LASTEXITCODE -ne 0) {
+        throw "git status failed with exit code $LASTEXITCODE"
+    }
+
+    $outsideChanges = @()
+    foreach ($line in $statusLines) {
+        if ([string]::IsNullOrWhiteSpace($line)) {
+            continue
+        }
+
+        if ($line.Length -lt 4) {
+            $outsideChanges += $line
+            continue
+        }
+
+        $path = $line.Substring(3).Trim()
+        $renameParts = $path -split " -> ", 2
+        if ($renameParts.Count -eq 2) {
+            $path = $renameParts[1].Trim()
+        }
+
+        $normalizedPath = $path -replace "\\", "/"
+        if ($normalizedPath -eq $releaseRelativeDir -or $normalizedPath.StartsWith($releaseRelativeDir + "/")) {
+            continue
+        }
+
+        $outsideChanges += $line
+    }
+
+    if ($outsideChanges.Count -gt 0) {
+        throw ("Release repository has unrelated changes outside '{0}':`n{1}" -f $releaseRelativeDir, ($outsideChanges -join "`n"))
+    }
+
+    $destinationDir = Join-Path (Get-Location).Path ("releases/v{0}" -f $normalizedVersion)
+    New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
+
+    $destinationZip = Join-Path $destinationDir $zipFileName
+    Copy-Item -LiteralPath $sourceZip -Destination $destinationZip -Force
+
+    $hashPath = Join-Path $destinationDir "sha256.txt"
+    (Get-FileHash -LiteralPath $sourceZip -Algorithm SHA256).Hash | Out-File -LiteralPath $hashPath -Encoding ascii
+
     git config user.name $GitUserName
     git config user.email $GitUserEmail
 
