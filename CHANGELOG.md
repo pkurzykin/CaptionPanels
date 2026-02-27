@@ -36,6 +36,7 @@
 - CI NuGet sources: в `ci-package.yml` добавлен optional env `vars.CI_NUGET_SOURCES` (разделители `,`/`;`/newline), который маппится в повторяемые `-NuGetSource` для `build.ps1` на этапе packaging.
 - CI dispatch NuGet override: в `ci-package.yml` добавлен `workflow_dispatch` input `ci_nuget_sources`, который имеет приоритет над `vars.CI_NUGET_SOURCES` для ручного запуска packaging CI.
 - CI workflow guardrails: добавлены `concurrency` и `timeout-minutes` в `ci-package.yml` (`35`) и `release-package.yml` (`60`) для снижения риска зависаний и конфликтов параллельных запусков.
+- CI workflow permissions: в `ci-package.yml` и `release-package.yml` явно зафиксированы минимальные `permissions` (`contents: read`) по принципу least privilege.
 - Word2Json dependency: в `tools/word2json/src/Word2Json/Word2Json.csproj` добавлен `Newtonsoft.Json` (`13.0.4`) как явная зависимость утилиты.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.

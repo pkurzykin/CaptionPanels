@@ -18,6 +18,9 @@ concurrency:
   group: ci-package-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   package-dist:
     runs-on: windows-latest

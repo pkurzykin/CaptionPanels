@@ -104,6 +104,7 @@ Preflight-проверка окружения:
 - Workflow: `.github/workflows/ci-package.yml`.
 - Триггеры: `pull_request` (если изменяются `scripts/**`, `cep_src/**`, `tools/**`) и `workflow_dispatch`.
 - Guardrails: `concurrency` (cancel-in-progress для одного PR/ref) и `timeout-minutes: 35`.
+- Security: workflow использует минимальные `permissions` (`contents: read`).
 - В CI используется:
   - policy guard: `dist/` не должен содержать tracked-файлы (`git ls-files -- dist` должен быть пустым);
   - `scripts/preflight.ps1 -Strict -SkipAegpChecks`
