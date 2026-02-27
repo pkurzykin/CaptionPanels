@@ -84,7 +84,7 @@ Preflight-проверка окружения:
 - Release workflow (`.github/workflows/release-package.yml`) использует `actions/setup-dotnet@v4` (`8.0.x`) и перед `package_release.ps1` выполняет `preflight.ps1 -Strict -SkipAegpChecks` и `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -SkipPackage`, чтобы гарантировать включение tools-runtime в release zip.
 - Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) через `scripts/ci/assert-release-secrets.ps1`.
 - Проверка структуры `dist/CaptionPanels` централизована в `scripts/ci/assert-dist-layout.ps1`, а проверка структуры release zip — в `scripts/ci/assert-release-zip-layout.ps1`.
-- Публикация zip и `sha256.txt` в release-repo централизована в `scripts/ci/publish-release-artifact.ps1`.
+- Публикация zip и `sha256.txt` в release-repo централизована в `scripts/ci/publish-release-artifact.ps1` (staging/commit ограничены `releases/v<ver>`).
 - Для release workflow можно задать секрет `RELEASE_NUGET_SOURCES` (URL через `,`/`;`/newline); workflow пробрасывает его в env job и далее как повторяемые `-NuGetSource` в `build.ps1`.
 - Детальный контракт по tools-layout: `docs/dev/tools-layout.md`.
 

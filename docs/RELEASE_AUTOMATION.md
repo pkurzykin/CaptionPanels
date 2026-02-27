@@ -39,7 +39,7 @@ Guardrails:
 5) Creates `dist/CaptionPanels_<ver>_win.zip` from `dist/CaptionPanels`
 6) Verifies zip layout via `scripts/ci/assert-release-zip-layout.ps1 -Version $env:GITHUB_REF_NAME`
 7) Publishes the zip into the public release repo via `scripts/ci/publish-release-artifact.ps1 -Version $env:GITHUB_REF_NAME`
-   (target: `releases/v<ver>/CaptionPanels_<ver>_win.zip` + `sha256.txt`)
+   (target and commit scope: `releases/v<ver>/CaptionPanels_<ver>_win.zip` + `sha256.txt`)
 
 Install note:
 - Release zip is the distributable artifact.

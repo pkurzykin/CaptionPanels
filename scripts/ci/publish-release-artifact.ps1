@@ -34,6 +34,8 @@ if (-not (Test-Path -LiteralPath $ReleaseRepoPath -PathType Container)) {
 
 $destinationDir = Join-Path $ReleaseRepoPath ("releases/v{0}" -f $normalizedVersion)
 New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
+$releaseRelativeDir = Join-Path "releases" ("v{0}" -f $normalizedVersion)
+$releaseRelativeDir = $releaseRelativeDir -replace "\\", "/"
 
 $destinationZip = Join-Path $destinationDir $zipFileName
 Copy-Item -LiteralPath $sourceZip -Destination $destinationZip -Force
@@ -46,15 +48,18 @@ try {
     git config user.name $GitUserName
     git config user.email $GitUserEmail
 
-    git add .
+    git add --all -- $releaseRelativeDir
+    if ($LASTEXITCODE -ne 0) {
+        throw "git add failed with exit code $LASTEXITCODE"
+    }
 
-    $pendingChanges = (git status --porcelain) -join ""
+    $pendingChanges = (git diff --cached --name-only -- $releaseRelativeDir) -join ""
     if ([string]::IsNullOrWhiteSpace($pendingChanges)) {
         Write-Host "release publish: nothing to commit"
         return
     }
 
-    git commit -m ("Release v{0}" -f $normalizedVersion)
+    git commit -m ("Release v{0}" -f $normalizedVersion) -- $releaseRelativeDir
     if ($LASTEXITCODE -ne 0) {
         throw "git commit failed with exit code $LASTEXITCODE"
     }
