@@ -29,6 +29,7 @@ Guardrails:
 - `concurrency` per tag (`release-package-<ref>`)
 - `timeout-minutes: 60`
 - early validation of required secrets via `scripts/ci/assert-release-secrets.ps1`
+- semantic version validation for release tag via `scripts/ci/assert-release-version.ps1` (`vMAJOR.MINOR.PATCH`)
 - minimal workflow permissions (`contents: read`)
 - policy check via `scripts/ci/assert-dist-untracked.ps1` (`dist/` must be untracked)
 
