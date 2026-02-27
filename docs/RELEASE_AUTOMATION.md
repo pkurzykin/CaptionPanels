@@ -30,6 +30,7 @@ Guardrails:
 - `timeout-minutes: 60`
 - early validation of required secrets (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`)
 - minimal workflow permissions (`contents: read`)
+- policy check via `scripts/ci/assert-dist-untracked.ps1` (`dist/` must be untracked)
 
 1) Runs preflight: `scripts/preflight.ps1 -Strict -SkipAegpChecks`
 2) Builds tools runtime: `scripts/build.ps1 -Configuration Release -SkipAegp -SkipPackage` (optionally with `-NuGetSource` values from `RELEASE_NUGET_SOURCES`)

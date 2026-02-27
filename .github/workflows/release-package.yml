@@ -26,12 +26,7 @@ jobs:
 
       - name: Policy guard (dist must be untracked)
         shell: pwsh
-        run: |
-          $trackedDist = git ls-files -- dist
-          if (-not [string]::IsNullOrWhiteSpace($trackedDist)) {
-            Write-Host $trackedDist
-            throw "Policy violation: dist/ contains tracked files. dist/ must remain build output only."
-          }
+        run: .\scripts\ci\assert-dist-untracked.ps1
 
       - name: Validate release secrets
         shell: pwsh
