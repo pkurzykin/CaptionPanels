@@ -12,7 +12,7 @@ This repo is the **private dev** source. Releases are published to a **public re
    - `RELEASE_REPO_TOKEN` = your PAT
    - Optional for corporate/offline mirrors: `RELEASE_NUGET_SOURCES` = one or more NuGet URLs (separator: comma, semicolon, or newline).
    - `release-package.yml` reads `RELEASE_NUGET_SOURCES` directly from GitHub Secrets and passes it to the tools-build step.
-   - `release-package.yml` validates `RELEASE_REPO` and `RELEASE_REPO_TOKEN` early and fails fast with explicit error if they are missing.
+   - `release-package.yml` validates `RELEASE_REPO` and `RELEASE_REPO_TOKEN` early via `scripts/ci/assert-release-secrets.ps1`.
 4) **Self‑hosted Windows runner**:
    - Must have AE SDK, Visual Studio build, and access to the built plugin.
    - Runner labels: `self-hosted`, `windows`.
@@ -28,7 +28,7 @@ On `git push --tags` (e.g., `v2.1.0`), the workflow:
 Guardrails:
 - `concurrency` per tag (`release-package-<ref>`)
 - `timeout-minutes: 60`
-- early validation of required secrets (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`)
+- early validation of required secrets via `scripts/ci/assert-release-secrets.ps1`
 - minimal workflow permissions (`contents: read`)
 - policy check via `scripts/ci/assert-dist-untracked.ps1` (`dist/` must be untracked)
 
@@ -38,9 +38,8 @@ Guardrails:
 4) Builds canonical layout in `dist/CaptionPanels`
 5) Creates `dist/CaptionPanels_<ver>_win.zip` from `dist/CaptionPanels`
 6) Verifies zip layout via `scripts/ci/assert-release-zip-layout.ps1 -Version $env:GITHUB_REF_NAME`
-7) Copies the zip into the public release repo:
-   `releases/v<ver>/CaptionPanels_<ver>_win.zip`
-   + `sha256.txt`
+7) Publishes the zip into the public release repo via `scripts/ci/publish-release-artifact.ps1 -Version $env:GITHUB_REF_NAME`
+   (target: `releases/v<ver>/CaptionPanels_<ver>_win.zip` + `sha256.txt`)
 
 Install note:
 - Release zip is the distributable artifact.

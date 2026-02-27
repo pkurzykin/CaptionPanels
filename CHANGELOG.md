@@ -40,6 +40,7 @@
 - CI policy script: проверка `dist/` на tracked-файлы вынесена в общий скрипт `scripts/ci/assert-dist-untracked.ps1` и подключена в `ci-package.yml`/`release-package.yml`.
 - CI build wrapper: логика формирования аргументов `build.ps1` с NuGet source override вынесена в общий `scripts/ci/invoke-build-with-nuget-sources.ps1` и подключена в `ci-package.yml`/`release-package.yml`.
 - CI layout scripts: проверки структуры `dist/CaptionPanels` и release zip вынесены в `scripts/ci/assert-dist-layout.ps1` и `scripts/ci/assert-release-zip-layout.ps1`; workflows используют эти скрипты вместо inline-логики.
+- Release workflow scripts: в `release-package.yml` inline-блоки валидации секретов и публикации zip вынесены в `scripts/ci/assert-release-secrets.ps1` и `scripts/ci/publish-release-artifact.ps1`.
 - Word2Json dependency: в `tools/word2json/src/Word2Json/Word2Json.csproj` добавлен `Newtonsoft.Json` (`13.0.4`) как явная зависимость утилиты.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.

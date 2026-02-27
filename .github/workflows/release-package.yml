@@ -30,14 +30,7 @@ jobs:
 
       - name: Validate release secrets
         shell: pwsh
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:RELEASE_REPO)) {
-            throw "Missing required secret: RELEASE_REPO"
-          }
-
-          if ([string]::IsNullOrWhiteSpace($env:RELEASE_REPO_TOKEN)) {
-            throw "Missing required secret: RELEASE_REPO_TOKEN"
-          }
+        run: .\scripts\ci\assert-release-secrets.ps1
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -74,22 +67,4 @@ jobs:
 
       - name: Publish to release repo
         shell: pwsh
-        run: |
-          $ver = $env:GITHUB_REF_NAME
-          if ($ver.StartsWith("v")) { $ver = $ver.Substring(1) }
-          $src = "dist\\CaptionPanels_${ver}_win.zip"
-          if (!(Test-Path $src)) { throw "Missing artifact: $src" }
-
-          $destDir = "release-repo\\releases\\v$ver"
-          New-Item -ItemType Directory -Path $destDir -Force | Out-Null
-          Copy-Item $src $destDir -Force
-          (Get-FileHash $src -Algorithm SHA256).Hash | Out-File (Join-Path $destDir "sha256.txt") -Encoding ascii
-
-          Push-Location release-repo
-          git config user.name "release-bot"
-          git config user.email "release-bot@users.noreply.github.com"
-          git add .
-          git commit -m "Release v$ver"
-          if ($LASTEXITCODE -ne 0) { Write-Host "Nothing to commit"; exit 0 }
-          git push
-          Pop-Location
+        run: .\scripts\ci\publish-release-artifact.ps1 -Version $env:GITHUB_REF_NAME
