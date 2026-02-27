@@ -24,6 +24,10 @@ This repo is the **private dev** source. Releases are published to a **public re
 
 On `git push --tags` (e.g., `v2.1.0`), the workflow:
 
+Guardrails:
+- `concurrency` per tag (`release-package-<ref>`)
+- `timeout-minutes: 60`
+
 1) Runs preflight: `scripts/preflight.ps1 -Strict -SkipAegpChecks`
 2) Builds tools runtime: `scripts/build.ps1 -Configuration Release -SkipAegp -SkipPackage` (optionally with `-NuGetSource` values from `RELEASE_NUGET_SOURCES`)
 3) Runs `scripts/package_release.ps1` (internally runs `scripts/package.ps1`)

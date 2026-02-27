@@ -14,9 +14,14 @@ on:
         required: false
         type: string
 
+concurrency:
+  group: ci-package-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   package-dist:
     runs-on: windows-latest
+    timeout-minutes: 35
     env:
       CI_NUGET_SOURCES_INPUT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ci_nuget_sources || '' }}
       CI_NUGET_SOURCES: ${{ vars.CI_NUGET_SOURCES }}
