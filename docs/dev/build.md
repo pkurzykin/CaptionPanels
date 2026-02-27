@@ -81,7 +81,7 @@ Preflight-проверка окружения:
 - `scripts/package.ps1` использует lock-файл `dist/.package.lock`, чтобы блокировать параллельные упаковки одного и того же `dist`.
 - `scripts/package.ps1` копирует tools по per-tool каталогам (`word2json`, `transcribe_align`, `deploy`) и, при наличии publish-выхода, добавляет runtime `word2json` в `dist/CaptionPanels/tools/word2json/runtime/win-x64/self-contained`.
 - `scripts/package_release.ps1` теперь использует `scripts/package.ps1` как источник layout и архивирует именно `dist/CaptionPanels` в `dist/CaptionPanels_<ver>_win.zip`.
-- Release workflow (`.github/workflows/release-package.yml`) использует `actions/setup-dotnet@v4` (`8.0.x`) и перед `package_release.ps1` выполняет `preflight.ps1 -Strict -SkipAegpChecks` и `build.ps1 -Configuration Release -SkipAegp -SkipPackage`, чтобы гарантировать включение tools-runtime в release zip.
+- Release workflow (`.github/workflows/release-package.yml`) использует `actions/setup-dotnet@v4` (`8.0.x`) и перед `package_release.ps1` выполняет `preflight.ps1 -Strict -SkipAegpChecks` и `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -SkipPackage`, чтобы гарантировать включение tools-runtime в release zip.
 - Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) с fail-fast сообщением.
 - Для release workflow можно задать секрет `RELEASE_NUGET_SOURCES` (URL через `,`/`;`/newline); workflow пробрасывает его в env job и далее как повторяемые `-NuGetSource` в `build.ps1`.
 - Детальный контракт по tools-layout: `docs/dev/tools-layout.md`.
@@ -108,7 +108,7 @@ Preflight-проверка окружения:
 - В CI используется:
   - policy guard: `scripts/ci/assert-dist-untracked.ps1` (проверяет, что `dist/` не содержит tracked-файлы);
   - `scripts/preflight.ps1 -Strict -SkipAegpChecks`
-  - `scripts/build.ps1 -Configuration Release -SkipAegp -AllowMissingAex` (workflow добавляет повторяемые `-NuGetSource` из `workflow_dispatch input ci_nuget_sources`, иначе из `vars.CI_NUGET_SOURCES`)
+  - `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -AllowMissingAex` (wrapper добавляет повторяемые `-NuGetSource` из `workflow_dispatch input ci_nuget_sources`, иначе из `vars.CI_NUGET_SOURCES`)
   - проверка обязательного layout в `dist/CaptionPanels` (включая `tools/word2json/word2json.exe` и runtime overlay)
   - публикация артефакта `CaptionPanels-dist`
 

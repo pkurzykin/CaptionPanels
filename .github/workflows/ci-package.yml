@@ -48,27 +48,13 @@ jobs:
 
       - name: Build and package (Release, no AEGP)
         shell: pwsh
-        run: |
-          $buildArgs = @("-Configuration", "Release", "-SkipAegp", "-AllowMissingAex")
-
-          $nugetSourcesRaw = $env:CI_NUGET_SOURCES_INPUT
-          if ([string]::IsNullOrWhiteSpace($nugetSourcesRaw)) {
-            $nugetSourcesRaw = $env:CI_NUGET_SOURCES
-          }
-
-          if (-not [string]::IsNullOrWhiteSpace($nugetSourcesRaw)) {
-            $sources = @(
-              $nugetSourcesRaw -split "[,;`r`n]+" |
-              ForEach-Object { $_.Trim() } |
-              Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-            )
-
-            foreach ($source in $sources) {
-              $buildArgs += @("-NuGetSource", $source)
-            }
-          }
-
-          & .\scripts\build.ps1 @buildArgs
+        run: >
+          .\scripts\ci\invoke-build-with-nuget-sources.ps1
+          -BuildConfiguration Release
+          -SkipAegp
+          -AllowMissingAex
+          -NuGetSourcesPrimary "$env:CI_NUGET_SOURCES_INPUT"
+          -NuGetSourcesFallback "$env:CI_NUGET_SOURCES"
 
       - name: Verify dist layout
         shell: pwsh

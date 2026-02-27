@@ -50,22 +50,12 @@ jobs:
 
       - name: Build tools runtime (Release, no AEGP/package)
         shell: pwsh
-        run: |
-          $buildArgs = @("-Configuration", "Release", "-SkipAegp", "-SkipPackage")
-
-          if (-not [string]::IsNullOrWhiteSpace($env:RELEASE_NUGET_SOURCES)) {
-            $sources = @(
-              $env:RELEASE_NUGET_SOURCES -split "[,;`r`n]+" |
-              ForEach-Object { $_.Trim() } |
-              Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-            )
-
-            foreach ($source in $sources) {
-              $buildArgs += @("-NuGetSource", $source)
-            }
-          }
-
-          & .\scripts\build.ps1 @buildArgs
+        run: >
+          .\scripts\ci\invoke-build-with-nuget-sources.ps1
+          -BuildConfiguration Release
+          -SkipAegp
+          -SkipPackage
+          -NuGetSourcesPrimary "$env:RELEASE_NUGET_SOURCES"
 
       - name: Package plugin
         shell: pwsh

@@ -33,7 +33,7 @@ Guardrails:
 - policy check via `scripts/ci/assert-dist-untracked.ps1` (`dist/` must be untracked)
 
 1) Runs preflight: `scripts/preflight.ps1 -Strict -SkipAegpChecks`
-2) Builds tools runtime: `scripts/build.ps1 -Configuration Release -SkipAegp -SkipPackage` (optionally with `-NuGetSource` values from `RELEASE_NUGET_SOURCES`)
+2) Builds tools runtime via `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -SkipPackage` (optionally with `-NuGetSource` values from `RELEASE_NUGET_SOURCES`)
 3) Runs `scripts/package_release.ps1` (internally runs `scripts/package.ps1`)
 4) Builds canonical layout in `dist/CaptionPanels`
 5) Creates `dist/CaptionPanels_<ver>_win.zip` from `dist/CaptionPanels`
