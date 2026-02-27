@@ -63,38 +63,7 @@ jobs:
 
       - name: Verify release zip layout
         shell: pwsh
-        run: |
-          $ver = $env:GITHUB_REF_NAME
-          if ($ver.StartsWith("v")) { $ver = $ver.Substring(1) }
-
-          $zipPath = "dist\\CaptionPanels_${ver}_win.zip"
-          if (!(Test-Path -LiteralPath $zipPath)) { throw "Missing artifact: $zipPath" }
-
-          $extractRoot = Join-Path $env:RUNNER_TEMP ("CaptionPanels_zip_verify_" + [guid]::NewGuid().ToString("N"))
-          New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
-          Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force
-
-          $required = @(
-            "plugin\\CaptionPanels.aex",
-            "plugin\\client\\index.html",
-            "plugin\\host\\index.jsx",
-            "plugin\\config.json",
-            "plugin\\speakers.json",
-            "tools\\word2json\\README.md",
-            "tools\\word2json\\word2json.exe",
-            "tools\\word2json\\word2json.rules.json",
-            "tools\\word2json\\runtime\\win-x64\\self-contained\\word2json.exe",
-            "tools\\transcribe_align\\transcribe_align.py",
-            "config.default.json",
-            "BUILDINFO.txt"
-          )
-
-          foreach ($relativePath in $required) {
-            $fullPath = Join-Path $extractRoot $relativePath
-            if (!(Test-Path -LiteralPath $fullPath)) {
-              throw "Missing expected path in release zip: $relativePath"
-            }
-          }
+        run: .\scripts\ci\assert-release-zip-layout.ps1 -Version $env:GITHUB_REF_NAME
 
       - name: Checkout release repo
         uses: actions/checkout@v4

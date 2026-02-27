@@ -37,7 +37,7 @@ Guardrails:
 3) Runs `scripts/package_release.ps1` (internally runs `scripts/package.ps1`)
 4) Builds canonical layout in `dist/CaptionPanels`
 5) Creates `dist/CaptionPanels_<ver>_win.zip` from `dist/CaptionPanels`
-6) Verifies zip layout (`plugin/`, `tools/`, `config.default.json`, `BUILDINFO.txt`, `tools/word2json/word2json.exe`)
+6) Verifies zip layout via `scripts/ci/assert-release-zip-layout.ps1 -Version $env:GITHUB_REF_NAME`
 7) Copies the zip into the public release repo:
    `releases/v<ver>/CaptionPanels_<ver>_win.zip`
    + `sha256.txt`

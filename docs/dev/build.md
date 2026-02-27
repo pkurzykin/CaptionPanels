@@ -83,6 +83,7 @@ Preflight-проверка окружения:
 - `scripts/package_release.ps1` теперь использует `scripts/package.ps1` как источник layout и архивирует именно `dist/CaptionPanels` в `dist/CaptionPanels_<ver>_win.zip`.
 - Release workflow (`.github/workflows/release-package.yml`) использует `actions/setup-dotnet@v4` (`8.0.x`) и перед `package_release.ps1` выполняет `preflight.ps1 -Strict -SkipAegpChecks` и `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -SkipPackage`, чтобы гарантировать включение tools-runtime в release zip.
 - Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) с fail-fast сообщением.
+- Проверка структуры `dist/CaptionPanels` централизована в `scripts/ci/assert-dist-layout.ps1`, а проверка структуры release zip — в `scripts/ci/assert-release-zip-layout.ps1`.
 - Для release workflow можно задать секрет `RELEASE_NUGET_SOURCES` (URL через `,`/`;`/newline); workflow пробрасывает его в env job и далее как повторяемые `-NuGetSource` в `build.ps1`.
 - Детальный контракт по tools-layout: `docs/dev/tools-layout.md`.
 
@@ -109,7 +110,7 @@ Preflight-проверка окружения:
   - policy guard: `scripts/ci/assert-dist-untracked.ps1` (проверяет, что `dist/` не содержит tracked-файлы);
   - `scripts/preflight.ps1 -Strict -SkipAegpChecks`
   - `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -AllowMissingAex` (wrapper добавляет повторяемые `-NuGetSource` из `workflow_dispatch input ci_nuget_sources`, иначе из `vars.CI_NUGET_SOURCES`)
-  - проверка обязательного layout в `dist/CaptionPanels` (включая `tools/word2json/word2json.exe` и runtime overlay)
+  - проверка обязательного layout в `dist/CaptionPanels`: `scripts/ci/assert-dist-layout.ps1` (включая `tools/word2json/word2json.exe` и runtime overlay)
   - публикация артефакта `CaptionPanels-dist`
 
 Ограничение:

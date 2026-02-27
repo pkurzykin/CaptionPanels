@@ -58,26 +58,7 @@ jobs:
 
       - name: Verify dist layout
         shell: pwsh
-        run: |
-          $required = @(
-            "dist/CaptionPanels/plugin/client/index.html",
-            "dist/CaptionPanels/plugin/host/index.jsx",
-            "dist/CaptionPanels/plugin/config.json",
-            "dist/CaptionPanels/plugin/speakers.json",
-            "dist/CaptionPanels/tools/word2json/README.md",
-            "dist/CaptionPanels/tools/word2json/word2json.exe",
-            "dist/CaptionPanels/tools/word2json/word2json.rules.json",
-            "dist/CaptionPanels/tools/word2json/runtime/win-x64/self-contained/word2json.exe",
-            "dist/CaptionPanels/tools/transcribe_align/transcribe_align.py",
-            "dist/CaptionPanels/config.default.json",
-            "dist/CaptionPanels/BUILDINFO.txt"
-          )
-
-          foreach ($path in $required) {
-            if (!(Test-Path -LiteralPath $path)) {
-              throw "Missing expected path: $path"
-            }
-          }
+        run: .\scripts\ci\assert-dist-layout.ps1
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
