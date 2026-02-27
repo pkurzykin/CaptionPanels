@@ -8,20 +8,9 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-function Normalize-VersionString {
-    param([string]$Value)
+. (Join-Path $PSScriptRoot "release-version-utils.ps1")
 
-    $v = $Value.Trim()
-    if ($v.StartsWith("refs/tags/")) {
-        $v = $v.Substring("refs/tags/".Length)
-    }
-    if ($v.StartsWith("v")) {
-        $v = $v.Substring(1)
-    }
-    return $v
-}
-
-$normalizedVersion = Normalize-VersionString -Value $Version
+$normalizedVersion = Get-NormalizedReleaseVersion -Version $Version
 if ([string]::IsNullOrWhiteSpace($normalizedVersion)) {
     throw "Release version is empty after normalization."
 }

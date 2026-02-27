@@ -8,10 +8,9 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$normalizedVersion = $Version.Trim()
-if ($normalizedVersion.StartsWith("v")) {
-    $normalizedVersion = $normalizedVersion.Substring(1)
-}
+. (Join-Path $PSScriptRoot "release-version-utils.ps1")
+
+$normalizedVersion = Get-NormalizedReleaseVersion -Version $Version
 
 if ([string]::IsNullOrWhiteSpace($normalizedVersion)) {
     throw "Version is empty after normalization."
