@@ -14,6 +14,8 @@ jobs:
     runs-on: [self-hosted, windows]
     timeout-minutes: 60
     env:
+      RELEASE_REPO: ${{ secrets.RELEASE_REPO }}
+      RELEASE_REPO_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
       RELEASE_NUGET_SOURCES: ${{ secrets.RELEASE_NUGET_SOURCES }}
     steps:
       - name: Checkout dev repo
@@ -26,6 +28,17 @@ jobs:
           if (-not [string]::IsNullOrWhiteSpace($trackedDist)) {
             Write-Host $trackedDist
             throw "Policy violation: dist/ contains tracked files. dist/ must remain build output only."
+          }
+
+      - name: Validate release secrets
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RELEASE_REPO)) {
+            throw "Missing required secret: RELEASE_REPO"
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:RELEASE_REPO_TOKEN)) {
+            throw "Missing required secret: RELEASE_REPO_TOKEN"
           }
 
       - name: Setup .NET
@@ -98,8 +111,8 @@ jobs:
       - name: Checkout release repo
         uses: actions/checkout@v4
         with:
-          repository: ${{ secrets.RELEASE_REPO }}
-          token: ${{ secrets.RELEASE_REPO_TOKEN }}
+          repository: ${{ env.RELEASE_REPO }}
+          token: ${{ env.RELEASE_REPO_TOKEN }}
           path: release-repo
 
       - name: Publish to release repo

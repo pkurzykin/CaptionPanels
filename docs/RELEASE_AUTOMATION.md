@@ -12,6 +12,7 @@ This repo is the **private dev** source. Releases are published to a **public re
    - `RELEASE_REPO_TOKEN` = your PAT
    - Optional for corporate/offline mirrors: `RELEASE_NUGET_SOURCES` = one or more NuGet URLs (separator: comma, semicolon, or newline).
    - `release-package.yml` reads `RELEASE_NUGET_SOURCES` directly from GitHub Secrets and passes it to the tools-build step.
+   - `release-package.yml` validates `RELEASE_REPO` and `RELEASE_REPO_TOKEN` early and fails fast with explicit error if they are missing.
 4) **Self‑hosted Windows runner**:
    - Must have AE SDK, Visual Studio build, and access to the built plugin.
    - Runner labels: `self-hosted`, `windows`.
@@ -27,6 +28,7 @@ On `git push --tags` (e.g., `v2.1.0`), the workflow:
 Guardrails:
 - `concurrency` per tag (`release-package-<ref>`)
 - `timeout-minutes: 60`
+- early validation of required secrets (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`)
 
 1) Runs preflight: `scripts/preflight.ps1 -Strict -SkipAegpChecks`
 2) Builds tools runtime: `scripts/build.ps1 -Configuration Release -SkipAegp -SkipPackage` (optionally with `-NuGetSource` values from `RELEASE_NUGET_SOURCES`)
