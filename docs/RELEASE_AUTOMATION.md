@@ -48,7 +48,7 @@ Guardrails:
 4) Builds canonical layout in `dist/CaptionPanels`
 5) Creates `dist/CaptionPanels_<ver>_win.zip` from `dist/CaptionPanels`
 6) Verifies zip layout via `scripts/ci/assert-release-zip-layout.ps1 -Version $env:RELEASE_VERSION`
-7) Resolves deterministic zip path `dist/CaptionPanels_<normalized-version>_win.zip` and uploads it as workflow artifact (`CaptionPanels-release-<version>`)
+7) Resolves deterministic zip path via `scripts/ci/resolve-release-env.ps1` (`dist/CaptionPanels_<normalized-version>_win.zip`) and uploads it as workflow artifact (`CaptionPanels-release-<version>`)
 8) Publishes the zip into the public release repo via `scripts/ci/publish-release-artifact.ps1 -Version $env:RELEASE_VERSION` (publish mode only; skipped in dry-run)
    (target and commit scope: `releases/v<ver>/CaptionPanels_<ver>_win.zip` + `sha256.txt`)
    and fails fast if `release-repo` contains unrelated changes outside `releases/v<ver>`.

@@ -89,7 +89,7 @@ Preflight-проверка окружения:
 - Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) через `scripts/ci/assert-release-secrets.ps1` только в publish-режиме (в `dry_run` шаг публикации пропускается).
 - В `dry_run` release workflow запускается на `windows-latest` (без self-hosted runner) и вызывает `scripts/package_release.ps1 -AllowMissingAex`.
 - В `dry_run` проверка release zip (`scripts/ci/assert-release-zip-layout.ps1`) выполняется с `-AllowMissingAex`.
-- Upload release artifact использует вычисленный детерминированный путь (`dist/CaptionPanels_<normalized-version>_win.zip`) вместо wildcard.
+- Upload release artifact использует вычисленный детерминированный путь (`dist/CaptionPanels_<normalized-version>_win.zip`) через helper `scripts/ci/resolve-release-env.ps1` вместо wildcard.
 - Release workflow валидирует release-tag по SemVer через `scripts/ci/assert-release-version.ps1` (ожидается `vMAJOR.MINOR.PATCH`).
 - Release workflow проверяет согласованность версии: tag должен совпадать с `UI_VERSION` из `cep_src/ui/js/app_core.js` (`scripts/ci/assert-release-version-alignment.ps1`).
 - Проверка структуры `dist/CaptionPanels` централизована в `scripts/ci/assert-dist-layout.ps1`, а проверка структуры release zip — в `scripts/ci/assert-release-zip-layout.ps1`.

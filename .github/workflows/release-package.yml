@@ -59,22 +59,9 @@ jobs:
         shell: pwsh
         run: .\scripts\ci\assert-release-version-alignment.ps1 -Version $env:RELEASE_VERSION
 
-      - name: Resolve release zip path
+      - name: Resolve release env
         shell: pwsh
-        run: |
-          $normalizedVersion = $env:RELEASE_VERSION
-          if ($normalizedVersion.StartsWith("refs/tags/")) {
-            $normalizedVersion = $normalizedVersion.Substring("refs/tags/".Length)
-          }
-          if ($normalizedVersion.StartsWith("v") -or $normalizedVersion.StartsWith("V")) {
-            $normalizedVersion = $normalizedVersion.Substring(1)
-          }
-          if ([string]::IsNullOrWhiteSpace($normalizedVersion)) {
-            throw "Resolved release version is empty."
-          }
-
-          "RELEASE_VERSION_NORMALIZED=$normalizedVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "RELEASE_ZIP_PATH=dist/CaptionPanels_${normalizedVersion}_win.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        run: .\scripts\ci\resolve-release-env.ps1 -Version $env:RELEASE_VERSION -ExportToGitHubEnv
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
