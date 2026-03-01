@@ -4,6 +4,21 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Release version (vMAJOR.MINOR.PATCH), for example v2.4.1"
+        required: true
+        type: string
+      dry_run:
+        description: "If true, skip publishing to release repo"
+        required: true
+        default: true
+        type: boolean
+      release_nuget_sources:
+        description: "Optional NuGet source URLs for build.ps1 (-NuGetSource). Separators: comma, semicolon, newline."
+        required: false
+        type: string
 
 concurrency:
   group: release-package-${{ github.ref }}
@@ -20,6 +35,9 @@ jobs:
       RELEASE_REPO: ${{ secrets.RELEASE_REPO }}
       RELEASE_REPO_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
       RELEASE_NUGET_SOURCES: ${{ secrets.RELEASE_NUGET_SOURCES }}
+      RELEASE_NUGET_SOURCES_INPUT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_nuget_sources || '' }}
+      RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_version || github.ref_name }}
+      RELEASE_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' && 'true' || 'false' }}
     steps:
       - name: Checkout dev repo
         uses: actions/checkout@v4
@@ -29,16 +47,17 @@ jobs:
         run: .\scripts\ci\assert-dist-untracked.ps1
 
       - name: Validate release secrets
+        if: ${{ env.RELEASE_DRY_RUN != 'true' }}
         shell: pwsh
         run: .\scripts\ci\assert-release-secrets.ps1
 
       - name: Validate release tag version
         shell: pwsh
-        run: .\scripts\ci\assert-release-version.ps1 -Version $env:GITHUB_REF_NAME
+        run: .\scripts\ci\assert-release-version.ps1 -Version $env:RELEASE_VERSION
 
       - name: Validate release version alignment
         shell: pwsh
-        run: .\scripts\ci\assert-release-version-alignment.ps1 -Version $env:GITHUB_REF_NAME
+        run: .\scripts\ci\assert-release-version-alignment.ps1 -Version $env:RELEASE_VERSION
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -56,17 +75,34 @@ jobs:
           -BuildConfiguration Release
           -SkipAegp
           -SkipPackage
-          -NuGetSourcesPrimary "$env:RELEASE_NUGET_SOURCES"
+          -NuGetSourcesPrimary "$env:RELEASE_NUGET_SOURCES_INPUT"
+          -NuGetSourcesFallback "$env:RELEASE_NUGET_SOURCES"
 
       - name: Package plugin
         shell: pwsh
-        run: .\\scripts\\package_release.ps1 -Version $env:GITHUB_REF_NAME
+        run: .\\scripts\\package_release.ps1 -Version $env:RELEASE_VERSION
 
       - name: Verify release zip layout
         shell: pwsh
-        run: .\scripts\ci\assert-release-zip-layout.ps1 -Version $env:GITHUB_REF_NAME
+        run: .\scripts\ci\assert-release-zip-layout.ps1 -Version $env:RELEASE_VERSION
+
+      - name: Upload release zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CaptionPanels-release-${{ env.RELEASE_VERSION }}
+          path: dist/CaptionPanels_*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Dry-run mode summary
+        if: ${{ env.RELEASE_DRY_RUN == 'true' }}
+        shell: pwsh
+        run: |
+          Write-Host "Release dry-run mode is enabled."
+          Write-Host "Publish to release repo is skipped."
 
       - name: Checkout release repo
+        if: ${{ env.RELEASE_DRY_RUN != 'true' }}
         uses: actions/checkout@v4
         with:
           repository: ${{ env.RELEASE_REPO }}
@@ -74,5 +110,6 @@ jobs:
           path: release-repo
 
       - name: Publish to release repo
+        if: ${{ env.RELEASE_DRY_RUN != 'true' }}
         shell: pwsh
-        run: .\scripts\ci\publish-release-artifact.ps1 -Version $env:GITHUB_REF_NAME
+        run: .\scripts\ci\publish-release-artifact.ps1 -Version $env:RELEASE_VERSION

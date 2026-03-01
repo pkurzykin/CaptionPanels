@@ -84,13 +84,14 @@ Preflight-проверка окружения:
 - `scripts/package.ps1` использует lock-файл `dist/.package.lock`, чтобы блокировать параллельные упаковки одного и того же `dist`.
 - `scripts/package.ps1` копирует tools по per-tool каталогам (`word2json`, `transcribe_align`, `deploy`) и, при наличии publish-выхода, добавляет runtime `word2json` в `dist/CaptionPanels/tools/word2json/runtime/win-x64/self-contained`.
 - `scripts/package_release.ps1` теперь использует `scripts/package.ps1` как источник layout и архивирует именно `dist/CaptionPanels` в `dist/CaptionPanels_<ver>_win.zip`.
+- Release workflow поддерживает два режима запуска: `push tags (v*)` и `workflow_dispatch` (`release_version`, `dry_run`, optional `release_nuget_sources`).
 - Release workflow (`.github/workflows/release-package.yml`) использует `actions/setup-dotnet@v4` (`8.0.x`) и перед `package_release.ps1` выполняет `preflight.ps1 -Strict -SkipAegpChecks` и `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -SkipPackage`, чтобы гарантировать включение tools-runtime в release zip.
-- Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) через `scripts/ci/assert-release-secrets.ps1`.
+- Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) через `scripts/ci/assert-release-secrets.ps1` только в publish-режиме (в `dry_run` шаг публикации пропускается).
 - Release workflow валидирует release-tag по SemVer через `scripts/ci/assert-release-version.ps1` (ожидается `vMAJOR.MINOR.PATCH`).
 - Release workflow проверяет согласованность версии: tag должен совпадать с `UI_VERSION` из `cep_src/ui/js/app_core.js` (`scripts/ci/assert-release-version-alignment.ps1`).
 - Проверка структуры `dist/CaptionPanels` централизована в `scripts/ci/assert-dist-layout.ps1`, а проверка структуры release zip — в `scripts/ci/assert-release-zip-layout.ps1`.
 - Публикация zip и `sha256.txt` в release-repo централизована в `scripts/ci/publish-release-artifact.ps1` (staging/commit ограничены `releases/v<ver>`, скрипт fail-fast при сторонних изменениях вне целевого release-пути).
-- Для release workflow можно задать секрет `RELEASE_NUGET_SOURCES` (URL через `,`/`;`/newline); workflow пробрасывает его в env job и далее как повторяемые `-NuGetSource` в `build.ps1`.
+- Для release workflow можно задать секрет `RELEASE_NUGET_SOURCES` (URL через `,`/`;`/newline); `workflow_dispatch input release_nuget_sources` имеет приоритет над секретом и пробрасывается в `build.ps1` как повторяемые `-NuGetSource`.
 - Детальный контракт по tools-layout: `docs/dev/tools-layout.md`.
 
 Команда упаковки:

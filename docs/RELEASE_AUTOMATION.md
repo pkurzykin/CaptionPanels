@@ -23,12 +23,20 @@ This repo is the **private dev** source. Releases are published to a **public re
 
 ## How it works
 
-On `git push --tags` (e.g., `v2.1.0`), the workflow:
+The workflow supports two launch modes:
+
+1) Tag push (`on.push.tags`, for example `git push origin v2.4.1`)
+2) Manual dispatch (`workflow_dispatch`) with inputs:
+   - `release_version` (required, `vMAJOR.MINOR.PATCH`)
+   - `dry_run` (default `true`; when enabled, publish to release repo is skipped)
+   - `release_nuget_sources` (optional override for NuGet sources)
+
+In both modes, the packaging flow is the same:
 
 Guardrails:
 - `concurrency` per tag (`release-package-<ref>`)
 - `timeout-minutes: 60`
-- early validation of required secrets via `scripts/ci/assert-release-secrets.ps1`
+- early validation of required secrets via `scripts/ci/assert-release-secrets.ps1` (publish mode only; skipped in dry-run)
 - semantic version validation for release tag via `scripts/ci/assert-release-version.ps1` (`vMAJOR.MINOR.PATCH`)
 - release version alignment check via `scripts/ci/assert-release-version-alignment.ps1` (tag version must match `UI_VERSION` in `cep_src/ui/js/app_core.js`)
 - minimal workflow permissions (`contents: read`)
@@ -39,10 +47,15 @@ Guardrails:
 3) Runs `scripts/package_release.ps1` (internally runs `scripts/package.ps1`)
 4) Builds canonical layout in `dist/CaptionPanels`
 5) Creates `dist/CaptionPanels_<ver>_win.zip` from `dist/CaptionPanels`
-6) Verifies zip layout via `scripts/ci/assert-release-zip-layout.ps1 -Version $env:GITHUB_REF_NAME`
-7) Publishes the zip into the public release repo via `scripts/ci/publish-release-artifact.ps1 -Version $env:GITHUB_REF_NAME`
+6) Verifies zip layout via `scripts/ci/assert-release-zip-layout.ps1 -Version $env:RELEASE_VERSION`
+7) Uploads zip as workflow artifact (`CaptionPanels-release-<version>`)
+8) Publishes the zip into the public release repo via `scripts/ci/publish-release-artifact.ps1 -Version $env:RELEASE_VERSION` (publish mode only; skipped in dry-run)
    (target and commit scope: `releases/v<ver>/CaptionPanels_<ver>_win.zip` + `sha256.txt`)
    and fails fast if `release-repo` contains unrelated changes outside `releases/v<ver>`.
+
+Dry-run note:
+- `dry_run=true` validates release version/alignment, runs preflight, builds tools runtime, packages zip, verifies layout, and uploads artifact.
+- It does **not** checkout or modify the public release repo.
 
 Install note:
 - Release zip is the distributable artifact.
