@@ -19,6 +19,11 @@ on:
         description: "Optional NuGet source URLs for build.ps1 (-NuGetSource). Separators: comma, semicolon, newline."
         required: false
         type: string
+      check_nuget_connectivity:
+        description: "Enable preflight DNS/HTTPS checks for NuGet sources before build."
+        required: false
+        default: false
+        type: boolean
       confirm_publish:
         description: "Required only for manual publish (dry_run=false). Type exactly: PUBLISH"
         required: false
@@ -43,6 +48,7 @@ jobs:
       RELEASE_PUBLISH_CONFIRM: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.confirm_publish || '' }}
       RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_version || github.ref_name }}
       RELEASE_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' && 'true' || 'false' }}
+      RELEASE_CHECK_NUGET_CONNECTIVITY: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.check_nuget_connectivity == 'true' && 'true' || 'false' }}
     steps:
       - name: Checkout dev repo
         uses: actions/checkout@v4
@@ -132,7 +138,36 @@ jobs:
 
       - name: Preflight (strict, release packaging mode)
         shell: pwsh
-        run: .\scripts\preflight.ps1 -Strict -SkipAegpChecks
+        run: |
+          $preflightArgs = @(
+            "-Strict",
+            "-SkipAegpChecks"
+          )
+
+          if ($env:RELEASE_CHECK_NUGET_CONNECTIVITY -eq "true") {
+            $preflightArgs += "-CheckNuGetConnectivity"
+
+            $nugetSourcesRaw = @(
+              $env:RELEASE_NUGET_SOURCES_INPUT,
+              $env:RELEASE_NUGET_SOURCES
+            ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+            $resolvedNuGetSources = @()
+            foreach ($rawSourceSet in $nugetSourcesRaw) {
+              $resolvedNuGetSources += (
+                $rawSourceSet -split '[,;\r\n]' |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                ForEach-Object { $_.Trim() }
+              )
+            }
+            $resolvedNuGetSources = @($resolvedNuGetSources | Select-Object -Unique)
+
+            foreach ($source in $resolvedNuGetSources) {
+              $preflightArgs += @("-NuGetSource", $source)
+            }
+          }
+
+          .\scripts\preflight.ps1 @preflightArgs
 
       - name: Build tools runtime (Release, no AEGP/package)
         shell: pwsh

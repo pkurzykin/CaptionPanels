@@ -13,6 +13,11 @@ on:
         description: "Optional NuGet source URLs for build.ps1 (-NuGetSource). Separators: comma, semicolon, newline."
         required: false
         type: string
+      check_nuget_connectivity:
+        description: "Enable preflight DNS/HTTPS checks for NuGet sources before build."
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ci-package-${{ github.event.pull_request.number || github.ref }}
@@ -28,6 +33,7 @@ jobs:
     env:
       CI_NUGET_SOURCES_INPUT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ci_nuget_sources || '' }}
       CI_NUGET_SOURCES: ${{ vars.CI_NUGET_SOURCES }}
+      CI_CHECK_NUGET_CONNECTIVITY: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.check_nuget_connectivity == 'true' && 'true' || 'false' }}
 
     steps:
       - name: Checkout
@@ -44,7 +50,36 @@ jobs:
 
       - name: Preflight (strict, CI packaging mode)
         shell: pwsh
-        run: .\scripts\preflight.ps1 -Strict -SkipAegpChecks
+        run: |
+          $preflightArgs = @(
+            "-Strict",
+            "-SkipAegpChecks"
+          )
+
+          if ($env:CI_CHECK_NUGET_CONNECTIVITY -eq "true") {
+            $preflightArgs += "-CheckNuGetConnectivity"
+
+            $nugetSourcesRaw = @(
+              $env:CI_NUGET_SOURCES_INPUT,
+              $env:CI_NUGET_SOURCES
+            ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+
+            $resolvedNuGetSources = @()
+            foreach ($rawSourceSet in $nugetSourcesRaw) {
+              $resolvedNuGetSources += (
+                $rawSourceSet -split '[,;\r\n]' |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+                ForEach-Object { $_.Trim() }
+              )
+            }
+            $resolvedNuGetSources = @($resolvedNuGetSources | Select-Object -Unique)
+
+            foreach ($source in $resolvedNuGetSources) {
+              $preflightArgs += @("-NuGetSource", $source)
+            }
+          }
+
+          .\scripts\preflight.ps1 @preflightArgs
 
       - name: Verify release env resolver
         shell: pwsh

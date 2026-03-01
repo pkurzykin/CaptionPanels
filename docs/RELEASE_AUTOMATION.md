@@ -72,6 +72,7 @@ The workflow supports two launch modes:
    - `release_version` (required, `vMAJOR.MINOR.PATCH`)
    - `dry_run` (default `true`; when enabled, publish to release repo is skipped)
    - `release_nuget_sources` (optional override for NuGet sources)
+   - `check_nuget_connectivity` (optional, default `false`; adds preflight DNS/HTTPS checks for resolved NuGet sources)
    - `confirm_publish` (required only when `dry_run=false`; must be `PUBLISH`)
 
 In both modes, the packaging flow is the same:
@@ -90,6 +91,7 @@ Guardrails:
 - policy check via `scripts/ci/assert-dist-untracked.ps1` (`dist/` must be untracked)
 
 1) Runs preflight: `scripts/preflight.ps1 -Strict -SkipAegpChecks`
+   - if `check_nuget_connectivity=true`, preflight additionally runs NuGet DNS/HTTPS checks (`-CheckNuGetConnectivity`) for resolved sources.
 2) Builds tools runtime via `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -SkipPackage` (optionally with `-NuGetSource` values from `RELEASE_NUGET_SOURCES`)
 3) Runs `scripts/package_release.ps1` (internally runs `scripts/package.ps1`)
 4) Builds canonical layout in `dist/CaptionPanels`
