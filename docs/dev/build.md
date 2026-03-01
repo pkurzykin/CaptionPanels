@@ -113,6 +113,7 @@ Preflight-проверка окружения:
 
 Команда упаковки:
 - `pwsh -NoProfile -File .\scripts\package.ps1`
+- `pwsh -NoProfile -File .\scripts\verify-install-payload.ps1` (валидация install payload, включая обязательный `plugin/CaptionPanels.aex`)
 
 Результирующая структура:
 - `dist/CaptionPanels/plugin/`

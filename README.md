@@ -35,6 +35,7 @@ dist/           build output (не коммитится)
 
 Рекомендуемый запуск:
 - `pwsh -NoProfile -File .\scripts\build.ps1`
+- Проверка install payload (после сборки/упаковки): `pwsh -NoProfile -File .\scripts\verify-install-payload.ps1`
 
 Скрипт:
 - использует `Release` по умолчанию;
