@@ -75,6 +75,34 @@ Preflight-проверка окружения:
 3. Собери `Release | x64`.
 4. Запусти `pwsh -NoProfile -File .\scripts\package.ps1`.
 
+## Fast local plugin sync (development)
+
+Для быстрого цикла правок UI/JSX без ручного копирования используй:
+- `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1`
+
+Что синкается в `...\Support Files\Plug-ins\CaptionPanels\`:
+- `cep_src/ui -> client`
+- `cep_src/jsx -> host`
+- `cep_src/host/public_api.js -> host/public_api.js`
+- `cep_src/shared/config.json -> config.json`
+- `cep_src/shared/speakers.json -> speakers.json`
+
+Поведение по `.aex`:
+- по умолчанию `.aex` не трогается (существующий файл в Plug-ins сохраняется);
+- чтобы синкать `.aex`, добавь `-SyncAex` (источник: `AE_PLUGIN_BUILD_DIR`/`C:\AE\PluginBuild`).
+
+Полезные режимы:
+- watch-режим (автосинк после изменений):
+  - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -Watch`
+- синк из `dist/CaptionPanels/plugin` вместо source-tree:
+  - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -Mode Dist`
+- явный target path:
+  - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\CaptionPanels"`
+
+Важно:
+- если нет прав записи в `Program Files`, запускай elevated PowerShell или используй junction/symlink на writable-путь;
+- если After Effects держит lock на файлах, закрой AE и повтори синк.
+
 ## Packaging contract
 
 - Инсталляционный источник формируется в `dist/CaptionPanels`.
