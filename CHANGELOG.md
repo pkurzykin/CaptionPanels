@@ -10,6 +10,7 @@
 - Docs: добавлена структурированная иерархия `docs/user`, `docs/dev`, `docs/spec`; добавлены базовые dev-документы (`architecture`, `build`, `deployment`) и обновлены ссылки из `README`.
 - Dev workflow: добавлен `scripts/dev/sync-plugin.ps1` для быстрого синка `client/host/public_api/config/speakers` в установленный AE Plug-ins (`CaptionPanels`) с watch-режимом и опциональным `-SyncAex`.
 - Dev permissions flow: добавлены `scripts/dev/register-elevated-plugin-sync-task.ps1`, `scripts/dev/apply-staged-plugin-sync.ps1` и `scripts/dev/run-elevated-plugin-sync.ps1` для записи в `Program Files` через staged sync + Scheduled Task (`RunLevel Highest`) без постоянного admin-shell.
+- Dev launcher: добавлен `scripts/dev/start-plugin-sync-watch.cmd` для запуска watch-синка в один двойной клик.
 - Docs audit: README и ключевые dev/deployment документы выровнены под контракт `dist/CaptionPanels -> AE Plug-ins + C:\CaptionPanelsLocal`; удалены устаревшие инструкции по прямому деплою из промежуточных build-папок.
 - Repository structure: `legacy_cep` перемещен в `archive/legacy_cep` через `git mv`; добавлен `archive/README.md` и обновлены обзорные ссылки документации.
 - Build packaging: добавлены `scripts/paths.ps1` и `scripts/package.ps1`; внедрен reproducible layout `dist/CaptionPanels` (`plugin/`, `tools/`, `config.default.json`, `BUILDINFO.txt`) с идемпотентной упаковкой.
