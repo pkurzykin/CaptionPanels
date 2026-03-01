@@ -28,6 +28,10 @@ Note:
 Preflight-проверка окружения:
 - `pwsh -NoProfile -File .\scripts\preflight.ps1`
 - Для CI packaging (строгий режим без AEGP-gate): `pwsh -NoProfile -File .\scripts\preflight.ps1 -Strict -SkipAegpChecks`
+- Опционально для сетевой диагностики NuGet (локально/на runner):
+  - `pwsh -NoProfile -File .\scripts\preflight.ps1 -CheckNuGetConnectivity`
+  - `pwsh -NoProfile -File .\scripts\preflight.ps1 -CheckNuGetConnectivity -NuGetSource https://api.nuget.org/v3/index.json`
+  - `pwsh -NoProfile -File .\scripts\preflight.ps1 -CheckNuGetConnectivity -NuGetConfigFile .\dist\_build\tools\NuGet.Config`
 
 Рекомендуемый one-button запуск:
 - `pwsh -NoProfile -File .\scripts\build.ps1`
@@ -43,6 +47,7 @@ Preflight-проверка окружения:
 `scripts/preflight.ps1` проверяет:
 - `pwsh`/`dotnet`/`msbuild` наличие,
 - чтение NuGet sources,
+- (опционально) DNS/HTTPS доступность NuGet sources (`-CheckNuGetConnectivity`),
 - базовые env-переменные для AEGP,
 - наличие ключевых build/package скриптов,
 - доступ на запись в `dist/`.
