@@ -58,6 +58,7 @@
 - Release manual publish safety: в `release-package.yml` добавлен input `confirm_publish`; при `workflow_dispatch` и `dry_run=false` workflow требует явного подтверждения `PUBLISH`.
 - Release publish AEX guard: в `release-package.yml` добавлена ранняя проверка `scripts/ci/assert-release-aex-presence.ps1` (только publish-режим), чтобы падать до упаковки при отсутствии собранного `.aex`.
 - Release manual publish branch guard: при `workflow_dispatch` и `dry_run=false` publish теперь разрешен только из ветки `main`.
+- Release publish main-lineage guard: добавлена проверка `scripts/ci/assert-release-commit-on-main.ps1` (publish-only), чтобы релизный commit/tag был достижим из `origin/main`.
 - Word2Json dependency: в `tools/word2json/src/Word2Json/Word2Json.csproj` добавлен `Newtonsoft.Json` (`13.0.4`) как явная зависимость утилиты.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.

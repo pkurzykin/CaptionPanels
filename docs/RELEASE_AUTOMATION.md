@@ -75,6 +75,7 @@ Guardrails:
 - `timeout-minutes: 60`
 - early validation of required secrets via `scripts/ci/assert-release-secrets.ps1` (publish mode only; skipped in dry-run)
 - early validation of `.aex` presence via `scripts/ci/assert-release-aex-presence.ps1` (publish mode only; skipped in dry-run)
+- release commit lineage check via `scripts/ci/assert-release-commit-on-main.ps1` (publish mode only; commit/tag must be in `origin/main` lineage)
 - semantic version validation for release tag via `scripts/ci/assert-release-version.ps1` (`vMAJOR.MINOR.PATCH`)
 - release version alignment check via `scripts/ci/assert-release-version-alignment.ps1` (tag version must match `UI_VERSION` in `cep_src/ui/js/app_core.js`)
 - minimal workflow permissions (`contents: read`)

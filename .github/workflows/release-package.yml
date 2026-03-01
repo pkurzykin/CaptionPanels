@@ -85,6 +85,11 @@ jobs:
         shell: pwsh
         run: .\scripts\ci\assert-release-aex-presence.ps1
 
+      - name: Validate release commit lineage (main)
+        if: ${{ env.RELEASE_DRY_RUN != 'true' }}
+        shell: pwsh
+        run: .\scripts\ci\assert-release-commit-on-main.ps1 -MainBranch main
+
       - name: Resolve release env
         shell: pwsh
         run: .\scripts\ci\resolve-release-env.ps1 -Version $env:RELEASE_VERSION -ExportToGitHubEnv
