@@ -56,6 +56,7 @@ Use `Release publish` when you are ready to **ship a real release**:
 Quick decision rule:
 - `Not sure / just verifying`: run `dry-run`
 - `Ready to publish for users`: run `publish`
+- Manual publish safety: set `confirm_publish=PUBLISH`
 
 The workflow supports two launch modes:
 
@@ -64,6 +65,7 @@ The workflow supports two launch modes:
    - `release_version` (required, `vMAJOR.MINOR.PATCH`)
    - `dry_run` (default `true`; when enabled, publish to release repo is skipped)
    - `release_nuget_sources` (optional override for NuGet sources)
+   - `confirm_publish` (required only when `dry_run=false`; must be `PUBLISH`)
 
 In both modes, the packaging flow is the same:
 
