@@ -57,6 +57,7 @@ Dry-run note:
 - `dry_run=true` validates release version/alignment, runs preflight, builds tools runtime, packages zip, verifies layout, and uploads artifact.
 - It does **not** checkout or modify the public release repo.
 - `dry_run=true` runs on `windows-latest` and packages with `-AllowMissingAex`, so it does not require a prebuilt plugin on a self-hosted runner.
+- In dry-run verification, `assert-release-zip-layout.ps1` is executed with `-AllowMissingAex`, so the zip can be validated without `plugin/CaptionPanels.aex`.
 
 Install note:
 - Release zip is the distributable artifact.

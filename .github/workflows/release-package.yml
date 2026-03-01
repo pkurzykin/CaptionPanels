@@ -89,7 +89,12 @@ jobs:
 
       - name: Verify release zip layout
         shell: pwsh
-        run: .\scripts\ci\assert-release-zip-layout.ps1 -Version $env:RELEASE_VERSION
+        run: |
+          if ($env:RELEASE_DRY_RUN -eq "true") {
+            .\scripts\ci\assert-release-zip-layout.ps1 -Version $env:RELEASE_VERSION -AllowMissingAex
+          } else {
+            .\scripts\ci\assert-release-zip-layout.ps1 -Version $env:RELEASE_VERSION
+          }
 
       - name: Upload release zip artifact
         uses: actions/upload-artifact@v4

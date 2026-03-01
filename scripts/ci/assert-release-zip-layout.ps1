@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Version,
-    [string]$DistRoot = "dist"
+    [string]$DistRoot = "dist",
+    [switch]$AllowMissingAex
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,7 +35,6 @@ try {
     Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force
 
     $requiredRelativePaths = @(
-        "plugin/CaptionPanels.aex",
         "plugin/client/index.html",
         "plugin/host/index.jsx",
         "plugin/config.json",
@@ -47,6 +47,10 @@ try {
         "config.default.json",
         "BUILDINFO.txt"
     )
+
+    if (-not $AllowMissingAex) {
+        $requiredRelativePaths = @("plugin/CaptionPanels.aex") + $requiredRelativePaths
+    }
 
     foreach ($relativePath in $requiredRelativePaths) {
         $fullPath = Join-Path $extractRoot $relativePath
