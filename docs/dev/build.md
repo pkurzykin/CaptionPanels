@@ -96,6 +96,7 @@ Preflight-проверка окружения:
 - Перед `actions/setup-dotnet@v4` release workflow выставляет `DOTNET_INSTALL_DIR` в writable temp-каталог runner (`$env:RUNNER_TEMP\dotnet-sdk`), чтобы не требовать прав записи в `C:\Program Files\dotnet` на self-hosted машинах.
 - Release workflow сначала проверяет наличие preinstalled `.NET 8 SDK`; если он найден на runner, шаг `setup-dotnet` пропускается, иначе workflow устанавливает `.NET 8` через `actions/setup-dotnet@v4`.
 - Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) через `scripts/ci/assert-release-secrets.ps1` только в publish-режиме (в `dry_run` шаг публикации пропускается).
+- Release workflow выполняет раннюю проверку готовности release-репозитория через `scripts/ci/assert-release-repo-ready.ps1` (доступность `RELEASE_REPO` и наличие default branch).
 - Release workflow выполняет раннюю проверку наличия собранного `.aex` через `scripts/ci/assert-release-aex-presence.ps1` только в publish-режиме.
 - Release workflow проверяет, что публикуемый commit/tag принадлежит lineage `main`, через `scripts/ci/assert-release-commit-on-main.ps1` (publish-only).
 - `assert-release-commit-on-main.ps1` учитывает shallow checkout: при необходимости выполняет `git fetch --unshallow` перед финальной lineage-проверкой.

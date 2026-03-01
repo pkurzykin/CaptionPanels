@@ -56,6 +56,11 @@ jobs:
         shell: pwsh
         run: .\scripts\ci\assert-release-secrets.ps1
 
+      - name: Validate release repository readiness
+        if: ${{ env.RELEASE_DRY_RUN != 'true' }}
+        shell: pwsh
+        run: .\scripts\ci\assert-release-repo-ready.ps1
+
       - name: Validate release tag version
         shell: pwsh
         run: .\scripts\ci\assert-release-version.ps1 -Version $env:RELEASE_VERSION

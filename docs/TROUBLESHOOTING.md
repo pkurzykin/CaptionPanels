@@ -243,10 +243,14 @@
 
 Частые причины:
 - не заданы/некорректны секреты `RELEASE_REPO` или `RELEASE_REPO_TOKEN`;
+- `RELEASE_REPO` указывает на несуществующий репозиторий или токен не имеет доступа;
+- release-repo не инициализирован (нет default branch, например `main`);
 - в release-repo есть посторонние незакоммиченные изменения вне `releases/vX.Y.Z`.
 
 Что делать:
 - проверь secrets в GitHub repo settings;
+- проверь, что release-repo существует и доступен токену;
+- если репозиторий новый, создай initial commit и default branch (`main`);
 - проверь чистоту release-repo рабочего дерева на runner;
 - сначала запусти `dry_run=true`, затем повтори publish.
 

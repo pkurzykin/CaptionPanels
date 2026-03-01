@@ -5,6 +5,7 @@ This repo is the **private dev** source. Releases are published to a **public re
 ## One‑time setup
 
 1) **Create a public repo** (example): `pkurzykin/CaptionPanels-Release`.
+   - Ensure the repo has an initialized default branch (for example `main`).
 2) **Create a PAT** (GitHub → Settings → Developer settings → Personal access tokens):
    - Scope: `repo` (write access to the release repo).
 3) **Add secrets** to the dev repo:
@@ -78,6 +79,7 @@ Guardrails:
 - `concurrency` per tag (`release-package-<ref>`)
 - `timeout-minutes: 60`
 - early validation of required secrets via `scripts/ci/assert-release-secrets.ps1` (publish mode only; skipped in dry-run)
+- early validation of release-repo readiness via `scripts/ci/assert-release-repo-ready.ps1` (publish mode only; verifies repo access and default branch)
 - early validation of `.aex` presence via `scripts/ci/assert-release-aex-presence.ps1` (publish mode only; skipped in dry-run)
 - release commit lineage check via `scripts/ci/assert-release-commit-on-main.ps1` (publish mode only; commit/tag must be in `origin/main` lineage)
   - guard supports shallow checkouts: if history is shallow, script unshallows repo before final lineage check
