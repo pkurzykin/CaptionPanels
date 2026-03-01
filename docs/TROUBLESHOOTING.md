@@ -269,7 +269,13 @@
    - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
 3. Для постоянной работы:
    - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -Watch -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+   - рекомендуемый launcher (особенно при запуске из сетевого/UNC пути):
+     - `pwsh -NoProfile -File .\scripts\dev\start-plugin-sync-watch.ps1`
    - либо двойным кликом: `scripts\dev\start-plugin-sync-watch.cmd`
+
+Примечание:
+- предупреждение `CMD.EXE не поддерживает пути UNC` при запуске `.cmd` из `\\server\share\...` не критично;
+- для чистого запуска без этого предупреждения используй PowerShell launcher выше.
 
 Если нужно вручную запустить только elevated-копирование:
 - `pwsh -NoProfile -File .\scripts\dev\run-elevated-plugin-sync.ps1 -TaskName "CaptionPanels Apply Plugin Sync" -Wait`
