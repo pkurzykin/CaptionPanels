@@ -120,6 +120,17 @@ Preflight-проверка окружения:
 - `dist/CaptionPanels/config.default.json`
 - `dist/CaptionPanels/BUILDINFO.txt`
 
+## Dist hygiene
+
+`dist/` может накапливать временные каталоги smoke-прогонов и служебные файлы.
+
+Быстрая очистка:
+- `pwsh -NoProfile -File .\scripts\clean-dist.ps1`
+
+Опции:
+- `-RemoveBuildCache` — удалить `dist/_build` (кэши `dotnet`/NuGet).
+- `-RemoveArchives` — удалить `dist/CaptionPanels_*_win.zip`.
+
 ## CI status
 
 - CI packaging подключен по отдельному запросу и покрывает проверку packaging-контракта.
