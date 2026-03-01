@@ -20,11 +20,7 @@ echo [INFO] Repo root: %CD%
 echo [INFO] Press Ctrl+C to stop.
 echo.
 
-"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File ".\scripts\dev\sync-plugin.ps1" ^
-  -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" ^
-  -Watch ^
-  -PostSyncTaskName "CaptionPanels Apply Plugin Sync" ^
-  -WaitForPostSyncTask
+"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File ".\scripts\dev\start-plugin-sync-watch.ps1"
 
 set "EXIT_CODE=%ERRORLEVEL%"
 popd
