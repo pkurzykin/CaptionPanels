@@ -103,6 +103,25 @@ Preflight-проверка окружения:
 - если нет прав записи в `Program Files`, запускай elevated PowerShell или используй junction/symlink на writable-путь;
 - если After Effects держит lock на файлах, закрой AE и повтори синк.
 
+### Program Files без постоянного админ-режима
+
+Рекомендуемый вариант: staged sync + scheduled task с `RunLevel Highest`.
+
+1) Один раз от имени администратора зарегистрируй задачу:
+- `pwsh -NoProfile -File .\scripts\dev\register-elevated-plugin-sync-task.ps1`
+
+2) В обычной (не admin) сессии запускай синк в staging + автоприменение в `Program Files`:
+- `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+
+3) Для постоянной разработки включи watch:
+- `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -Watch -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+
+Дополнительно:
+- отдельный ручной запуск только elevated-задачи:
+  - `pwsh -NoProfile -File .\scripts\dev\run-elevated-plugin-sync.ps1 -TaskName "CaptionPanels Apply Plugin Sync" -Wait`
+- сама elevated-задача применяет staging через:
+  - `scripts/dev/apply-staged-plugin-sync.ps1`
+
 ## Packaging contract
 
 - Инсталляционный источник формируется в `dist/CaptionPanels`.
