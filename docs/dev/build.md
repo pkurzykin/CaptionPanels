@@ -95,6 +95,7 @@ Preflight-проверка окружения:
 - Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) через `scripts/ci/assert-release-secrets.ps1` только в publish-режиме (в `dry_run` шаг публикации пропускается).
 - Release workflow выполняет раннюю проверку наличия собранного `.aex` через `scripts/ci/assert-release-aex-presence.ps1` только в publish-режиме.
 - Release workflow проверяет, что публикуемый commit/tag принадлежит lineage `main`, через `scripts/ci/assert-release-commit-on-main.ps1` (publish-only).
+- `assert-release-commit-on-main.ps1` учитывает shallow checkout: при необходимости выполняет `git fetch --unshallow` перед финальной lineage-проверкой.
 - В `dry_run` release workflow запускается на `windows-latest` (без self-hosted runner) и вызывает `scripts/package_release.ps1 -AllowMissingAex`.
 - В `dry_run` проверка release zip (`scripts/ci/assert-release-zip-layout.ps1`) выполняется с `-AllowMissingAex`.
 - Upload release artifact использует вычисленный детерминированный путь (`dist/CaptionPanels_<normalized-version>_win.zip`) через helper `scripts/ci/resolve-release-env.ps1` вместо wildcard.

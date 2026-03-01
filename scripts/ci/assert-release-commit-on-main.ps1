@@ -33,8 +33,32 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 & $gitCmd.Source merge-base --is-ancestor $Commitish $mainRef
-if ($LASTEXITCODE -ne 0) {
-    throw ("Release commit '{0}' is not reachable from '{1}'. Publish is allowed only for commits in main lineage." -f $Commitish, $mainRef)
+$lineageExitCode = $LASTEXITCODE
+
+if ($lineageExitCode -ne 0) {
+    $isShallowOutput = (& $gitCmd.Source rev-parse --is-shallow-repository).Trim().ToLowerInvariant()
+    $isShallow = $isShallowOutput -eq "true"
+
+    if ($isShallow) {
+        Write-Warning "Initial lineage check failed in shallow repository. Fetching full history and retrying..."
+
+        & $gitCmd.Source fetch --unshallow origin
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to unshallow repository for lineage validation."
+        }
+
+        & $gitCmd.Source fetch origin $MainBranch --prune
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to refresh '$mainRef' after unshallow."
+        }
+
+        & $gitCmd.Source merge-base --is-ancestor $Commitish $mainRef
+        $lineageExitCode = $LASTEXITCODE
+    }
+
+    if ($lineageExitCode -ne 0) {
+        throw ("Release commit '{0}' is not reachable from '{1}'. Publish is allowed only for commits in main lineage." -f $Commitish, $mainRef)
+    }
 }
 
 Write-Host ("release commit lineage: PASS ({0} in {1})" -f $Commitish, $mainRef)
