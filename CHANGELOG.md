@@ -56,6 +56,7 @@
 - Docs release modes: в `docs/RELEASE_AUTOMATION.md` и `docs/dev/build.md` добавлено простое разделение `Release dry-run` (репетиция без публикации) и `Release publish` (реальная публикация).
 - Docs self-hosted runner: добавлено простое объяснение, что такое `self-hosted runner`, зачем он нужен для publish-режима и чем отличается от GitHub-hosted runner.
 - Release manual publish safety: в `release-package.yml` добавлен input `confirm_publish`; при `workflow_dispatch` и `dry_run=false` workflow требует явного подтверждения `PUBLISH`.
+- Release publish AEX guard: в `release-package.yml` добавлена ранняя проверка `scripts/ci/assert-release-aex-presence.ps1` (только publish-режим), чтобы падать до упаковки при отсутствии собранного `.aex`.
 - Word2Json dependency: в `tools/word2json/src/Word2Json/Word2Json.csproj` добавлен `Newtonsoft.Json` (`13.0.4`) как явная зависимость утилиты.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.

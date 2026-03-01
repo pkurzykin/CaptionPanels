@@ -72,6 +72,11 @@ jobs:
             throw "Manual publish requires explicit confirmation: set input confirm_publish=PUBLISH"
           }
 
+      - name: Validate release AEX presence
+        if: ${{ env.RELEASE_DRY_RUN != 'true' }}
+        shell: pwsh
+        run: .\scripts\ci\assert-release-aex-presence.ps1
+
       - name: Resolve release env
         shell: pwsh
         run: .\scripts\ci\resolve-release-env.ps1 -Version $env:RELEASE_VERSION -ExportToGitHubEnv
