@@ -9,6 +9,7 @@
 1. Подготовь инсталляционный payload:
    - full one-button: `pwsh -NoProfile -File .\scripts\build.ps1`
    - packaging-only: `pwsh -NoProfile -File .\scripts\package.ps1`
+   - проверка готовности к ручной установке: `pwsh -NoProfile -File .\scripts\verify-install-payload.ps1`
 2. Для установки в After Effects скопируй содержимое `dist/CaptionPanels/plugin/*` в:
    - `C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\CaptionPanels\`
    - Важно: в целевой папке обязательно должен быть `CaptionPanels.aex` (без `.aex` плагин не загрузится).
