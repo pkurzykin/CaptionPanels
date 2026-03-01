@@ -94,6 +94,13 @@ jobs:
         shell: pwsh
         run: .\scripts\ci\resolve-release-env.ps1 -Version $env:RELEASE_VERSION -ExportToGitHubEnv
 
+      - name: Configure .NET install dir (runner-writable)
+        shell: pwsh
+        run: |
+          $dotnetInstallDir = Join-Path $env:RUNNER_TEMP "dotnet-sdk"
+          New-Item -ItemType Directory -Path $dotnetInstallDir -Force | Out-Null
+          "DOTNET_INSTALL_DIR=$dotnetInstallDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:

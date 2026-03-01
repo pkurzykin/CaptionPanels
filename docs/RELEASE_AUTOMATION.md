@@ -17,6 +17,7 @@ This repo is the **private dev** source. Releases are published to a **public re
    - Must have AE SDK, Visual Studio build, and access to the built plugin.
    - Runner labels: `self-hosted`, `windows`.
    - .NET SDK is installed in workflow via `actions/setup-dotnet@v4` (`8.0.x`).
+   - Workflow sets `DOTNET_INSTALL_DIR` to a runner-writable temp path before `setup-dotnet`, so publish does not require write access to `C:\Program Files\dotnet`.
    - Ensure `CaptionPanels.aex` exists at:
      `C:\AE\PluginBuild\AEGP\CaptionPanels\CaptionPanels.aex`
      (or set `AE_PLUGIN_BUILD_DIR` env var on the runner).
