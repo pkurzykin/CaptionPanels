@@ -106,6 +106,7 @@ Preflight-проверка окружения:
 - Release workflow проверяет согласованность версии: tag должен совпадать с `UI_VERSION` из `cep_src/ui/js/app_core.js` (`scripts/ci/assert-release-version-alignment.ps1`).
 - Проверка структуры `dist/CaptionPanels` централизована в `scripts/ci/assert-dist-layout.ps1`, а проверка структуры release zip — в `scripts/ci/assert-release-zip-layout.ps1`.
 - Публикация zip и `sha256.txt` в release-repo централизована в `scripts/ci/publish-release-artifact.ps1` (staging/commit ограничены `releases/v<ver>`, скрипт fail-fast при сторонних изменениях вне целевого release-пути).
+- `publish-release-artifact.ps1` резолвит абсолютный путь к release zip до перехода в `release-repo`, чтобы исключить ошибки относительных путей при копировании артефакта.
 - Для release workflow можно задать секрет `RELEASE_NUGET_SOURCES` (URL через `,`/`;`/newline); `workflow_dispatch input release_nuget_sources` имеет приоритет над секретом и пробрасывается в `build.ps1` как повторяемые `-NuGetSource`.
 - Детальный контракт по tools-layout: `docs/dev/tools-layout.md`.
 

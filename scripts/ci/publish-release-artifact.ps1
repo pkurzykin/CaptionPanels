@@ -22,23 +22,25 @@ if ([string]::IsNullOrWhiteSpace($normalizedVersion)) {
 }
 
 $zipFileName = "{0}_{1}_win.zip" -f $PluginName, $normalizedVersion
-$sourceZip = Join-Path $DistRoot $zipFileName
-if (-not (Test-Path -LiteralPath $sourceZip -PathType Leaf)) {
-    throw "Missing release artifact: $sourceZip"
+$sourceZipRelative = Join-Path $DistRoot $zipFileName
+if (-not (Test-Path -LiteralPath $sourceZipRelative -PathType Leaf)) {
+    throw "Missing release artifact: $sourceZipRelative"
 }
+$sourceZip = (Resolve-Path -LiteralPath $sourceZipRelative).Path
 
 if (-not (Test-Path -LiteralPath $ReleaseRepoPath -PathType Container)) {
     throw "Release repository path not found: $ReleaseRepoPath"
 }
+$resolvedReleaseRepoPath = (Resolve-Path -LiteralPath $ReleaseRepoPath).Path
 
 $releaseRelativeDir = Join-Path "releases" ("v{0}" -f $normalizedVersion)
 $releaseRelativeDir = $releaseRelativeDir -replace "\\", "/"
 
-Push-Location $ReleaseRepoPath
+Push-Location $resolvedReleaseRepoPath
 try {
     $insideWorkTree = (git rev-parse --is-inside-work-tree).Trim()
     if ($LASTEXITCODE -ne 0 -or $insideWorkTree -ne "true") {
-        throw "Release repository path is not a git working tree: $ReleaseRepoPath"
+        throw "Release repository path is not a git working tree: $resolvedReleaseRepoPath"
     }
 
     $statusLines = @(git status --porcelain)
