@@ -22,43 +22,72 @@ if ($null -eq $gitCmd) {
 
 $mainRef = "origin/$MainBranch"
 
-& $gitCmd.Source fetch origin $MainBranch --depth=1
-if ($LASTEXITCODE -ne 0) {
-    throw "Failed to fetch '$mainRef' for lineage validation."
+function Invoke-GitStrict {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Args,
+        [Parameter(Mandatory = $true)]
+        [string]$ErrorMessage
+    )
+
+    $output = & $gitCmd.Source @Args 2>&1
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        $cmdText = "git " + ($Args -join " ")
+        $details = ($output | Out-String).Trim()
+        if ([string]::IsNullOrWhiteSpace($details)) {
+            $details = "<no output>"
+        }
+        throw ("{0}`nCommand: {1}`nExitCode: {2}`nOutput: {3}" -f $ErrorMessage, $cmdText, $exitCode, $details)
+    }
+
+    return $output
 }
 
-& $gitCmd.Source rev-parse --verify $Commitish | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    throw "Commitish '$Commitish' is not resolvable."
+function Test-IsAncestor {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Ancestor,
+        [Parameter(Mandatory = $true)]
+        [string]$Descendant
+    )
+
+    & $gitCmd.Source merge-base --is-ancestor $Ancestor $Descendant
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -eq 0) {
+        return $true
+    }
+    if ($exitCode -eq 1) {
+        return $false
+    }
+
+    throw ("Failed to evaluate ancestry via merge-base (exit code {0}) for '{1}' vs '{2}'." -f $exitCode, $Ancestor, $Descendant)
 }
 
-& $gitCmd.Source merge-base --is-ancestor $Commitish $mainRef
-$lineageExitCode = $LASTEXITCODE
+Invoke-GitStrict -Args @("fetch", "origin", $MainBranch, "--depth=1") -ErrorMessage ("Failed to fetch '{0}' for lineage validation." -f $mainRef) | Out-Null
 
-if ($lineageExitCode -ne 0) {
+$resolvedCommit = (Invoke-GitStrict -Args @("rev-parse", "--verify", $Commitish) -ErrorMessage ("Commitish '{0}' is not resolvable." -f $Commitish) | Select-Object -Last 1).Trim()
+$resolvedMainRef = (Invoke-GitStrict -Args @("rev-parse", "--verify", $mainRef) -ErrorMessage ("Main ref '{0}' is not resolvable after fetch." -f $mainRef) | Select-Object -Last 1).Trim()
+
+$isInLineage = Test-IsAncestor -Ancestor $resolvedCommit -Descendant $resolvedMainRef
+
+if (-not $isInLineage) {
     $isShallowOutput = (& $gitCmd.Source rev-parse --is-shallow-repository).Trim().ToLowerInvariant()
     $isShallow = $isShallowOutput -eq "true"
 
     if ($isShallow) {
-        Write-Warning "Initial lineage check failed in shallow repository. Fetching full history and retrying..."
+        Write-Warning ("Initial lineage check failed for commit {0}. Repository is shallow; fetching full history and retrying..." -f $resolvedCommit)
 
-        & $gitCmd.Source fetch --unshallow origin
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to unshallow repository for lineage validation."
-        }
+        Invoke-GitStrict -Args @("fetch", "--unshallow", "origin") -ErrorMessage "Failed to unshallow repository for lineage validation." | Out-Null
+        Invoke-GitStrict -Args @("fetch", "origin", $MainBranch, "--prune") -ErrorMessage ("Failed to refresh '{0}' after unshallow." -f $mainRef) | Out-Null
 
-        & $gitCmd.Source fetch origin $MainBranch --prune
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to refresh '$mainRef' after unshallow."
-        }
-
-        & $gitCmd.Source merge-base --is-ancestor $Commitish $mainRef
-        $lineageExitCode = $LASTEXITCODE
+        $resolvedMainRef = (Invoke-GitStrict -Args @("rev-parse", "--verify", $mainRef) -ErrorMessage ("Main ref '{0}' is not resolvable after unshallow fetch." -f $mainRef) | Select-Object -Last 1).Trim()
+        $isInLineage = Test-IsAncestor -Ancestor $resolvedCommit -Descendant $resolvedMainRef
     }
 
-    if ($lineageExitCode -ne 0) {
-        throw ("Release commit '{0}' is not reachable from '{1}'. Publish is allowed only for commits in main lineage." -f $Commitish, $mainRef)
+    if (-not $isInLineage) {
+        throw ("Release commit is outside main lineage. Commitish='{0}' (resolved={1}), MainRef='{2}' (resolved={3}). Publish is allowed only for commits in main lineage." -f $Commitish, $resolvedCommit, $mainRef, $resolvedMainRef)
     }
 }
 
-Write-Host ("release commit lineage: PASS ({0} in {1})" -f $Commitish, $mainRef)
+Write-Host ("release commit lineage: PASS (commitish={0}, resolved={1}, main={2}, mainResolved={3})" -f $Commitish, $resolvedCommit, $mainRef, $resolvedMainRef)

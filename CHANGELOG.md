@@ -62,6 +62,7 @@
 - Release manual publish branch guard: при `workflow_dispatch` и `dry_run=false` publish теперь разрешен только из ветки `main`.
 - Release publish main-lineage guard: добавлена проверка `scripts/ci/assert-release-commit-on-main.ps1` (publish-only), чтобы релизный commit/tag был достижим из `origin/main`.
 - Release lineage guard hardening: `assert-release-commit-on-main.ps1` теперь корректно обрабатывает shallow checkout (делает `git fetch --unshallow` перед повторной lineage-проверкой).
+- Release lineage diagnostics: `assert-release-commit-on-main.ps1` теперь выводит расширенную диагностику (`commitish/resolved SHA/main ref`) и более подробные ошибки по git-командам, чтобы быстрее разбирать причины падения publish-guard.
 - Word2Json dependency: в `tools/word2json/src/Word2Json/Word2Json.csproj` добавлен `Newtonsoft.Json` (`13.0.4`) как явная зависимость утилиты.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
