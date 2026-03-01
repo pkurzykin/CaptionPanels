@@ -180,6 +180,76 @@
 - `dotnet --info`
 - `dotnet nuget list source`
 
+## 16) Release workflow: manual publish blocked (`confirm_publish`)
+
+Симптом:
+- в `release-package.yml` падение на шаге `Validate manual publish confirmation`.
+
+Причина:
+- для ручного publish (`workflow_dispatch` + `dry_run=false`) требуется явное подтверждение.
+
+Что делать:
+- в input workflow укажи `confirm_publish=PUBLISH` (в точности, uppercase).
+
+## 17) Release workflow: manual publish blocked (not `main`)
+
+Симптом:
+- ошибка `Manual publish is allowed only from main branch`.
+
+Причина:
+- ручной publish разрешен только из `main`.
+
+Что делать:
+- запускай `workflow_dispatch` из ветки `main`.
+
+## 18) Release workflow: publish blocked (`CaptionPanels.aex` missing)
+
+Симптом:
+- ошибка вида `Missing built plugin for publish mode`.
+
+Причина:
+- publish-режим требует prebuilt `.aex` на self-hosted runner.
+
+Что делать:
+- убедись, что `CaptionPanels.aex` собран и доступен в ожидаемом пути;
+- при необходимости задай `AE_PLUGIN_BUILD_DIR` на runner;
+- для проверки только pipeline используй `dry_run=true` (он не требует `.aex`).
+
+## 19) Release workflow: lineage check failed (`main`)
+
+Симптом:
+- ошибка проверки lineage (commit/tag не в `origin/main`).
+
+Причина:
+- publish защищен guard-правилом: релизный commit должен принадлежать истории `main`.
+
+Что делать:
+- выпускай релиз только с коммита, который уже в `main`;
+- если это tag release, проверь что тег указывает на commit из `main`.
+
+## 20) Release workflow: version checks failed
+
+Симптом:
+- ошибка формата версии (`vMAJOR.MINOR.PATCH`) или mismatch с `UI_VERSION`.
+
+Что делать:
+- проверь release version/tag формат: `vX.Y.Z`;
+- проверь `UI_VERSION` в `cep_src/ui/js/app_core.js` и выровняй с release version.
+
+## 21) Release publish failed on release repo step
+
+Симптом:
+- падение на публикации в release repo (`publish-release-artifact.ps1`).
+
+Частые причины:
+- не заданы/некорректны секреты `RELEASE_REPO` или `RELEASE_REPO_TOKEN`;
+- в release-repo есть посторонние незакоммиченные изменения вне `releases/vX.Y.Z`.
+
+Что делать:
+- проверь secrets в GitHub repo settings;
+- проверь чистоту release-repo рабочего дерева на runner;
+- сначала запусти `dry_run=true`, затем повтори publish.
+
 ## Где смотреть логи
 
 - Word import:

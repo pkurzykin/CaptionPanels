@@ -56,6 +56,7 @@
 - Docs release modes: в `docs/RELEASE_AUTOMATION.md` и `docs/dev/build.md` добавлено простое разделение `Release dry-run` (репетиция без публикации) и `Release publish` (реальная публикация).
 - Docs self-hosted runner: добавлено простое объяснение, что такое `self-hosted runner`, зачем он нужен для publish-режима и чем отличается от GitHub-hosted runner.
 - Docs release checklist: добавлен `docs/RELEASE_FINAL_CHECKLIST.md` с пошаговым pre-publish/dry-run/publish/post-publish процессом и ссылками из release/build индексов документации.
+- Docs release troubleshooting: в `docs/TROUBLESHOOTING.md` добавлен отдельный блок по типовым ошибкам release workflow (confirm publish, main-branch guard, `.aex` guard, main-lineage, version guards, release-repo publish failures), плюс ссылка из `docs/RELEASE_AUTOMATION.md`.
 - Release manual publish safety: в `release-package.yml` добавлен input `confirm_publish`; при `workflow_dispatch` и `dry_run=false` workflow требует явного подтверждения `PUBLISH`.
 - Release publish AEX guard: в `release-package.yml` добавлена ранняя проверка `scripts/ci/assert-release-aex-presence.ps1` (только publish-режим), чтобы падать до упаковки при отсутствии собранного `.aex`.
 - Release manual publish branch guard: при `workflow_dispatch` и `dry_run=false` publish теперь разрешен только из ветки `main`.

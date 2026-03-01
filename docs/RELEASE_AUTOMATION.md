@@ -59,6 +59,7 @@ Quick decision rule:
 - Manual publish safety: set `confirm_publish=PUBLISH`
 - Manual publish safety: run manual publish only from `main` branch
 - Before real publish, run the full checklist: `docs/RELEASE_FINAL_CHECKLIST.md`
+- If workflow fails, see release troubleshooting: `docs/TROUBLESHOOTING.md` (sections 16-21)
 
 The workflow supports two launch modes:
 
