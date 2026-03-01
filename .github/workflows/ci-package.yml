@@ -46,6 +46,10 @@ jobs:
         shell: pwsh
         run: .\scripts\preflight.ps1 -Strict -SkipAegpChecks
 
+      - name: Verify release env resolver
+        shell: pwsh
+        run: .\scripts\ci\assert-release-env-resolution.ps1
+
       - name: Build and package (Release, no AEGP)
         shell: pwsh
         run: >

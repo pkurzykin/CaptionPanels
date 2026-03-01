@@ -52,6 +52,7 @@
 - Release dry-run zip verify: `scripts/ci/assert-release-zip-layout.ps1` поддерживает `-AllowMissingAex`; workflow использует этот режим в dry-run, чтобы верификация не требовала `plugin/CaptionPanels.aex`.
 - Release artifact determinism: в `release-package.yml` upload больше не использует wildcard `dist/CaptionPanels_*.zip`; путь zip теперь вычисляется детерминированно как `dist/CaptionPanels_<normalized-version>_win.zip`.
 - Release env centralization: нормализация версии и вычисление `RELEASE_ZIP_PATH` вынесены в `scripts/ci/resolve-release-env.ps1`; `release-package.yml` использует этот helper вместо inline-логики.
+- CI guard for release env resolver: добавлен `scripts/ci/assert-release-env-resolution.ps1` и подключен в `ci-package.yml`, чтобы регрессии нормализации release-версии/zip-пути ловились до release workflow.
 - Word2Json dependency: в `tools/word2json/src/Word2Json/Word2Json.csproj` добавлен `Newtonsoft.Json` (`13.0.4`) как явная зависимость утилиты.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
