@@ -254,6 +254,26 @@
 - проверь чистоту release-repo рабочего дерева на runner;
 - сначала запусти `dry_run=true`, затем повтори publish.
 
+## 22) `Access denied` при синке в `C:\Program Files\...\Plug-ins\CaptionPanels`
+
+Симптом:
+- `sync-plugin.ps1` падает с ошибкой записи в `Program Files`.
+
+Причина:
+- обычная user-сессия не имеет прав на запись в `Program Files`.
+
+Рекомендуемое решение:
+1. Один раз от администратора зарегистрируй elevated task:
+   - `pwsh -NoProfile -File .\scripts\dev\register-elevated-plugin-sync-task.ps1`
+2. Синкай в staging и автоматически триггерь task из обычной сессии:
+   - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+3. Для постоянной работы:
+   - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -Watch -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+   - либо двойным кликом: `scripts\dev\start-plugin-sync-watch.cmd`
+
+Если нужно вручную запустить только elevated-копирование:
+- `pwsh -NoProfile -File .\scripts\dev\run-elevated-plugin-sync.ps1 -TaskName "CaptionPanels Apply Plugin Sync" -Wait`
+
 ## Где смотреть логи
 
 - Word import:

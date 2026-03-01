@@ -75,6 +75,55 @@ Preflight-проверка окружения:
 3. Собери `Release | x64`.
 4. Запусти `pwsh -NoProfile -File .\scripts\package.ps1`.
 
+## Fast local plugin sync (development)
+
+Для быстрого цикла правок UI/JSX без ручного копирования используй:
+- `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1`
+
+Что синкается в `...\Support Files\Plug-ins\CaptionPanels\`:
+- `cep_src/ui -> client`
+- `cep_src/jsx -> host`
+- `cep_src/host/public_api.js -> host/public_api.js`
+- `cep_src/shared/config.json -> config.json`
+- `cep_src/shared/speakers.json -> speakers.json`
+
+Поведение по `.aex`:
+- по умолчанию `.aex` не трогается (существующий файл в Plug-ins сохраняется);
+- чтобы синкать `.aex`, добавь `-SyncAex` (источник: `AE_PLUGIN_BUILD_DIR`/`C:\AE\PluginBuild`).
+
+Полезные режимы:
+- watch-режим (автосинк после изменений):
+  - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -Watch`
+- синк из `dist/CaptionPanels/plugin` вместо source-tree:
+  - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -Mode Dist`
+- явный target path:
+  - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\Program Files\Adobe\Adobe After Effects 2024\Support Files\Plug-ins\CaptionPanels"`
+
+Важно:
+- если нет прав записи в `Program Files`, запускай elevated PowerShell или используй junction/symlink на writable-путь;
+- если After Effects держит lock на файлах, закрой AE и повтори синк.
+
+### Program Files без постоянного админ-режима
+
+Рекомендуемый вариант: staged sync + scheduled task с `RunLevel Highest`.
+
+1) Один раз от имени администратора зарегистрируй задачу:
+- `pwsh -NoProfile -File .\scripts\dev\register-elevated-plugin-sync-task.ps1`
+
+2) В обычной (не admin) сессии запускай синк в staging + автоприменение в `Program Files`:
+- `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+
+3) Для постоянной разработки включи watch:
+- `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -Watch -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+- или двойным кликом запусти лаунчер:
+  - `scripts\dev\start-plugin-sync-watch.cmd`
+
+Дополнительно:
+- отдельный ручной запуск только elevated-задачи:
+  - `pwsh -NoProfile -File .\scripts\dev\run-elevated-plugin-sync.ps1 -TaskName "CaptionPanels Apply Plugin Sync" -Wait`
+- сама elevated-задача применяет staging через:
+  - `scripts/dev/apply-staged-plugin-sync.ps1`
+
 ## Packaging contract
 
 - Инсталляционный источник формируется в `dist/CaptionPanels`.
