@@ -59,6 +59,23 @@ jobs:
         shell: pwsh
         run: .\scripts\ci\assert-release-version-alignment.ps1 -Version $env:RELEASE_VERSION
 
+      - name: Resolve release zip path
+        shell: pwsh
+        run: |
+          $normalizedVersion = $env:RELEASE_VERSION
+          if ($normalizedVersion.StartsWith("refs/tags/")) {
+            $normalizedVersion = $normalizedVersion.Substring("refs/tags/".Length)
+          }
+          if ($normalizedVersion.StartsWith("v") -or $normalizedVersion.StartsWith("V")) {
+            $normalizedVersion = $normalizedVersion.Substring(1)
+          }
+          if ([string]::IsNullOrWhiteSpace($normalizedVersion)) {
+            throw "Resolved release version is empty."
+          }
+
+          "RELEASE_VERSION_NORMALIZED=$normalizedVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_ZIP_PATH=dist/CaptionPanels_${normalizedVersion}_win.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -100,7 +117,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CaptionPanels-release-${{ env.RELEASE_VERSION }}
-          path: dist/CaptionPanels_*.zip
+          path: ${{ env.RELEASE_ZIP_PATH }}
           if-no-files-found: error
           retention-days: 14
 
@@ -110,6 +127,7 @@ jobs:
         run: |
           Write-Host "Release dry-run mode is enabled."
           Write-Host "Publish to release repo is skipped."
+          Write-Host ("Release artifact: {0}" -f $env:RELEASE_ZIP_PATH)
 
       - name: Checkout release repo
         if: ${{ env.RELEASE_DRY_RUN != 'true' }}
