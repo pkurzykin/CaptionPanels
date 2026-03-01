@@ -115,6 +115,8 @@ Preflight-проверка окружения:
 
 3) Для постоянной разработки включи watch:
 - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -Watch -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+- или двойным кликом запусти лаунчер:
+  - `scripts\dev\start-plugin-sync-watch.cmd`
 
 Дополнительно:
 - отдельный ручной запуск только elevated-задачи:

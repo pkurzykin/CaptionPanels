@@ -269,6 +269,7 @@
    - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
 3. Для постоянной работы:
    - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -Watch -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+   - либо двойным кликом: `scripts\dev\start-plugin-sync-watch.cmd`
 
 Если нужно вручную запустить только elevated-копирование:
 - `pwsh -NoProfile -File .\scripts\dev\run-elevated-plugin-sync.ps1 -TaskName "CaptionPanels Apply Plugin Sync" -Wait`
