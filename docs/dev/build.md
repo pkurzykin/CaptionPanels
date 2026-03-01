@@ -55,6 +55,10 @@ Preflight-проверка окружения:
 - если `DOTNET_CLI_HOME`/`NUGET_PACKAGES` не заданы извне, `build.ps1` направляет их в `dist/_build/tools/...`;
 - это уменьшает зависимость от user-home прав на runner/локальной машине.
 - для `dotnet restore` и `dotnet publish` (`word2json`) включен автоматический retry (по умолчанию `3` попытки с паузой `10s`) на случай transient сетевых ошибок NuGet.
+- для быстрой диагностики DNS/HTTPS к NuGet-источникам используй:
+  - `pwsh -NoProfile -File .\scripts\check-nuget-connectivity.ps1`
+  - `pwsh -NoProfile -File .\scripts\check-nuget-connectivity.ps1 -NuGetSource https://api.nuget.org/v3/index.json`
+  - `pwsh -NoProfile -File .\scripts\check-nuget-connectivity.ps1 -NuGetConfigFile .\dist\_build\tools\NuGet.Config`
 
 Полезные флаги:
 - `-SkipTools` — пропустить сборку tools.

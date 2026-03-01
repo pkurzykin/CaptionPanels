@@ -68,6 +68,7 @@
 - Release repo readiness guard: в `release-package.yml` добавлена ранняя проверка `scripts/ci/assert-release-repo-ready.ps1` (publish-only), чтобы fail-fast при недоступном/неинициализированном release-репозитории (включая отсутствие default branch).
 - Release publish path fix: `scripts/ci/publish-release-artifact.ps1` теперь резолвит абсолютные пути к source zip и release-repo до `Push-Location`, чтобы publish не падал на `Missing release artifact` из-за относительного `dist/...` после перехода в `release-repo`.
 - Release run log: добавлен `docs/RELEASE_RUN_LOG.md` с операционной записью успешных `publish`/`dry-run` прогонов для `v2.4.1` и ссылками на GitHub Actions run.
+- NuGet diagnostics: добавлен `scripts/check-nuget-connectivity.ps1` для быстрой проверки DNS/HTTPS доступности NuGet sources; обновлены build/troubleshooting инструкции для разбора `NU1301`.
 - Word2Json dependency: в `tools/word2json/src/Word2Json/Word2Json.csproj` добавлен `Newtonsoft.Json` (`13.0.4`) как явная зависимость утилиты.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
