@@ -54,6 +54,7 @@ Preflight-проверка окружения:
 Для .NET tools-сборки:
 - если `DOTNET_CLI_HOME`/`NUGET_PACKAGES` не заданы извне, `build.ps1` направляет их в `dist/_build/tools/...`;
 - это уменьшает зависимость от user-home прав на runner/локальной машине.
+- для `dotnet restore` и `dotnet publish` (`word2json`) включен автоматический retry (по умолчанию `3` попытки с паузой `10s`) на случай transient сетевых ошибок NuGet.
 
 Полезные флаги:
 - `-SkipTools` — пропустить сборку tools.
@@ -62,6 +63,8 @@ Preflight-проверка окружения:
 - `-AllowMissingAex` — разрешить упаковку без собранного `.aex`.
 - `-NuGetConfigFile <path>` — использовать явный `NuGet.Config` для `dotnet restore`.
 - `-NuGetSource <url>` — указать один или несколько NuGet source URL (флаг можно повторять).
+- `-DotnetRetryCount <1..10>` — число попыток для `dotnet restore/publish` (default: `3`).
+- `-DotnetRetryDelaySeconds <1..120>` — задержка между retry-попытками (default: `10`).
 
 По умолчанию `build.ps1` генерирует/использует локальный `NuGet.Config` в `dist/_build/tools/NuGet.Config`, чтобы не зависеть от недоступного `~/.nuget/NuGet/NuGet.Config`.
 Если задан `-NuGetSource`, скрипт генерирует `NuGet.Config` из переданных sources.

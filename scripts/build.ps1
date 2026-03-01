@@ -9,6 +9,10 @@ param(
     [string]$OutDir = "",
     [string]$NuGetConfigFile = "",
     [string[]]$NuGetSource = @(),
+    [ValidateRange(1, 10)]
+    [int]$DotnetRetryCount = 3,
+    [ValidateRange(1, 120)]
+    [int]$DotnetRetryDelaySeconds = 10,
     [switch]$SkipTools,
     [switch]$SkipAegp,
     [switch]$SkipPackage,
@@ -56,6 +60,30 @@ function Invoke-External {
     }
 }
 
+function Invoke-ExternalWithRetry {
+    param(
+        [Parameter(Mandatory = $true)][string]$Executable,
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $true)][string]$OperationName,
+        [ValidateRange(1, 10)][int]$RetryCount = 3,
+        [ValidateRange(1, 120)][int]$RetryDelaySeconds = 10
+    )
+
+    for ($attempt = 1; $attempt -le $RetryCount; $attempt++) {
+        try {
+            Invoke-External -Executable $Executable -Arguments $Arguments
+            return
+        } catch {
+            if ($attempt -ge $RetryCount) {
+                throw
+            }
+
+            Write-Warning ("{0} failed (attempt {1}/{2}). Retrying in {3}s..." -f $OperationName, $attempt, $RetryCount, $RetryDelaySeconds)
+            Start-Sleep -Seconds $RetryDelaySeconds
+        }
+    }
+}
+
 function Acquire-ExclusiveFileLock {
     param(
         [Parameter(Mandatory = $true)][string]$LockPath
@@ -92,7 +120,9 @@ function Build-Word2Json {
         [Parameter(Mandatory = $true)][string]$Configuration,
         [Parameter(Mandatory = $true)][string]$DistRoot,
         [string]$NuGetConfigFile = "",
-        [string[]]$NuGetSource = @()
+        [string[]]$NuGetSource = @(),
+        [ValidateRange(1, 10)][int]$DotnetRetryCount = 3,
+        [ValidateRange(1, 120)][int]$DotnetRetryDelaySeconds = 10
     )
 
     $project = Join-Path $RepoRoot "tools/word2json/src/Word2Json/Word2Json.csproj"
@@ -179,9 +209,15 @@ function Build-Word2Json {
     }
 
     Write-Host ("NuGet config: {0}" -f $resolvedNuGetConfig)
+    Write-Host ("dotnet retry policy: attempts={0}, delay={1}s" -f $DotnetRetryCount, $DotnetRetryDelaySeconds)
 
     try {
-        Invoke-External -Executable $dotnetCmd.Source -Arguments @("restore", $project, "--configfile", $resolvedNuGetConfig)
+        Invoke-ExternalWithRetry `
+            -Executable $dotnetCmd.Source `
+            -Arguments @("restore", $project, "--configfile", $resolvedNuGetConfig) `
+            -OperationName "dotnet restore (word2json)" `
+            -RetryCount $DotnetRetryCount `
+            -RetryDelaySeconds $DotnetRetryDelaySeconds
     } catch {
         $nugetSourcesText = ""
         try {
@@ -211,14 +247,19 @@ function Build-Word2Json {
         Remove-Item -LiteralPath $publishDir -Recurse -Force
     }
     New-Item -ItemType Directory -Path $publishDir -Force | Out-Null
-    Invoke-External -Executable $dotnetCmd.Source -Arguments @(
-        "publish",
-        $project,
-        "-c", $Configuration,
-        "-r", "win-x64",
-        "--self-contained", "true",
-        "-o", $publishDir
-    )
+    Invoke-ExternalWithRetry `
+        -Executable $dotnetCmd.Source `
+        -Arguments @(
+            "publish",
+            $project,
+            "-c", $Configuration,
+            "-r", "win-x64",
+            "--self-contained", "true",
+            "-o", $publishDir
+        ) `
+        -OperationName "dotnet publish (word2json)" `
+        -RetryCount $DotnetRetryCount `
+        -RetryDelaySeconds $DotnetRetryDelaySeconds
 }
 
 function Build-Aegp {
@@ -273,7 +314,9 @@ try {
             -Configuration $Configuration `
             -DistRoot $distRoot `
             -NuGetConfigFile $NuGetConfigFile `
-            -NuGetSource $NuGetSource
+            -NuGetSource $NuGetSource `
+            -DotnetRetryCount $DotnetRetryCount `
+            -DotnetRetryDelaySeconds $DotnetRetryDelaySeconds
     } else {
         Write-Host "Skipping tools build (-SkipTools)."
     }
