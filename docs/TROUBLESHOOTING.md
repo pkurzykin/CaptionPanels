@@ -174,6 +174,7 @@
 - DNS/HTTPS доступность источника:
   - `pwsh -NoProfile -File .\scripts\check-nuget-connectivity.ps1`
   - `pwsh -NoProfile -File .\scripts\check-nuget-connectivity.ps1 -NuGetSource https://api.nuget.org/v3/index.json`
+  - или сразу через preflight: `pwsh -NoProfile -File .\scripts\preflight.ps1 -CheckNuGetConnectivity -NuGetSource https://api.nuget.org/v3/index.json`
 - если user-level `~/.nuget/NuGet/NuGet.Config` недоступен, укажи явный конфиг:
   - `pwsh -NoProfile -File .\scripts\build.ps1 -NuGetConfigFile <path-to-NuGet.Config> ...`
 - если нужен корпоративный mirror, передай source прямо в build:

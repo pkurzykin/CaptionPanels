@@ -3,7 +3,8 @@ param(
     [string]$NuGetConfigFile = "",
     [string[]]$NuGetSource = @(),
     [ValidateRange(3, 60)]
-    [int]$TimeoutSec = 10
+    [int]$TimeoutSec = 10,
+    [switch]$Quiet
 )
 
 $ErrorActionPreference = "Stop"
@@ -139,8 +140,10 @@ foreach ($source in $resolvedSources) {
     }
 }
 
-Write-Host "NuGet connectivity check"
-$results | Format-Table -AutoSize
+if (-not $Quiet) {
+    Write-Host "NuGet connectivity check"
+    $results | Format-Table -AutoSize
+}
 
 $failCount = @($results | Where-Object { $_.Status -eq "FAIL" }).Count
 if ($failCount -gt 0) {

@@ -1,7 +1,12 @@
 [CmdletBinding()]
 param(
     [switch]$Strict,
-    [switch]$SkipAegpChecks
+    [switch]$SkipAegpChecks,
+    [switch]$CheckNuGetConnectivity,
+    [string]$NuGetConfigFile = "",
+    [string[]]$NuGetSource = @(),
+    [ValidateRange(3, 60)]
+    [int]$NuGetConnectivityTimeoutSec = 10
 )
 
 $ErrorActionPreference = "Stop"
@@ -81,6 +86,43 @@ if ($null -eq $dotnetCmd) {
         }
     } catch {
         Add-CheckResult -Name "NuGet sources" -Status "WARN" -Details ("NuGet source check failed: {0}" -f $_.Exception.Message)
+    }
+
+    if ($CheckNuGetConnectivity) {
+        $nugetConnectivityScript = Join-Path $repoRoot "scripts/check-nuget-connectivity.ps1"
+        if (!(Test-Path -LiteralPath $nugetConnectivityScript -PathType Leaf)) {
+            Add-CheckResult -Name "NuGet connectivity" -Status "FAIL" -Details ("Missing script: {0}" -f $nugetConnectivityScript)
+        } else {
+            $connectivityParams = @{
+                TimeoutSec = $NuGetConnectivityTimeoutSec
+                Quiet      = $true
+            }
+            if (![string]::IsNullOrWhiteSpace($NuGetConfigFile)) {
+                $connectivityParams["NuGetConfigFile"] = $NuGetConfigFile
+            }
+            $resolvedNuGetSources = @()
+            foreach ($source in $NuGetSource) {
+                if (![string]::IsNullOrWhiteSpace($source)) {
+                    $resolvedNuGetSources += $source.Trim()
+                }
+            }
+            if ($resolvedNuGetSources.Count -gt 0) {
+                $connectivityParams["NuGetSource"] = $resolvedNuGetSources
+            }
+
+            $connectivityOutput = ""
+            try {
+                $connectivityOutput = (& $nugetConnectivityScript @connectivityParams 2>&1 | Out-String).Trim()
+                if ($LASTEXITCODE -eq 0) {
+                    Add-CheckResult -Name "NuGet connectivity" -Status "PASS" -Details "Connectivity check passed."
+                } else {
+                    $details = "Connectivity check failed. Run scripts/check-nuget-connectivity.ps1 for details."
+                    Add-CheckResult -Name "NuGet connectivity" -Status "FAIL" -Details $details
+                }
+            } catch {
+                Add-CheckResult -Name "NuGet connectivity" -Status "FAIL" -Details ("Connectivity check crashed: {0}" -f $_.Exception.Message)
+            }
+        }
     }
 }
 
