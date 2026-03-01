@@ -85,6 +85,9 @@ Preflight-проверка окружения:
 - `scripts/package.ps1` копирует tools по per-tool каталогам (`word2json`, `transcribe_align`, `deploy`) и, при наличии publish-выхода, добавляет runtime `word2json` в `dist/CaptionPanels/tools/word2json/runtime/win-x64/self-contained`.
 - `scripts/package_release.ps1` теперь использует `scripts/package.ps1` как источник layout и архивирует именно `dist/CaptionPanels` в `dist/CaptionPanels_<ver>_win.zip`.
 - Release workflow поддерживает два режима запуска: `push tags (v*)` и `workflow_dispatch` (`release_version`, `dry_run`, optional `release_nuget_sources`).
+- Простое правило:
+  - `dry_run=true` — безопасная репетиция релиза (проверка + упаковка + artifact, без публикации в release-repo).
+  - publish-режим (`dry_run=false` или tag push) — реальная публикация релиза в release-repo.
 - Release workflow (`.github/workflows/release-package.yml`) использует `actions/setup-dotnet@v4` (`8.0.x`) и перед `package_release.ps1` выполняет `preflight.ps1 -Strict -SkipAegpChecks` и `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -SkipPackage`, чтобы гарантировать включение tools-runtime в release zip.
 - Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) через `scripts/ci/assert-release-secrets.ps1` только в publish-режиме (в `dry_run` шаг публикации пропускается).
 - В `dry_run` release workflow запускается на `windows-latest` (без self-hosted runner) и вызывает `scripts/package_release.ps1 -AllowMissingAex`.

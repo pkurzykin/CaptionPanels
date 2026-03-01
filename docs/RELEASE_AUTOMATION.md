@@ -23,6 +23,24 @@ This repo is the **private dev** source. Releases are published to a **public re
 
 ## How it works
 
+## Release Modes (Simple)
+
+Use `Release dry-run` when you want to **test the release pipeline safely**:
+- checks versions and validates workflow logic
+- builds and packages release zip
+- uploads zip as workflow artifact
+- does **not** publish anything to the public release repo
+
+Use `Release publish` when you are ready to **ship a real release**:
+- runs the same packaging checks
+- additionally checks release repo secrets
+- publishes `zip + sha256` to the public release repo (`releases/v<ver>/...`)
+- this is the mode that creates the distributable release output for users
+
+Quick decision rule:
+- `Not sure / just verifying`: run `dry-run`
+- `Ready to publish for users`: run `publish`
+
 The workflow supports two launch modes:
 
 1) Tag push (`on.push.tags`, for example `git push origin v2.4.1`)
