@@ -7,6 +7,10 @@ param(
     [string]$BuildRoot = "",
     [switch]$SyncAex,
     [switch]$Watch,
+    [string]$PostSyncTaskName = "",
+    [switch]$WaitForPostSyncTask,
+    [ValidateRange(10, 3600)]
+    [int]$PostSyncTaskTimeoutSec = 180,
     [ValidateRange(1, 60)]
     [int]$WatchIntervalSec = 1
 )
@@ -127,6 +131,50 @@ function Copy-FileChecked {
     Copy-Item -LiteralPath $Source -Destination $Destination -Force
 }
 
+function Invoke-PostSyncTask {
+    param(
+        [Parameter(Mandatory = $true)][string]$TaskName,
+        [switch]$WaitForCompletion,
+        [ValidateRange(10, 3600)][int]$TimeoutSec = 180
+    )
+
+    if ([string]::IsNullOrWhiteSpace($TaskName)) {
+        return
+    }
+
+    $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+    if ($null -eq $task) {
+        throw ("Scheduled task not found: {0}. Register it first via scripts/dev/register-elevated-plugin-sync-task.ps1." -f $TaskName)
+    }
+
+    Start-ScheduledTask -TaskName $TaskName
+    Write-Host ("Triggered scheduled task: {0}" -f $TaskName)
+
+    if (-not $WaitForCompletion) {
+        return
+    }
+
+    $deadlineUtc = (Get-Date).ToUniversalTime().AddSeconds($TimeoutSec)
+    while ($true) {
+        Start-Sleep -Seconds 1
+        $state = (Get-ScheduledTask -TaskName $TaskName).State
+        if ($state -ne "Running") {
+            break
+        }
+
+        if ((Get-Date).ToUniversalTime() -ge $deadlineUtc) {
+            throw ("Scheduled task timeout ({0}s): {1}" -f $TimeoutSec, $TaskName)
+        }
+    }
+
+    $taskInfo = Get-ScheduledTaskInfo -TaskName $TaskName
+    if ($taskInfo.LastTaskResult -ne 0) {
+        throw ("Scheduled task failed (LastTaskResult={0}): {1}" -f $taskInfo.LastTaskResult, $TaskName)
+    }
+
+    Write-Host ("Scheduled task completed: {0}" -f $TaskName)
+}
+
 function Get-TreeFingerprint {
     param(
         [Parameter(Mandatory = $true)][string[]]$Paths
@@ -193,6 +241,13 @@ function Sync-PluginPayload {
             -Destination (Join-Path $Context.TargetRoot ($Context.PluginName + ".aex"))
     }
 
+    if (![string]::IsNullOrWhiteSpace($Context.PostSyncTaskName)) {
+        Invoke-PostSyncTask `
+            -TaskName $Context.PostSyncTaskName `
+            -WaitForCompletion:$Context.WaitForPostSyncTask `
+            -TimeoutSec $Context.PostSyncTaskTimeoutSec
+    }
+
     $doneTimestamp = (Get-Date).ToString("HH:mm:ss")
     Write-Host ("[{0}] Sync complete -> {1}" -f $doneTimestamp, $Context.TargetRoot)
 }
@@ -217,11 +272,14 @@ $resolvedBuildRoot = Get-CaptionPanelsBuildRoot -BuildRoot $BuildRoot
 $builtAexPath = Get-CaptionPanelsBuiltAexPath -BuildRoot $resolvedBuildRoot -PluginName $PluginName
 
 $syncContext = @{
-    Mode         = $Mode
-    PluginName   = $PluginName
-    SyncAex      = [bool]$SyncAex
-    TargetRoot   = $resolvedAePluginDir
-    BuiltAexPath = $builtAexPath
+    Mode                   = $Mode
+    PluginName             = $PluginName
+    SyncAex                = [bool]$SyncAex
+    TargetRoot             = $resolvedAePluginDir
+    BuiltAexPath           = $builtAexPath
+    PostSyncTaskName       = $PostSyncTaskName
+    WaitForPostSyncTask    = [bool]$WaitForPostSyncTask
+    PostSyncTaskTimeoutSec = $PostSyncTaskTimeoutSec
 }
 
 $watchPaths = @()
@@ -269,6 +327,9 @@ if ($SyncAex) {
     Write-Host ("AEX sync enabled: {0}" -f $builtAexPath)
 } else {
     Write-Host "AEX sync disabled (default). Existing .aex in Plug-ins is preserved."
+}
+if (![string]::IsNullOrWhiteSpace($PostSyncTaskName)) {
+    Write-Host ("Post-sync scheduled task: {0}" -f $PostSyncTaskName)
 }
 
 Sync-PluginPayload -Context $syncContext
