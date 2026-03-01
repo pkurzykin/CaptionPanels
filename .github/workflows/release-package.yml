@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   package:
-    runs-on: [self-hosted, windows]
+    runs-on: ${{ fromJSON(github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' && '["windows-latest"]' || '["self-hosted","windows"]') }}
     timeout-minutes: 60
     env:
       RELEASE_REPO: ${{ secrets.RELEASE_REPO }}
@@ -80,7 +80,12 @@ jobs:
 
       - name: Package plugin
         shell: pwsh
-        run: .\\scripts\\package_release.ps1 -Version $env:RELEASE_VERSION
+        run: |
+          if ($env:RELEASE_DRY_RUN -eq "true") {
+            .\scripts\package_release.ps1 -Version $env:RELEASE_VERSION -AllowMissingAex
+          } else {
+            .\scripts\package_release.ps1 -Version $env:RELEASE_VERSION
+          }
 
       - name: Verify release zip layout
         shell: pwsh

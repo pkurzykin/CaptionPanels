@@ -3,7 +3,8 @@ param(
     [string]$Version = "",
     [string]$OutDir = "",
     [string]$PluginName = "CaptionPanels",
-    [string]$BuildRoot = ""
+    [string]$BuildRoot = "",
+    [switch]$AllowMissingAex
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,6 +27,9 @@ $packageParams = @{
     Version    = $resolvedVersion
     OutDir     = $distRoot
     BuildRoot  = $resolvedBuildRoot
+}
+if ($AllowMissingAex) {
+    $packageParams["AllowMissingAex"] = $true
 }
 
 Write-Host ("Packaging dist layout via package.ps1 (Version={0})" -f $resolvedVersion)
