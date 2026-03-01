@@ -72,6 +72,14 @@ jobs:
             throw "Manual publish requires explicit confirmation: set input confirm_publish=PUBLISH"
           }
 
+      - name: Validate manual publish source branch
+        if: ${{ github.event_name == 'workflow_dispatch' && env.RELEASE_DRY_RUN != 'true' }}
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_NAME -ne "main") {
+            throw ("Manual publish is allowed only from main branch. Current ref: {0}" -f $env:GITHUB_REF_NAME)
+          }
+
       - name: Validate release AEX presence
         if: ${{ env.RELEASE_DRY_RUN != 'true' }}
         shell: pwsh

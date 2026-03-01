@@ -57,6 +57,7 @@ Quick decision rule:
 - `Not sure / just verifying`: run `dry-run`
 - `Ready to publish for users`: run `publish`
 - Manual publish safety: set `confirm_publish=PUBLISH`
+- Manual publish safety: run manual publish only from `main` branch
 
 The workflow supports two launch modes:
 
