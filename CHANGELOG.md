@@ -72,6 +72,7 @@
 - Install payload gate: добавлен `scripts/verify-install-payload.ps1` (проверка `dist/CaptionPanels` перед ручной установкой, включая обязательный `plugin/CaptionPanels.aex` по умолчанию).
 - NuGet diagnostics: добавлен `scripts/check-nuget-connectivity.ps1` для быстрой проверки DNS/HTTPS доступности NuGet sources; обновлены build/troubleshooting инструкции для разбора `NU1301`.
 - Preflight NuGet gate: `scripts/preflight.ps1` получил опциональную проверку сетевой доступности NuGet (`-CheckNuGetConnectivity`, `-NuGetSource`, `-NuGetConfigFile`, `-NuGetConnectivityTimeoutSec`) для ранней диагностики `NU1301`.
+- CI/Release dispatch control: в `ci-package.yml` и `release-package.yml` добавлен input `check_nuget_connectivity` (default `false`), который включает preflight NuGet connectivity checks в ручных запусках workflow.
 - Word2Json dependency: в `tools/word2json/src/Word2Json/Word2Json.csproj` добавлен `Newtonsoft.Json` (`13.0.4`) как явная зависимость утилиты.
 - Packaging concurrency: `scripts/package.ps1` теперь использует lock-файл `dist/.package.lock` (exclusive file lock), чтобы параллельные упаковки не конфликтовали на очистке/перезаписи `dist/CaptionPanels`.
 - Head Topic: генерация снова отвязана от количества geotag; цепочка строится по `Sub_SYNCH_*` (первый старт от плейхеда, далее `start = end(previous synch)`, `end = start(next synch)`), чтобы покрывать весь ролик по утвержденному правилу.
