@@ -94,6 +94,7 @@ Preflight-проверка окружения:
   - перед реальным publish проходи финальный чеклист: `docs/RELEASE_FINAL_CHECKLIST.md`.
 - Release workflow (`.github/workflows/release-package.yml`) использует `actions/setup-dotnet@v4` (`8.0.x`) и перед `package_release.ps1` выполняет `preflight.ps1 -Strict -SkipAegpChecks` и `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -SkipPackage`, чтобы гарантировать включение tools-runtime в release zip.
 - Перед `actions/setup-dotnet@v4` release workflow выставляет `DOTNET_INSTALL_DIR` в writable temp-каталог runner (`$env:RUNNER_TEMP\dotnet-sdk`), чтобы не требовать прав записи в `C:\Program Files\dotnet` на self-hosted машинах.
+- Release workflow сначала проверяет наличие preinstalled `.NET 8 SDK`; если он найден на runner, шаг `setup-dotnet` пропускается, иначе workflow устанавливает `.NET 8` через `actions/setup-dotnet@v4`.
 - Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) через `scripts/ci/assert-release-secrets.ps1` только в publish-режиме (в `dry_run` шаг публикации пропускается).
 - Release workflow выполняет раннюю проверку наличия собранного `.aex` через `scripts/ci/assert-release-aex-presence.ps1` только в publish-режиме.
 - Release workflow проверяет, что публикуемый commit/tag принадлежит lineage `main`, через `scripts/ci/assert-release-commit-on-main.ps1` (publish-only).
