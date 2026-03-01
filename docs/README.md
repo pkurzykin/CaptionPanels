@@ -22,4 +22,5 @@ Installation contract reference:
 - Deployment details: [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md)
 - Troubleshooting: [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
 - Release automation: [`RELEASE_AUTOMATION.md`](RELEASE_AUTOMATION.md)
+- Release final checklist: [`RELEASE_FINAL_CHECKLIST.md`](RELEASE_FINAL_CHECKLIST.md)
 - Schemas reference (RU): [`SCHEMAS_REFERENCE_RU.md`](SCHEMAS_REFERENCE_RU.md)

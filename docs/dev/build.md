@@ -91,6 +91,7 @@ Preflight-проверка окружения:
   - publish-режим (`dry_run=false` или tag push) — реальная публикация релиза в release-repo.
   - для ручного publish (`workflow_dispatch` + `dry_run=false`) нужно явное подтверждение: `confirm_publish=PUBLISH`.
   - для ручного publish также требуется запуск из `main`.
+  - перед реальным publish проходи финальный чеклист: `docs/RELEASE_FINAL_CHECKLIST.md`.
 - Release workflow (`.github/workflows/release-package.yml`) использует `actions/setup-dotnet@v4` (`8.0.x`) и перед `package_release.ps1` выполняет `preflight.ps1 -Strict -SkipAegpChecks` и `scripts/ci/invoke-build-with-nuget-sources.ps1 -BuildConfiguration Release -SkipAegp -SkipPackage`, чтобы гарантировать включение tools-runtime в release zip.
 - Release workflow выполняет раннюю валидацию обязательных секретов (`RELEASE_REPO`, `RELEASE_REPO_TOKEN`) через `scripts/ci/assert-release-secrets.ps1` только в publish-режиме (в `dry_run` шаг публикации пропускается).
 - Release workflow выполняет раннюю проверку наличия собранного `.aex` через `scripts/ci/assert-release-aex-presence.ps1` только в publish-режиме.

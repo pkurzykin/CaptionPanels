@@ -58,6 +58,7 @@ Quick decision rule:
 - `Ready to publish for users`: run `publish`
 - Manual publish safety: set `confirm_publish=PUBLISH`
 - Manual publish safety: run manual publish only from `main` branch
+- Before real publish, run the full checklist: `docs/RELEASE_FINAL_CHECKLIST.md`
 
 The workflow supports two launch modes:
 
