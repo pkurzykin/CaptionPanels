@@ -21,6 +21,22 @@ This repo is the **private dev** source. Releases are published to a **public re
      `C:\AE\PluginBuild\AEGP\CaptionPanels\CaptionPanels.aex`
      (or set `AE_PLUGIN_BUILD_DIR` env var on the runner).
 
+## What Is A Self-Hosted Runner (Simple)
+
+`self-hosted runner` is your own machine (or VM) connected to GitHub Actions.
+
+Simple difference:
+- GitHub-hosted runner: temporary machine provided by GitHub.
+- Self-hosted runner: your permanent machine with your tools already installed.
+
+Why we need it here:
+- publish-mode release needs your local environment (AE SDK, Visual Studio toolchain, prebuilt `.aex`, access to private/internal resources if needed).
+
+In practice:
+- GitHub sends the job to your runner machine,
+- that machine executes workflow steps,
+- artifacts/logs go back to GitHub Actions UI.
+
 ## How it works
 
 ## Release Modes (Simple)

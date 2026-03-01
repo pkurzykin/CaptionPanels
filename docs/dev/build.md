@@ -85,6 +85,7 @@ Preflight-проверка окружения:
 - `scripts/package.ps1` копирует tools по per-tool каталогам (`word2json`, `transcribe_align`, `deploy`) и, при наличии publish-выхода, добавляет runtime `word2json` в `dist/CaptionPanels/tools/word2json/runtime/win-x64/self-contained`.
 - `scripts/package_release.ps1` теперь использует `scripts/package.ps1` как источник layout и архивирует именно `dist/CaptionPanels` в `dist/CaptionPanels_<ver>_win.zip`.
 - Release workflow поддерживает два режима запуска: `push tags (v*)` и `workflow_dispatch` (`release_version`, `dry_run`, optional `release_nuget_sources`).
+- Что такое `self-hosted runner` простыми словами: см. `docs/RELEASE_AUTOMATION.md` (раздел `What Is A Self-Hosted Runner (Simple)`).
 - Простое правило:
   - `dry_run=true` — безопасная репетиция релиза (проверка + упаковка + artifact, без публикации в release-repo).
   - publish-режим (`dry_run=false` или tag push) — реальная публикация релиза в release-repo.
