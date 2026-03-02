@@ -247,23 +247,8 @@
         return cfg;
     }
 
-    function _configCandidates() {
+    function _userConfigCandidates() {
         var list = [];
-        // Prefer config colocated with the plugin files.
-        var base = _normalizePath(_resolveRootPath());
-        if (base) {
-            list.push(base + "/config.json");
-
-            // If base points to /client or /host, try parent.
-            var trimmed = base.replace(/\/(client|host)$/, "");
-            if (trimmed !== base) list.unshift(trimmed + "/config.json");
-
-            // If config is one level above, try parent too.
-            var parent = _dirName(base);
-            if (parent) list.push(parent + "/config.json");
-        }
-
-        // User-level fallback locations.
         try {
             var appDataEnv = $.getenv("APPDATA");
             if (appDataEnv) list.push(_normalizePath(appDataEnv) + "/CaptionPanels/config.json");
@@ -279,10 +264,59 @@
             }
         } catch (e2) {}
 
-        // De-duplicate candidates while preserving order.
         var out = [];
         var seen = {};
         for (var i = 0; i < list.length; i++) {
+            var p = _normalizePath(list[i]);
+            if (!p) continue;
+            if (seen[p]) continue;
+            seen[p] = true;
+            out.push(p);
+        }
+        return out;
+    }
+
+    function _pluginConfigCandidates() {
+        var list = [];
+        var base = _normalizePath(_resolveRootPath());
+        if (base) {
+            // If base points to /client or /host, prefer parent config.
+            var trimmed = base.replace(/\/(client|host)$/, "");
+            if (trimmed !== base) list.push(trimmed + "/config.json");
+
+            list.push(base + "/config.json");
+
+            // If config is one level above, try parent too.
+            var parent = _dirName(base);
+            if (parent) list.push(parent + "/config.json");
+        }
+
+        var out = [];
+        var seen = {};
+        for (var i = 0; i < list.length; i++) {
+            var p = _normalizePath(list[i]);
+            if (!p) continue;
+            if (seen[p]) continue;
+            seen[p] = true;
+            out.push(p);
+        }
+        return out;
+    }
+
+    function _configCandidates() {
+        var list = [];
+        var user = _userConfigCandidates();
+        var plugin = _pluginConfigCandidates();
+
+        // Priority: user-level config first, plugin config as fallback.
+        var i;
+        for (i = 0; i < user.length; i++) list.push(user[i]);
+        for (i = 0; i < plugin.length; i++) list.push(plugin[i]);
+
+        // De-duplicate candidates while preserving order.
+        var out = [];
+        var seen = {};
+        for (i = 0; i < list.length; i++) {
             var p = _normalizePath(list[i]);
             if (!p) continue;
             if (seen[p]) continue;
@@ -324,6 +358,11 @@
     function _configPath() {
         if (_configPathCache) return _configPathCache;
         var list = _configCandidates();
+        var promoted = _tryPromoteToUserConfig(list);
+        if (promoted) {
+            _configPathCache = promoted;
+            return _configPathCache;
+        }
 
         for (var i = 0; i < list.length; i++) {
             var f = new File(list[i]);
@@ -332,6 +371,13 @@
                 return _configPathCache;
             }
         }
+
+        var user = _userConfigCandidates();
+        if (user.length) {
+            _configPathCache = user[0];
+            return _configPathCache;
+        }
+
         _configPathCache = list.length ? list[0] : "";
         return _configPathCache;
     }
@@ -487,7 +533,9 @@
     }
 
     function _preferredWriteConfigPath() {
-        // Write into the same config location we currently use for reads.
+        // Always prefer user-level writable config.
+        var user = _userConfigCandidates();
+        if (user.length) return user[0];
         return _configPath();
     }
 
@@ -652,7 +700,14 @@
 
             var writePath = _preferredWriteConfigPath();
             if (!_writeConfigFileAt(writePath, cfg)) {
-                return respondErr("Cannot write config: " + writePath);
+                var activePath = _configPath();
+                if (!(activePath && activePath !== writePath && _writeConfigFileAt(activePath, cfg))) {
+                    var msg = "Cannot write config: " + writePath;
+                    if (activePath && activePath !== writePath) {
+                        msg += " (fallback failed: " + activePath + ")";
+                    }
+                    return respondErr(msg);
+                }
             }
 
             // Clear caches so reads switch to the user config (AppData) once it exists.
