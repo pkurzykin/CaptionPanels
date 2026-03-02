@@ -139,6 +139,7 @@
 - Branding/Create Branding: разделены parsed/manual режимы без изменений UI-кнопки; в parsed-режиме geotag ставится по текущему `inPoint` связанного subtitle-якоря (`anchorLayer`/`anchorBatch`) и размещается под этим subtitle, в manual-режиме сохранено старое поведение `head+topic` без geotag, добавлен сценарий `geotag-only` (без запуска цепочки head_topic), а цепочка head_topic сбрасывает старт в `geotag.outPoint` при встрече geotag на таймлайне и фильтрует короткие/непривязанные слои.
 - Subtitles wrapping: тире (`-`, `–`, `—`) больше не переносится в начало следующей строки при overflow-переносе; конструкция `слово – слово` теперь разбивается как `слово –` / `слово`.
 - Branding/Subtitles import: при `Regular/Italic` больше не выполняется пересчет `subtitle_BG`; пересчет выполняется только из `Create Branding` и только один раз на композицию. Для `Load Word` подготовка таймлайна (выставление `Work Area End` + trim конца композиции по `Work Area`) теперь также выполняется один раз на композицию.
+- Config/Settings: приоритет `config.json` выровнен под runtime-модель (`%APPDATA%\\CaptionPanels\\config.json` -> fallback `<plugin_root>\\config.json`), а запись из Settings теперь в первую очередь идет в user-level config, чтобы избежать ошибок доступа к `Program Files` на рабочих станциях.
 
 ## v2.4.1 — 2026-02-25
 
