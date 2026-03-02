@@ -153,8 +153,16 @@ function splitTextToChunksCore(text) {
     var allLines = [];
     var currentLineWords = [];
 
+    function _isDashToken(w) {
+        var s = String(w || "").replace(/^\s+|\s+$/g, "");
+        return (s === "-" || s === "–" || s === "—");
+    }
+
     function _isMoveableShortWord(w) {
         if (!w) return false;
+        // Keep dash at the end of the previous line:
+        // "слово –" / "слово", not "слово" / "– слово".
+        if (_isDashToken(w)) return false;
         if (w.length <= shortWordMaxLen) return true;
         if (w.length === 3 && w === w.toUpperCase()) return true;
         return false;
