@@ -490,6 +490,214 @@
         return null;
     }
 
+    function _findSubtitleLayerByExactName(comp, layerName) {
+        if (!comp || !layerName) return null;
+        try {
+            var l = comp.layer(String(layerName));
+            if (l && _isSubtitleLayerName(l.name)) return l;
+        } catch (e) {}
+        return null;
+    }
+
+    function _findFirstSubtitleLayerByBatch(comp, typeUpper, batchNum) {
+        if (!comp) return null;
+        var type = String(typeUpper || "").toUpperCase();
+        var batch = parseInt(batchNum, 10);
+        if (!type || isNaN(batch) || batch <= 0) return null;
+
+        var prefix = "Sub_" + type + "_" + String(batch) + "_";
+        var best = null;
+        var bestStart = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !l.name || String(l.name).indexOf(prefix) !== 0) continue;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) st = 0;
+            if (!best || st < bestStart) {
+                best = l;
+                bestStart = st;
+            }
+        }
+        return best;
+    }
+
+    function _findSubtitleLayerNearTime(comp, timeSec) {
+        if (!comp) return null;
+        var t = Number(timeSec);
+        if (isNaN(t)) t = Number(comp.time) || 0;
+        var EPS = 1.0 / 60.0;
+
+        var inside = null;
+        var insideStart = null;
+        var next = null;
+        var nextStart = null;
+        var prev = null;
+        var prevStart = null;
+
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !_isSubtitleLayerName(l.name)) continue;
+            var st = Number(l.inPoint);
+            var en = Number(l.outPoint);
+            if (isNaN(st)) st = 0;
+            if (isNaN(en)) en = st;
+
+            if (st <= t + EPS && en >= t - EPS) {
+                if (!inside || st > insideStart) {
+                    inside = l;
+                    insideStart = st;
+                }
+                continue;
+            }
+
+            if (st >= t - EPS) {
+                if (!next || st < nextStart) {
+                    next = l;
+                    nextStart = st;
+                }
+                continue;
+            }
+
+            if (!prev || st > prevStart) {
+                prev = l;
+                prevStart = st;
+            }
+        }
+
+        if (inside) return inside;
+        if (next) return next;
+        return prev;
+    }
+
+    function _resolveGeotagAnchorLayer(comp, geotagMeta) {
+        if (!comp) return null;
+        var g = geotagMeta || {};
+
+        var byName = _findSubtitleLayerByExactName(comp, g.anchorLayer || "");
+        if (byName) return byName;
+
+        var byBatch = _findFirstSubtitleLayerByBatch(comp, g.anchorType || "", g.anchorBatch || 0);
+        if (byBatch) return byBatch;
+
+        return null;
+    }
+
+    function _buildCreatedGeotagEntry(layer, anchorLayer) {
+        if (!layer) return null;
+        var st = Number(layer.inPoint);
+        var en = Number(layer.outPoint);
+        if (isNaN(st)) st = Number(layer.startTime) || 0;
+        if (isNaN(en)) en = st;
+        return {
+            layerName: String(layer.name || ""),
+            start: st,
+            out: en,
+            anchorLayer: anchorLayer && anchorLayer.name ? String(anchorLayer.name) : ""
+        };
+    }
+
+    function _createGeotagLayerAt(comp, tplComp, text, startTime, anchorLayer) {
+        if (!comp || !tplComp) return null;
+
+        var copy = tplComp.duplicate();
+        copy.name = "geotag_" + _getNextNumber("geotag");
+
+        if (typeof moveItemToFolder === "function") {
+            moveItemToFolder(copy, "_GENERATED/Geotag");
+        }
+
+        _safeSetText(copy, "TXT", text);
+
+        var layer = comp.layers.add(copy);
+        var st = Number(startTime);
+        if (isNaN(st)) st = Number(comp.time) || 0;
+        layer.startTime = st;
+        layer.inPoint = st;
+        try { layer.label = GEOTAG_LABEL; } catch (eLbl) {}
+        _applyFadeOutOpacityExpr(layer, 0.5);
+
+        var anchor = anchorLayer || _findSubtitleLayerNearTime(comp, st);
+        if (anchor) {
+            try { layer.moveAfter(anchor); } catch (eMv) {}
+        }
+
+        return _buildCreatedGeotagEntry(layer, anchor);
+    }
+
+    function _normalizeGeotagHints(comp, hints) {
+        var arr = hints;
+        if (typeof hints === "string") {
+            try { arr = _parseJsonSafe(hints); } catch (e) { arr = []; }
+        }
+        if (!(arr instanceof Array)) return [];
+
+        var out = [];
+        for (var i = 0; i < arr.length; i++) {
+            var h = arr[i] || {};
+            var st = Number(h.start);
+            var en = Number(h.out);
+            var layerName = String(h.layerName || "");
+
+            if ((isNaN(st) || isNaN(en)) && layerName) {
+                try {
+                    var l = comp.layer(layerName);
+                    if (l) {
+                        st = Number(l.inPoint);
+                        en = Number(l.outPoint);
+                    }
+                } catch (eL) {}
+            }
+
+            if (isNaN(st)) {
+                st = Number(h.time);
+            }
+            if (isNaN(st)) continue;
+            if (isNaN(en) || en < st) en = st;
+
+            out.push({
+                start: st,
+                out: en,
+                layerName: layerName
+            });
+        }
+
+        out.sort(function (a, b) {
+            return (a.start === b.start) ? (a.out - b.out) : (a.start - b.start);
+        });
+        return out;
+    }
+
+    function _consumeLatestGeotagResetOutBefore(geotagHints, state, endTime, minStartExclusive, eps) {
+        if (!(geotagHints instanceof Array) || geotagHints.length === 0) return null;
+        if (!state) return null;
+        if (typeof state.index !== "number") state.index = 0;
+
+        var chosenOut = null;
+        while (state.index < geotagHints.length) {
+            var g = geotagHints[state.index];
+            if (!g) {
+                state.index++;
+                continue;
+            }
+
+            var gs = Number(g.start);
+            var go = Number(g.out);
+            if (isNaN(gs) || isNaN(go)) {
+                state.index++;
+                continue;
+            }
+
+            if (gs > endTime + eps) break;
+
+            if (go > minStartExclusive + eps && go <= endTime - eps) {
+                chosenOut = go;
+            }
+            state.index++;
+        }
+
+        return chosenOut;
+    }
+
     // =====================================================
     // PUBLIC GLOBALS
     // =====================================================
@@ -503,34 +711,13 @@
         if (!tpl) { alert("Композиция 'geotag' не найдена"); return respondErr("No geotag"); }
 
         app.beginUndoGroup("Create Geotag");
-
-        // дублируем шаблон (чтобы не портить оригинал)
-        var copy = tpl.duplicate();
-        // можно не переименовывать или переименовать — оставим аккуратно
-        copy.name = "geotag_" + _getNextNumber("geotag");
-
-        // авто-сортировка: geotag_N в папку _GENERATED/Geotag
-    if (typeof moveItemToFolder === "function") {
-            moveItemToFolder(copy, "_GENERATED/Geotag");
-        }
-
-        _safeSetText(copy, "TXT", text);
-
-        var layer = comp.layers.add(copy);
-        layer.startTime = comp.time;
-        try { layer.label = GEOTAG_LABEL; } catch (eLbl) {}
-        _applyFadeOutOpacityExpr(layer, 0.5);
-        // Геотег должен быть ниже первого блока субтитров (вниз перед первым)
-        var firstSub = _findFirstRegularLayer(comp);
-        if (firstSub) {
-            try { layer.moveAfter(firstSub); } catch (e) {}
-        }
-
+        var created = _createGeotagLayerAt(comp, tpl, text, Number(comp.time) || 0, null);
         app.endUndoGroup();
-        return respondOk("OK");
+        return respondOk({ created: created ? [created] : [], count: created ? 1 : 0 });
     };
 
-    // GEOTAG LIST: [{text, time}, ...] - place each at provided time
+    // GEOTAG LIST: [{text,time,anchorLayer,anchorType,anchorBatch}, ...]
+    // Parsed mode prefers subtitle anchor and ignores stale imported "time".
     createGeotagsAtTimes = function (list) {
         var comp = _ensureActiveComp();
         if (!comp) return respondErr("No active comp");
@@ -543,26 +730,35 @@
 
         var t0 = Number(comp.time) || 0;
         var tpl = _findCompByName("geotag");
-        var geotagDur = tpl ? (Number(tpl.duration) || 0) : 0;
-        var nextStart = t0;
+        if (!tpl) { alert("Композиция 'geotag' не найдена"); return respondErr("No geotag"); }
+
+        app.beginUndoGroup("Create Geotags (Anchored)");
+        var created = [];
 
         for (var i = 0; i < arr.length; i++) {
             var g = arr[i] || {};
-            comp.time = nextStart;
-            createGeotag(g.text || "");
+            var anchor = _resolveGeotagAnchorLayer(comp, g);
+            var targetStart = null;
+            if (anchor) {
+                targetStart = Number(anchor.inPoint);
+            } else {
+                targetStart = Number(g.time);
+            }
+            if (isNaN(targetStart)) targetStart = t0;
 
-            // Additional geotags are placed sequentially (in butt-join) after the first one.
-            if (geotagDur > 0) nextStart += geotagDur;
+            var c = _createGeotagLayerAt(comp, tpl, g.text || "", targetStart, anchor);
+            if (c) created.push(c);
         }
         comp.time = Number(t0) || comp.time;
-        return respondOk("OK");
+        app.endUndoGroup();
+        return respondOk({ created: created, count: created.length });
     };
 
     // HEAD_TOPIC:
     // 1) ensures one WORK comp (head_topic_WORK), updates HEAD/TOPIC text
     // 2) removes previously generated head_topic layers in active comp
     // 3) creates layers over groups of consecutive Sub_VOICEOVER_* blocks
-    applyHeadTopicToRegular = function (headText, topicText) {
+    applyHeadTopicToRegular = function (headText, topicText, geotagHints) {
         var comp = _ensureActiveComp();
         if (!comp) return respondErr("No active comp");
 
@@ -591,11 +787,19 @@
         // remove previous generated layers
         _removeGeneratedHeadLayers(comp);
 
-        // Head-topic chain is built by SYNCH boundaries (not by geotag count):
-        // first starts at playhead, each next starts at previous synch end,
-        // each ends at next synch start.
+        // Head-topic chain:
+        // - base rule: by SYNCH boundaries (next starts at previous SYNCH end, ends at next SYNCH start)
+        // - geotag rule: if a geotag is present before the next SYNCH start, next head_topic starts from geotag.out
         var EPS = Math.max(1.0 / 60.0, Number(comp.frameDuration) || (1.0 / 25.0));
-        var MIN_DUR = EPS * 2;
+        var MIN_DUR = 0.25;
+        try {
+            var cfgMinDur = Number(getConfigValue("headTopicMinDurSec", 0.25));
+            if (!isNaN(cfgMinDur) && cfgMinDur > 0) MIN_DUR = cfgMinDur;
+        } catch (eCfg) {}
+        if (MIN_DUR < EPS * 2) MIN_DUR = EPS * 2;
+
+        var geoHints = _normalizeGeotagHints(comp, geotagHints);
+        var geoState = { index: 0 };
         var synchs = _collectSynchLayersSorted(comp);
         var made = 0;
         var firstStart = Number(comp.time) || 0;
@@ -604,42 +808,68 @@
         if (synchs.length > 0) {
             for (var si = 0; si < synchs.length; si++) {
                 var syn = synchs[si];
-                var st = (si === 0) ? firstStart : ((prevSynchEnd !== null) ? prevSynchEnd : firstStart);
-                var en = Number(syn.start) || st;
+                var defaultStart = (si === 0) ? firstStart : ((prevSynchEnd !== null) ? prevSynchEnd : firstStart);
+                var en = Number(syn.start);
+                if (isNaN(en)) en = defaultStart;
                 var synEnd = Number(syn.end) || en;
+                var st = defaultStart;
+
+                var resetOut = _consumeLatestGeotagResetOutBefore(geoHints, geoState, en, defaultStart, EPS);
+                if (resetOut !== null) st = resetOut;
 
                 if ((en - st) > MIN_DUR) {
-                    var l = comp.layers.add(work);
-                    made++;
-                    l.name = HEAD_LAYER_PREFIX + "_" + made;
-                    try { l.label = HEAD_LABEL; } catch (eLbl) {}
-                    l.startTime = st;
-                    l.inPoint = st;
-                    l.outPoint = en;
-                    _applyFadeOutOpacityExpr(l, 0.5);
-
-                    // Размещаем head_topic под всем блоком субтитров
                     var anchor = _findLowestRegularLayerInRange(comp, st, en);
                     if (anchor) {
+                        var l = comp.layers.add(work);
+                        made++;
+                        l.name = HEAD_LAYER_PREFIX + "_" + made;
+                        try { l.label = HEAD_LABEL; } catch (eLbl) {}
+                        l.startTime = st;
+                        l.inPoint = st;
+                        l.outPoint = en;
+                        _applyFadeOutOpacityExpr(l, 0.5);
+
+                        // Всегда держим head_topic под блоком субтитров, чтобы не оставались "висящие" слои наверху.
                         try { l.moveAfter(anchor); } catch (eMv) {}
                     }
                 }
 
-                if (synEnd > st + EPS) prevSynchEnd = synEnd;
+                if (synEnd > defaultStart + EPS) prevSynchEnd = synEnd;
             }
         }
 
         // Fallback: no SYNCH blocks, but regular subtitles exist.
         if (made === 0) {
             var lastReg = _findLastRegularLayer(comp);
-            if (lastReg && ((Number(lastReg.outPoint) || 0) - firstStart > MIN_DUR)) {
-                var one = comp.layers.add(work);
-                one.name = HEAD_LAYER_PREFIX + "_1";
-                try { one.label = HEAD_LABEL; } catch (eLbl2) {}
-                one.startTime = firstStart;
-                one.inPoint = firstStart;
-                one.outPoint = Number(lastReg.outPoint) || firstStart;
-                _applyFadeOutOpacityExpr(one, 0.5);
+            var fallbackStart = firstStart;
+            var fallbackEnd = lastReg ? (Number(lastReg.outPoint) || fallbackStart) : fallbackStart;
+
+            if (lastReg && geoHints.length > 0) {
+                for (var gi = 0; gi < geoHints.length; gi++) {
+                    var gh = geoHints[gi];
+                    if (!gh) continue;
+                    var go = Number(gh.out);
+                    if (isNaN(go)) continue;
+                    if (go > fallbackStart + EPS && go < fallbackEnd - EPS) {
+                        fallbackStart = go;
+                        break;
+                    }
+                }
+            }
+
+            if (lastReg && (fallbackEnd - fallbackStart > MIN_DUR)) {
+                var fallbackAnchor = _findLowestRegularLayerInRange(comp, fallbackStart, fallbackEnd);
+                if (fallbackAnchor) {
+                    var one = comp.layers.add(work);
+                    one.name = HEAD_LAYER_PREFIX + "_1";
+                    try { one.label = HEAD_LABEL; } catch (eLbl2) {}
+                    one.startTime = fallbackStart;
+                    one.inPoint = fallbackStart;
+                    one.outPoint = fallbackEnd;
+                    _applyFadeOutOpacityExpr(one, 0.5);
+                    try { one.moveAfter(fallbackAnchor); } catch (eMv2) {}
+                    made = 1;
+                }
             }
         }
 
