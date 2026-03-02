@@ -113,8 +113,6 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
     comp.time = currentTime;
         }
 
-        // Update subtitle_BG to cover all subtitle layers
-        _updateSubtitleBg(comp);
         _hideSubtitleTemplates(comp);
         app.endUndoGroup();
         return respondOk("OK");
@@ -466,19 +464,66 @@ function _hideSubtitleTemplates(comp) {
     try { comp.hideShyLayers = true; } catch (e) {}
 }
 
+var SUBTITLE_BG_ONCE_FLAG = "CP_SUBTITLE_BG_REFRESHED";
+
+function _getItemCommentSafe(item) {
+    if (!item) return "";
+    try {
+        return String(item.comment || "");
+    } catch (e) {
+        return "";
+    }
+}
+
+function _hasCompFlag(comp, flagKey) {
+    if (!comp || !flagKey) return false;
+    var comment = _getItemCommentSafe(comp);
+    if (!comment) return false;
+    var escaped = String(flagKey).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    var re = new RegExp("(^|\\n)" + escaped + "=1(\\n|$)");
+    return re.test(comment);
+}
+
+function _setCompFlag(comp, flagKey) {
+    if (!comp || !flagKey) return false;
+    if (_hasCompFlag(comp, flagKey)) return true;
+
+    var comment = _getItemCommentSafe(comp);
+    if (comment && comment.charAt(comment.length - 1) !== "\n") comment += "\n";
+    comment += String(flagKey) + "=1";
+    try {
+        comp.comment = comment;
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 // Public helper: force subtitle_BG recalculation for active comp.
-refreshSubtitleBgForActiveComp = function () {
+refreshSubtitleBgForActiveComp = function (onceOnly) {
     try {
         var comp = app.project.activeItem;
         if (!comp || !(comp instanceof CompItem)) {
             return respondErr("No active comp");
         }
 
+        var once = !!onceOnly;
+        if (once && _hasCompFlag(comp, SUBTITLE_BG_ONCE_FLAG)) {
+            return respondOk({
+                skipped: true,
+                reason: "already_refreshed"
+            });
+        }
+
         app.beginUndoGroup("Refresh Subtitle BG");
         _updateSubtitleBg(comp);
+        if (once) _setCompFlag(comp, SUBTITLE_BG_ONCE_FLAG);
         app.endUndoGroup();
 
-        return respondOk("OK");
+        return respondOk({
+            skipped: false,
+            onceOnly: once
+        });
     } catch (e) {
         try { app.endUndoGroup(); } catch (e2) {}
         return respondErr(e && e.message ? e.message : String(e));

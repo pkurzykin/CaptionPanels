@@ -88,16 +88,21 @@ function runCreateBrandingWorkflow() {
     // Recompute subtitle_BG after all branding layers are placed.
     // Keep a raw-script fallback to avoid silent regressions if named host calls break.
     chain = chain.then(function () {
-        return CPHostAPI.call("refreshSubtitleBgForActiveComp", [], { module: "branding", timeoutMs: 15000 });
+        return CPHostAPI.call("refreshSubtitleBgForActiveComp", [true], { module: "branding", timeoutMs: 15000 });
     }).then(function (bgOut) {
         if (bgOut && bgOut.ok) {
-            logUi("refreshSubtitleBgForActiveComp");
+            var bgRes = bgOut.result || {};
+            if (bgRes && bgRes.skipped) {
+                logUi("refreshSubtitleBgForActiveComp:skipped");
+            } else {
+                logUi("refreshSubtitleBgForActiveComp");
+            }
             return { ok: true, source: "named-call" };
         }
 
         var bgErr = bgOut && bgOut.error ? String(bgOut.error) : "Unknown error";
         logUiError("branding.subtitleBg", bgErr);
-        return _runHost("refreshSubtitleBgForActiveComp()", "refreshSubtitleBgForActiveComp(raw-fallback)").then(function () {
+        return _runHost("refreshSubtitleBgForActiveComp(true)", "refreshSubtitleBgForActiveComp(raw-fallback)").then(function () {
             return { ok: true, source: "raw-fallback", warning: bgErr };
         });
     });
