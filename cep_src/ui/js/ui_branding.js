@@ -9,6 +9,9 @@ function runCreateBrandingWorkflow() {
     var head = headEl ? headEl.value : "";
     var topic = topicEl ? topicEl.value : "";
     var geo = geoEl ? geoEl.value : "";
+    var hasHead = String(head || "").replace(/^\s+|\s+$/g, "").length > 0;
+    var hasTopic = String(topic || "").replace(/^\s+|\s+$/g, "").length > 0;
+    var hasGeo = String(geo || "").replace(/^\s+|\s+$/g, "").length > 0;
 
     // 1) GEOTAG(S)
     var pendingGeo = [];
@@ -28,19 +31,58 @@ function runCreateBrandingWorkflow() {
     }
 
     var chain = Promise.resolve();
+    var createdGeotags = [];
+    var parsedMode = pendingGeo.length > 0;
 
-    if (pendingGeo.length > 0) {
+    if (parsedMode) {
         var cmdGeoList = "createGeotagsAtTimes(" + JSON.stringify(pendingGeo) + ")";
-        chain = chain.then(function () { return _runHost(cmdGeoList, "createGeotagsAtTimes"); });
-    } else if (geo) {
+        chain = chain.then(function () { return _runHost(cmdGeoList, "createGeotagsAtTimes"); }).then(function (out) {
+            var r = out && out.result ? out.result : null;
+            if (r && r.created && r.created.length) createdGeotags = r.created;
+            return out;
+        });
+    } else if (hasGeo) {
         var cmdGeo = "createGeotag(" + JSON.stringify(geo) + ")";
-        chain = chain.then(function () { return _runHost(cmdGeo, "createGeotag"); });
+        chain = chain.then(function () { return _runHost(cmdGeo, "createGeotag"); }).then(function (out) {
+            var r = out && out.result ? out.result : null;
+            if (r && r.created && r.created.length) createdGeotags = r.created;
+            return out;
+        });
     }
 
     // 2) HEAD_TOPIC
-    if (head || topic) {
-        var cmdHead = "applyHeadTopicToRegular(" + JSON.stringify(head) + "," + JSON.stringify(topic) + ")";
-        chain = chain.then(function () { return _runHost(cmdHead, "applyHeadTopicToRegular"); });
+    if (parsedMode) {
+        if (hasHead || hasTopic) {
+            chain = chain.then(function () {
+                var cmdHeadParsed = "applyHeadTopicToRegular(" + JSON.stringify(head) + "," + JSON.stringify(topic) + "," + JSON.stringify(createdGeotags) + ")";
+                return _runHost(cmdHeadParsed, "applyHeadTopicToRegular(parsed)");
+            });
+        }
+    } else {
+        // Manual mode:
+        // - head+topic+geotag: full chain (first head_topic from geotag).
+        // - geotag only: only geotag creation.
+        // - head+topic without geotag: keep old behavior.
+        var runHeadTopic = false;
+        var passGeotagsToHeadTopic = false;
+
+        if (hasHead && hasTopic && hasGeo) {
+            runHeadTopic = true;
+            passGeotagsToHeadTopic = true;
+        } else if (!hasGeo && (hasHead || hasTopic)) {
+            runHeadTopic = true;
+        } else {
+            runHeadTopic = false;
+        }
+
+        if (runHeadTopic) {
+            chain = chain.then(function () {
+                var cmdHeadManual = passGeotagsToHeadTopic
+                    ? ("applyHeadTopicToRegular(" + JSON.stringify(head) + "," + JSON.stringify(topic) + "," + JSON.stringify(createdGeotags) + ")")
+                    : ("applyHeadTopicToRegular(" + JSON.stringify(head) + "," + JSON.stringify(topic) + ")");
+                return _runHost(cmdHeadManual, "applyHeadTopicToRegular(manual)");
+            });
+        }
     }
 
     // Recompute subtitle_BG after all branding layers are placed.

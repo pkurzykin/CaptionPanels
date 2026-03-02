@@ -136,6 +136,7 @@
 - Head Topic: устранены лишние короткие `head_topic`-слои — создается только валидный интервал между `end(previous synch)` и `start(next synch)`; геотеговый старт учитывается по позиции geotag перед группой.
 - Branding (workflow simplification): первый `head_topic` теперь всегда стартует от плейхеда; последующие идут по цепочке `start = end(previous synch)`, `end = start(next synch)` и не зависят от geotag.
 - Geotag (workflow simplification): первый geotag ставится по плейхеду, все следующие — последовательно встык (ручная доводка позиции дальше делается на таймлайне); geotag получает label `Brown`.
+- Branding/Create Branding: разделены parsed/manual режимы без изменений UI-кнопки; в parsed-режиме geotag ставится по текущему `inPoint` связанного subtitle-якоря (`anchorLayer`/`anchorBatch`) и размещается под этим subtitle, в manual-режиме сохранено старое поведение `head+topic` без geotag, добавлен сценарий `geotag-only` (без запуска цепочки head_topic), а цепочка head_topic сбрасывает старт в `geotag.outPoint` при встрече geotag на таймлайне и фильтрует короткие/непривязанные слои.
 
 ## v2.4.1 — 2026-02-25
 
