@@ -205,28 +205,6 @@
         return true;
     }
 
-    function _refreshSubtitleBgAfterBranding(comp) {
-        var ok = false;
-        try {
-            if (typeof loadModule === "function") loadModule("subtitles.jsx");
-        } catch (eLm) {}
-
-        try {
-            if (typeof _updateSubtitleBg === "function") {
-                _updateSubtitleBg(comp);
-                ok = true;
-            }
-        } catch (eUp) {
-            ok = false;
-        }
-
-        if (!ok) {
-            try { ok = _refreshSubtitleBgFallback(comp); } catch (eFb) { ok = false; }
-        }
-
-        return ok;
-    }
-
     function _parseSubLayerNameInfo(name) {
         var s = String(name || "");
         var m = s.match(/^Sub_(VOICEOVER|SYNCH)_(\d+)_(\d+)$/i);
@@ -872,8 +850,6 @@
                 }
             }
         }
-
-        try { _refreshSubtitleBgAfterBranding(comp); } catch (eBg1) {}
 
         app.endUndoGroup();
         return respondOk("OK");

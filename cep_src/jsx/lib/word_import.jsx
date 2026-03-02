@@ -431,10 +431,78 @@
         return importWordFromFile(file.fsName);
     };
 
+    var TIMELINE_PREP_ONCE_FLAG = "CP_WORD_IMPORT_TIMELINE_PREPARED";
+
+    function _getItemCommentSafe(item) {
+        if (!item) return "";
+        try {
+            return String(item.comment || "");
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function _hasCompFlag(comp, flagKey) {
+        if (!comp || !flagKey) return false;
+        var comment = _getItemCommentSafe(comp);
+        if (!comment) return false;
+        var escaped = String(flagKey).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        var re = new RegExp("(^|\\n)" + escaped + "=1(\\n|$)");
+        return re.test(comment);
+    }
+
+    function _setCompFlag(comp, flagKey) {
+        if (!comp || !flagKey) return false;
+        if (_hasCompFlag(comp, flagKey)) return true;
+        var comment = _getItemCommentSafe(comp);
+        if (comment && comment.charAt(comment.length - 1) !== "\n") comment += "\n";
+        comment += String(flagKey) + "=1";
+        try {
+            comp.comment = comment;
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function _trimCompEndToWorkArea(comp) {
+        if (!comp) return false;
+
+        var frameDur = 1.0 / Math.max(1, Number(comp.frameRate) || 25);
+        var start = Number(comp.workAreaStart);
+        var dur = Number(comp.workAreaDuration);
+
+        if (isNaN(start) || start < 0) start = 0;
+        if (isNaN(dur) || dur <= 0) return false;
+
+        var targetEnd = start + dur;
+        if (targetEnd < frameDur) targetEnd = frameDur;
+
+        var compDur = Number(comp.duration);
+        if (isNaN(compDur) || compDur <= 0) compDur = targetEnd;
+
+        // Trim only; do not extend composition duration.
+        if (targetEnd > compDur) targetEnd = compDur;
+
+        if (Math.abs(compDur - targetEnd) <= (frameDur / 2.0)) return false;
+        comp.duration = targetEnd;
+        return true;
+    }
+
     setWorkAreaEndToVideoLayer = function () {
         try {
             var comp = app.project.activeItem;
             if (!comp || !(comp instanceof CompItem)) return respondErr("No active comp");
+
+            if (_hasCompFlag(comp, TIMELINE_PREP_ONCE_FLAG)) {
+                return respondOk({
+                    skipped: true,
+                    reason: "already_prepared",
+                    workAreaStart: Number(comp.workAreaStart),
+                    workAreaEnd: Number(comp.workAreaStart + comp.workAreaDuration),
+                    compDuration: Number(comp.duration)
+                });
+            }
 
             var layer = _findVideoLayerForWorkArea(comp);
             if (!layer) return respondErr("No video layer found");
@@ -442,6 +510,8 @@
             var end = Number(layer.outPoint);
             if (isNaN(end) || end <= 0) return respondErr("Invalid video layer timing");
             if (end > comp.duration) end = comp.duration;
+
+            app.beginUndoGroup("Prepare Timeline For Word Import");
 
             var frameDur = 1.0 / Math.max(1, Number(comp.frameRate) || 25);
             var start = Number(comp.workAreaStart);
@@ -457,12 +527,21 @@
             if (dur < frameDur) dur = frameDur;
             comp.workAreaDuration = dur;
 
+            var trimmed = _trimCompEndToWorkArea(comp);
+            _setCompFlag(comp, TIMELINE_PREP_ONCE_FLAG);
+
+            app.endUndoGroup();
+
             return respondOk({
                 layerName: String(layer.name || ""),
                 workAreaStart: Number(comp.workAreaStart),
-                workAreaEnd: Number(comp.workAreaStart + comp.workAreaDuration)
+                workAreaEnd: Number(comp.workAreaStart + comp.workAreaDuration),
+                compDuration: Number(comp.duration),
+                trimApplied: !!trimmed,
+                skipped: false
             });
         } catch (e) {
+            try { app.endUndoGroup(); } catch (e2) {}
             return respondErr(e && e.message ? e.message : String(e));
         }
     };
