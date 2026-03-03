@@ -9,6 +9,7 @@ window.onload = function() {
     setTimeout(function () {
         loadHostModules([
             "response.jsx",
+            "runtime_paths.jsx",
             "config.jsx",
             "logger.jsx",
             "run_registry.jsx",
