@@ -93,13 +93,18 @@
 
         var root = _getCaptionPanelsToolsRoot();
         add(root);
+        try {
+            if (typeof cpGetRuntimeToolsRootDefault === "function") add(cpGetRuntimeToolsRootDefault());
+        } catch (eDef) {}
 
-        // If only data root is configured, derive tools root from parent folder.
+        // Derive tools roots from data root parent (tolerate legacy/misaligned folder names).
         try {
             var dataRoot = _getCaptionPanelsDataRoot();
             var parent = _dirName(dataRoot);
             if (parent) {
                 add(parent + "/CaptionPanelTools");
+                add(parent + "/CaptionPanelsTools");
+                add(parent + "/tools");
             }
         } catch (e1) {}
 

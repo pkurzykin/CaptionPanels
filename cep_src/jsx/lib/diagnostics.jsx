@@ -228,11 +228,16 @@
 
         var root = _toolsRoot();
         add(root);
+        try {
+            if (typeof cpGetRuntimeToolsRootDefault === "function") add(cpGetRuntimeToolsRootDefault());
+        } catch (eDef) {}
 
         try {
             var parent = _dirName(_dataRoot());
             if (parent) {
                 add(parent + "/CaptionPanelTools");
+                add(parent + "/CaptionPanelsTools");
+                add(parent + "/tools");
             }
         } catch (e0) {}
         return out;
