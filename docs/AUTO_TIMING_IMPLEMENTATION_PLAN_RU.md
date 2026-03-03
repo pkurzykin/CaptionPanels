@@ -67,20 +67,20 @@
 
 Минимальные ключи для автотайминга (предлагаемые):
 
-- `captionPanelsDataRoot`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData`
-- `autoTimingBlocksDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks`
-- `autoTimingAlignmentDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment`
-- `autoTimingLogsDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
+- `paths.dataRoot`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData`
+- `paths.autoTimingBlocksDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks`
+- `paths.autoTimingAlignmentDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment`
+- `paths.autoTimingLogsDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
 
 WhisperX:
-- `whisperxPythonPath`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
+- `asr.whisperxPythonPath`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
 - `whisperxModel`: `medium` (позже можно переключать на `small`)
 - `whisperxLanguage`: `ru`
 - `whisperxDevice`: `cuda`
 - `whisperxVadMethod`: `silero`
 
 Transcribe/Align:
-- `transcribeAlignScriptPath`: путь к `tools/transcribe_align/transcribe_align.py` (в сетевом репо)
+- `transcribe.alignScriptPath`: путь к `tools/transcribe_align/transcribe_align.py` (в сетевом репо)
 - (опционально) `transcribeAlignThreshold`, `transcribeAlignMaxSkip`, и т.п.
 
 ---

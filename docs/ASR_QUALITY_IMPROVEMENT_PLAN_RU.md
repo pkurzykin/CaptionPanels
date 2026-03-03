@@ -93,7 +93,7 @@
 
 Что делаем:
 - Стандартизируем один корень:
-  - `captionPanelsDataRoot = %USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData`
+  - `paths.dataRoot = %USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData`
 - Добавляем (или фиксируем) подкаталоги:
   - `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\auto_timing\blocks`
   - `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\auto_timing\whisperx\<runId>`
@@ -145,4 +145,3 @@
 - Параметры распознавания настраиваются через `config.json`.
 - Пути сохранения и кэш моделей стандартизированы под `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\...`.
 - Есть краткий тест-отчёт: «на 3 роликах medium/large-v3 даёт X% успешного тайминга».
-

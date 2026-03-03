@@ -7,7 +7,7 @@ Repository convention:
 
 Current v1 schemas:
 - [`config.schema.json`](config.schema.json)
-  - `config.json` contract (sectioned format + legacy flat keys for compatibility).
+  - `config.json` contract (sectioned format; legacy flat path aliases are removed).
 - [`job.schema.json`](job.schema.json)
   - job contract for `jsx/lib/job_runner.jsx` (`schemaVersion=1`, `type`, `payload`).
 - [`results.schema.json`](results.schema.json)

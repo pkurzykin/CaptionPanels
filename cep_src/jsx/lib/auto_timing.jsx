@@ -541,7 +541,7 @@
 
     function _getCaptionPanelsDataRoot() {
         var raw = "";
-        try { raw = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (e) {}
+        try { raw = String(getConfigValue("paths.dataRoot", "") || ""); } catch (e) {}
         var root = _resolvePathRelativeToConfig(raw);
         if (!root) {
             try {
@@ -553,7 +553,7 @@
 
     function _getCaptionPanelsToolsRoot() {
         var raw = "";
-        try { raw = String(getConfigValue("captionPanelsToolsRoot", "") || ""); } catch (e) {}
+        try { raw = String(getConfigValue("paths.toolsRoot", "") || ""); } catch (e) {}
         var root = _resolvePathRelativeToConfig(raw);
         if (!root) {
             try {
@@ -604,7 +604,7 @@
         }
 
         var pyRaw = "";
-        try { pyRaw = String(getConfigValue("whisperxPythonPath", "") || ""); } catch (e0) { pyRaw = ""; }
+        try { pyRaw = String(getConfigValue("asr.whisperxPythonPath", "") || ""); } catch (e0) { pyRaw = ""; }
         addCandidate(_resolvePathRelativeToConfig(pyRaw));
 
         var toolRoots = _buildToolsRootCandidates();
@@ -625,7 +625,7 @@
 
     function _getAutoTimingOutDir() {
         var outDirRaw = "";
-        try { outDirRaw = String(getConfigValue("autoTimingOutDir", "") || ""); } catch (e) {}
+        try { outDirRaw = String(getConfigValue("paths.autoTimingOutDir", "") || ""); } catch (e) {}
         var outDir = _resolvePathRelativeToConfig(outDirRaw);
 
         // Prefer the unified data root if the legacy key is not set.
@@ -641,7 +641,7 @@
 
     function _getAutoTimingBlocksDir() {
         var raw = "";
-        try { raw = String(getConfigValue("autoTimingBlocksDir", "") || ""); } catch (e) {}
+        try { raw = String(getConfigValue("paths.autoTimingBlocksDir", "") || ""); } catch (e) {}
         var dir = _resolvePathRelativeToConfig(raw);
         if (!dir) {
             var outDir = _getAutoTimingOutDir();
@@ -652,7 +652,7 @@
 
     function _getAutoTimingWhisperXDir() {
         var raw = "";
-        try { raw = String(getConfigValue("autoTimingWhisperXDir", "") || ""); } catch (e) {}
+        try { raw = String(getConfigValue("paths.autoTimingWhisperXDir", "") || ""); } catch (e) {}
         var dir = _resolvePathRelativeToConfig(raw);
         if (!dir) {
             var outDir = _getAutoTimingOutDir();
@@ -663,7 +663,7 @@
 
     function _getAutoTimingAlignmentDir() {
         var raw = "";
-        try { raw = String(getConfigValue("autoTimingAlignmentDir", "") || ""); } catch (e) {}
+        try { raw = String(getConfigValue("paths.autoTimingAlignmentDir", "") || ""); } catch (e) {}
         var dir = _resolvePathRelativeToConfig(raw);
         if (!dir) {
             var outDir = _getAutoTimingOutDir();
@@ -674,7 +674,7 @@
 
     function _getAutoTimingLogsDir() {
         var raw = "";
-        try { raw = String(getConfigValue("autoTimingLogsDir", "") || ""); } catch (e) {}
+        try { raw = String(getConfigValue("paths.autoTimingLogsDir", "") || ""); } catch (e) {}
         var dir = _resolvePathRelativeToConfig(raw);
         if (!dir) {
             var outDir = _getAutoTimingOutDir();
@@ -715,7 +715,7 @@
         }
     }
 
-    // Debug helper: dumps diagnostics to a file in autoTimingLogsDir.
+    // Debug helper: dumps diagnostics to a file in paths.autoTimingLogsDir.
     // This is useful when the bridge returns an unexpected response that is hard to copy from alert().
     writeAutoTimingDebug = function (text) {
         try {
@@ -723,7 +723,7 @@
             try { if (typeof reloadConfig === "function") reloadConfig(); } catch (eCfg) {}
 
             var outDir = _getAutoTimingLogsDir();
-            if (!outDir) return respondErr("autoTimingLogsDir is empty");
+            if (!outDir) return respondErr("paths.autoTimingLogsDir is empty");
             _ensureFolder(outDir);
 
             var outPath = outDir + "/auto_timing_debug_" + _timestamp() + ".txt";
@@ -1310,7 +1310,7 @@
             }
 
             var blocksDir = _getAutoTimingBlocksDir();
-            if (!blocksDir) return respondErr("autoTimingBlocksDir is empty");
+            if (!blocksDir) return respondErr("paths.autoTimingBlocksDir is empty");
             _ensureFolder(blocksDir);
 
             var base = _sanitizeFileBase(comp.name || "comp");
@@ -1390,7 +1390,7 @@
 
             // Logs
             var logsDir = _getAutoTimingLogsDir();
-            if (!logsDir) return respondErr("autoTimingLogsDir is empty");
+            if (!logsDir) return respondErr("paths.autoTimingLogsDir is empty");
             _ensureFolder(logsDir);
 
             // 1) Export blocks
@@ -1463,7 +1463,7 @@
             if (!py) {
                 var triedPy = "";
                 try { triedPy = pyResolved.checked && pyResolved.checked.length ? ("\nChecked:\n- " + pyResolved.checked.join("\n- ")) : ""; } catch (eTpy) { triedPy = ""; }
-                return _failWithRun("whisperx", "Python not found. Check whisperxPythonPath/captionPanelsToolsRoot." + triedPy, { reason: "python_not_found" });
+                return _failWithRun("whisperx", "Python not found. Check asr.whisperxPythonPath/paths.toolsRoot." + triedPy, { reason: "python_not_found" });
             }
 
             var pyExe = "\"" + _toCmdWinPath(_normalizePath(py)) + "\"";
@@ -1542,7 +1542,7 @@
             }
 
             // Optional: use portable ffmpeg without touching system PATH.
-            // If ffmpegExePath is set, we prepend its folder to PATH for this WhisperX run only.
+            // If paths.ffmpegExePath is set, we prepend its folder to PATH for this WhisperX run only.
             function _escapeCmdValue(v) {
                 // Escape cmd metacharacters for safe use in `set VAR=...`.
                 // We avoid quotes here because the whole body is wrapped into cmd.exe /c ""..."".
@@ -1557,7 +1557,7 @@
 
             var envPrefix = "";
             try {
-                var ffRaw = String(getConfigValue("ffmpegExePath", "") || "");
+                var ffRaw = String(getConfigValue("paths.ffmpegExePath", "") || "");
                 var ff = _resolvePathRelativeToConfig(ffRaw);
                 var ffCandidates = [];
                 var ffSeen = {};
@@ -1599,13 +1599,13 @@
             } catch (eFf) {}
 
             var whisperBaseDir = _getAutoTimingWhisperXDir();
-            if (!whisperBaseDir) return _failWithRun("whisperx", "autoTimingWhisperXDir is empty", { reason: "empty_whisperx_dir" });
+            if (!whisperBaseDir) return _failWithRun("whisperx", "paths.autoTimingWhisperXDir is empty", { reason: "empty_whisperx_dir" });
             var whisperRunDir = _normalizePath(whisperBaseDir + "/" + runBase);
             _ensureFolder(whisperRunDir);
 
             // WhisperX runner script (stable API wrapper around WhisperX/faster-whisper).
             var runnerRaw = "";
-            try { runnerRaw = String(getConfigValue("whisperxRunnerScriptPath", "") || ""); } catch (eR) { runnerRaw = ""; }
+            try { runnerRaw = String(getConfigValue("asr.runnerScriptPath", "") || ""); } catch (eR) { runnerRaw = ""; }
             if (!runnerRaw) runnerRaw = "host/tools/whisperx_runner/run_whisperx.py";
             var runnerPath = _resolvePathRelativeToRoot(runnerRaw);
             runnerPath = _normalizePath(runnerPath);
@@ -1767,12 +1767,12 @@
             // 4) Run alignment
 
             var alignBaseDir = _getAutoTimingAlignmentDir();
-            if (!alignBaseDir) return _failWithRun("align", "autoTimingAlignmentDir is empty", { reason: "empty_alignment_dir" });
+            if (!alignBaseDir) return _failWithRun("align", "paths.autoTimingAlignmentDir is empty", { reason: "empty_alignment_dir" });
             var alignRunDir = _normalizePath(alignBaseDir + "/" + runBase);
             _ensureFolder(alignRunDir);
 
             var scriptRaw = "";
-            try { scriptRaw = String(getConfigValue("transcribeAlignScriptPath", "") || ""); } catch (eS) { scriptRaw = ""; }
+            try { scriptRaw = String(getConfigValue("transcribe.alignScriptPath", "") || ""); } catch (eS) { scriptRaw = ""; }
             if (!scriptRaw) scriptRaw = "host/tools/transcribe_align/transcribe_align.py";
             var scriptPath = _resolvePathRelativeToRoot(scriptRaw);
             scriptPath = _normalizePath(scriptPath);
@@ -1986,7 +1986,7 @@
             } catch (eRunCreate) {}
 
             var logsDir = _getAutoTimingLogsDir();
-            if (!logsDir) return _fail("align", "autoTimingLogsDir is empty", runRef, runManifestPath, { reason: "empty_logs_dir" });
+            if (!logsDir) return _fail("align", "paths.autoTimingLogsDir is empty", runRef, runManifestPath, { reason: "empty_logs_dir" });
             _ensureFolder(logsDir);
 
             var pyResolved = _resolveWhisperPythonPath();
@@ -1994,17 +1994,17 @@
             if (!py) {
                 var triedPy = "";
                 try { triedPy = pyResolved.checked && pyResolved.checked.length ? ("\nChecked:\n- " + pyResolved.checked.join("\n- ")) : ""; } catch (eTpy) { triedPy = ""; }
-                return _fail("align", "Python not found. Check whisperxPythonPath/captionPanelsToolsRoot." + triedPy, runRef, runManifestPath, { reason: "python_not_found" });
+                return _fail("align", "Python not found. Check asr.whisperxPythonPath/paths.toolsRoot." + triedPy, runRef, runManifestPath, { reason: "python_not_found" });
             }
             var pyExe = "\"" + _toCmdWinPath(_normalizePath(py)) + "\"";
 
             var alignBaseDir = _getAutoTimingAlignmentDir();
-            if (!alignBaseDir) return _fail("align", "autoTimingAlignmentDir is empty", runRef, runManifestPath, { reason: "empty_alignment_dir" });
+            if (!alignBaseDir) return _fail("align", "paths.autoTimingAlignmentDir is empty", runRef, runManifestPath, { reason: "empty_alignment_dir" });
             var alignRunDir = _normalizePath(alignBaseDir + "/" + runBase);
             _ensureFolder(alignRunDir);
 
             var scriptRaw = "";
-            try { scriptRaw = String(getConfigValue("transcribeAlignScriptPath", "") || ""); } catch (eS) { scriptRaw = ""; }
+            try { scriptRaw = String(getConfigValue("transcribe.alignScriptPath", "") || ""); } catch (eS) { scriptRaw = ""; }
             if (!scriptRaw) scriptRaw = "host/tools/transcribe_align/transcribe_align.py";
             var scriptPath = _resolvePathRelativeToRoot(scriptRaw);
             scriptPath = _normalizePath(scriptPath);

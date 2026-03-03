@@ -25,7 +25,7 @@
   - `paths`
   - `asr`
   - `transcribe`
-- Legacy flat-ключи (`word2jsonExePath`, `whisperxModel`, `subtitleCharsPerLine` и т.д.) всё еще поддерживаются runtime-слоем для обратной совместимости.
+- Для path-настроек используем только секционные ключи (`paths.*`, `asr.whisperxPythonPath`, `asr.runnerScriptPath`, `transcribe.alignScriptPath`).
 
 ## Рекомендуемые базовые каталоги (стандарт деплоя)
 Чтобы на рабочих ПК всё было предсказуемо и не требовало прав администратора / правки `PATH`:
@@ -61,7 +61,7 @@
 - `paths.word2jsonExePath` (string) — путь к `word2json.exe`.
 - `paths.word2jsonOutDir` (string) — куда писать JSON после Word import.
 - `paths.word2jsonLogsDir` (string) — где хранить `word2json_*` логи.
-- `paths.autoTimingOutDir` (string) — legacy-совместимость для общего корня Auto Timing.
+- `paths.autoTimingOutDir` (string) — общий корень Auto Timing (опционально).
 - `paths.autoTimingBlocksDir` / `paths.autoTimingWhisperXDir` / `paths.autoTimingAlignmentDir` / `paths.autoTimingLogsDir`
   - специализированные папки run-артефактов Auto Timing.
 - `paths.ffmpegExePath` (string) — путь к `ffmpeg.exe` (portable, без PATH).
