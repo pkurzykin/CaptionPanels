@@ -36,9 +36,11 @@
             if (i > 0) out += ",";
             out += "{\"text\":\"" + _escapeString(g.text) + "\",\"time\":" + (Number(g.time) || 0) +
                 ",\"pin\":\"" + _escapeString(g.pin || "") + "\"" +
+                ",\"anchorSegId\":\"" + _escapeString(g.anchorSegId || "") + "\"" +
                 ",\"anchorLayer\":\"" + _escapeString(g.anchorLayer || "") + "\"" +
                 ",\"anchorType\":\"" + _escapeString(g.anchorType || "") + "\"" +
-                ",\"anchorBatch\":" + (Number(g.anchorBatch) || 0) + "}";
+                ",\"anchorBatch\":" + (Number(g.anchorBatch) || 0) +
+                ",\"anchorIndex\":" + (Number(g.anchorIndex) || 0) + "}";
         }
         out += "]";
         return out;
@@ -209,12 +211,14 @@
 
     function _parseAnchorMetaFromLayerName(name) {
         var s = String(name || "");
-        var m = s.match(/^Sub_(VOICEOVER|SYNCH)_(\d+)_/i);
-        if (!m) return { type: "", batch: 0 };
+        var m = s.match(/^Sub_(VOICEOVER|SYNCH)_(\d+)_(\d+)$/i);
+        if (!m) return { type: "", batch: 0, index: 0 };
         var typeUpper = String(m[1] || "").toUpperCase();
         var batch = parseInt(m[2], 10);
+        var index = parseInt(m[3], 10);
         if (isNaN(batch) || batch <= 0) batch = 0;
-        return { type: typeUpper, batch: batch };
+        if (isNaN(index) || index <= 0) index = 0;
+        return { type: typeUpper, batch: batch, index: index };
     }
 
     function _hasFutureVoiceoverBeforeNextGeotag(segments, fromIndex) {
@@ -314,6 +318,7 @@
             }
 
             var geotags = [];
+            var startPinnedGeotags = [];
             var pendingGeotags = [];
             for (var i = 0; i < segments.length; i++) {
                 var seg = segments[i] || {};
@@ -325,10 +330,14 @@
                         text: _cleanGeotagText(seg.text || ""),
                         time: comp.time,
                         pin: seg.pin || "",
-                        anchorLayer: ""
+                        anchorSegId: "",
+                        anchorLayer: "",
+                        anchorType: "",
+                        anchorBatch: 0,
+                        anchorIndex: 0
                     };
                     if (String(g.pin || "").toLowerCase() === "start") {
-                        geotags.push(g);
+                        startPinnedGeotags.push(g);
                     } else {
                         pendingGeotags.push(g);
                     }
@@ -338,6 +347,24 @@
                 if (t === "voiceover" || _isSyncType(t)) {
                     var italic = _isSyncType(t);
                     var anchorLayer = _predictFirstGeneratedLayerName(comp, italic);
+                    var anchorMeta = _parseAnchorMetaFromLayerName(anchorLayer);
+                    var segId = String(seg.id || "");
+
+                    if (startPinnedGeotags.length > 0) {
+                        for (var spg = 0; spg < startPinnedGeotags.length; spg++) {
+                            var sg = startPinnedGeotags[spg];
+                            sg.anchorSegId = segId;
+                            if (anchorLayer) {
+                                sg.anchorLayer = anchorLayer;
+                                sg.anchorType = anchorMeta.type;
+                                sg.anchorBatch = anchorMeta.batch;
+                                sg.anchorIndex = anchorMeta.index;
+                            }
+                            geotags.push(sg);
+                        }
+                        startPinnedGeotags = [];
+                    }
+
                     var attachPendingNow = false;
                     if (!italic) {
                         // Prefer anchoring geotag to the next VO block.
@@ -350,17 +377,18 @@
                     if (pendingGeotags.length > 0 && attachPendingNow) {
                         for (var pg = 0; pg < pendingGeotags.length; pg++) {
                             var gg = pendingGeotags[pg];
+                            gg.anchorSegId = segId;
                             if (anchorLayer) {
                                 gg.anchorLayer = anchorLayer;
-                                var am = _parseAnchorMetaFromLayerName(anchorLayer);
-                                gg.anchorType = am.type;
-                                gg.anchorBatch = am.batch;
+                                gg.anchorType = anchorMeta.type;
+                                gg.anchorBatch = anchorMeta.batch;
+                                gg.anchorIndex = anchorMeta.index;
                             }
                             geotags.push(gg);
                         }
                         pendingGeotags = [];
                     }
-                    generateSubs(seg.text || "", italic, true);
+                    generateSubs(seg.text || "", italic, true, segId);
                     counts.blocks++;
                     if (italic) counts.synch++; else counts.voiceover++;
 
@@ -382,6 +410,10 @@
             if (pendingGeotags.length > 0) {
                 for (var pg2 = 0; pg2 < pendingGeotags.length; pg2++) geotags.push(pendingGeotags[pg2]);
                 pendingGeotags = [];
+            }
+            if (startPinnedGeotags.length > 0) {
+                for (var spg2 = 0; spg2 < startPinnedGeotags.length; spg2++) geotags.push(startPinnedGeotags[spg2]);
+                startPinnedGeotags = [];
             }
 
             var endTime = comp.time;

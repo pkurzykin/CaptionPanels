@@ -32,7 +32,7 @@ function _nextSubtitleBatchIndex(comp, typeUpper) {
 }
 
 // Глобальная функция генерации
-generateSubs = function(rawText, isItalic, jumpPlayhead) {
+generateSubs = function(rawText, isItalic, jumpPlayhead, sourceSegId) {
     try {
         var comp = app.project.activeItem;
         if (!comp || !(comp instanceof CompItem)) {
@@ -85,11 +85,17 @@ generateSubs = function(rawText, isItalic, jumpPlayhead) {
             try {
                 var segId = newL.name;
                 var c = String(newL.comment || "");
-                if (c.indexOf("CP_SEGID=") === -1) {
-                    if (c && c.charAt(c.length - 1) !== "\n") c += "\n";
-                    c += "CP_SEGID=" + segId;
-                    newL.comment = c;
-                }
+                // Keep CP_SEGID unique per subtitle layer (auto-timing contract).
+                c = c.replace(/(?:^|\r?\n)CP_SEGID=[^\r\n]*/g, "");
+                c = c.replace(/(?:^|\r?\n)CP_SRCSEGID=[^\r\n]*/g, "");
+                c = c.replace(/^\s+|\s+$/g, "");
+                if (c) c += "\n";
+                c += "CP_SEGID=" + segId;
+
+                var srcSeg = String(sourceSegId || "").replace(/^\s+|\s+$/g, "");
+                if (srcSeg) c += "\nCP_SRCSEGID=" + srcSeg;
+
+                newL.comment = c;
             } catch (e) {}
 
             var targetIn = currentTime;

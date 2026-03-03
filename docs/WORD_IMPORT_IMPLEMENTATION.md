@@ -55,6 +55,14 @@ Host (JSX):
 The existing JSON import logic is reused as-is:
 - `cep_src/jsx/lib/json_import.jsx` (`importJsonFromFile`).
 
+Branding anchor metadata (for "Create Branding"):
+- During import, each generated subtitle layer keeps:
+  - `CP_SEGID` (unique per layer, auto-timing contract)
+  - `CP_SRCSEGID` (source segment id from JSON)
+- Parsed geotags store parent linkage:
+  - primary: `anchorSegId`
+  - fallback: `anchorType` + `anchorBatch` + `anchorIndex`
+
 ---
 
 ## Config (runtime)
