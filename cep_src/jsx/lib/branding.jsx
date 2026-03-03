@@ -750,7 +750,8 @@
             out.push({
                 start: st,
                 out: en,
-                layerName: layerName
+                layerName: layerName,
+                anchorLayer: String(h.anchorLayer || "")
             });
         }
 
@@ -765,7 +766,7 @@
         if (!state) return null;
         if (typeof state.index !== "number") state.index = 0;
 
-        var chosenOut = null;
+        var chosen = null;
         while (state.index < geotagHints.length) {
             var g = geotagHints[state.index];
             if (!g) {
@@ -784,12 +785,43 @@
             if (go > endTime + eps) break;
 
             if (go > minStartExclusive + eps && go <= endTime - eps) {
-                chosenOut = go;
+                chosen = g;
             }
             state.index++;
         }
 
-        return chosenOut;
+        return chosen;
+    }
+
+    function _findGeotagLayerByName(comp, layerName) {
+        if (!comp || !layerName) return null;
+        try {
+            var l = comp.layer(String(layerName));
+            if (l && _isGeotagLayer(l)) return l;
+        } catch (e) {}
+        return null;
+    }
+
+    function _findLatestGeotagLayerEndingAt(comp, outTime, eps) {
+        if (!comp) return null;
+        var target = Number(outTime);
+        if (isNaN(target)) return null;
+        var tol = (typeof eps === "number" && eps > 0) ? eps : (1.0 / 60.0);
+        var best = null;
+        var bestStart = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !_isGeotagLayer(l)) continue;
+            var en = Number(l.outPoint);
+            var st = Number(l.inPoint);
+            if (isNaN(en) || isNaN(st)) continue;
+            if (Math.abs(en - target) > tol) continue;
+            if (!best || st > bestStart) {
+                best = l;
+                bestStart = st;
+            }
+        }
+        return best;
     }
 
     // =====================================================
@@ -908,12 +940,30 @@
                 var synEnd = Number(syn.end) || en;
                 var st = defaultStart;
 
-                var resetOut = _consumeLatestGeotagResetOutBefore(geoHints, geoState, en, defaultStart, EPS);
-                if (resetOut !== null) st = resetOut;
+                var resetGeo = _consumeLatestGeotagResetOutBefore(geoHints, geoState, en, defaultStart, EPS);
+                if (resetGeo) st = Number(resetGeo.out);
 
                 if ((en - st) > MIN_DUR) {
-                    var anchor = _findLowestRegularLayerInRange(comp, st, en);
+                    var anchor = null;
+                    if (resetGeo && resetGeo.anchorLayer) {
+                        anchor = _findSubtitleLayerByExactName(comp, resetGeo.anchorLayer);
+                    }
+                    if (!anchor) anchor = _findSubtitleLayerNearTime(comp, st + EPS);
+                    if (!anchor) anchor = _findLowestRegularLayerInRange(comp, st, en);
+
                     if (anchor) {
+                        var relatedGeoLayer = null;
+                        if (resetGeo && resetGeo.layerName) {
+                            relatedGeoLayer = _findGeotagLayerByName(comp, resetGeo.layerName);
+                        }
+                        if (!relatedGeoLayer && resetGeo) {
+                            relatedGeoLayer = _findLatestGeotagLayerEndingAt(comp, Number(resetGeo.out), EPS);
+                        }
+
+                        if (relatedGeoLayer && relatedGeoLayer.index < anchor.index) {
+                            try { relatedGeoLayer.moveAfter(anchor); } catch (eGeoMv) {}
+                        }
+
                         var l = comp.layers.add(work);
                         made++;
                         l.name = HEAD_LAYER_PREFIX + "_" + made;
@@ -925,6 +975,9 @@
 
                         // Всегда держим head_topic под блоком субтитров, чтобы не оставались "висящие" слои наверху.
                         try { l.moveAfter(anchor); } catch (eMv) {}
+                        if (relatedGeoLayer) {
+                            try { l.moveBefore(relatedGeoLayer); } catch (eHeadMv) {}
+                        }
                     }
                 }
 
