@@ -9,10 +9,10 @@
 - `paths.word2jsonExePath`
 
 Рекомендуемые значения:
-- `paths.toolsRoot = C:/CaptionPanelsLocal/CaptionPanelTools`
-- `paths.word2jsonExePath = C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
+- `paths.toolsRoot = %USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools`
+- `paths.word2jsonExePath = %USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
 
-Если в логах видно старые пути `C:/AE/...`, перезагрузи панель (`Reload`): runtime делает авто-нормализацию legacy-путей.
+Если обновил `config.json`, перезагрузи панель (`Reload`), чтобы host перечитал новые пути.
 
 ## 2) Word import не видит `.docx` по UNC/кириллице
 
@@ -49,7 +49,7 @@
 - `paths.toolsRoot`
 
 Рекомендуемо:
-- `asr.whisperxPythonPath = C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
+- `asr.whisperxPythonPath = %USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
 
 ## 5) `ffmpeg` не найден
 
@@ -57,7 +57,7 @@
 - `paths.ffmpegExePath`
 
 Рекомендуемо:
-- `paths.ffmpegExePath = C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
+- `paths.ffmpegExePath = %USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
 
 Системный `PATH` менять не нужно.
 
@@ -76,14 +76,14 @@
 - значение `paths.word2jsonOutDir`.
 
 Рекомендуемо:
-- `paths.word2jsonOutDir = C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
+- `paths.word2jsonOutDir = %USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/word2json`
 
 ## 8) Общая проверка окружения (Windows)
 
 Минимум:
 - AE 2024+
-- Доступ к `C:\CaptionPanelsLocal\CaptionPanelTools\...`
-- Доступ к `C:\CaptionPanelsLocal\CaptionPanelsData\...`
+- Доступ к `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\...`
+- Доступ к `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\...`
 - Для Auto Timing: рабочий Python venv WhisperX + CUDA/CPU режим по конфигу
 
 ## 9) `Re-run Alignment` не запускается
@@ -103,7 +103,7 @@
 
 Проверь:
 - в Settings параметр `Offline only (no model download)`;
-- наличие локальных моделей в `C:/CaptionPanelsLocal/CaptionPanelsData/models`.
+- наличие локальных моделей в `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/models`.
 
 Если модели не закэшированы:
 - временно отключи `offlineOnly`, запусти Auto Timing один раз с интернетом для прогрева cache;
@@ -266,9 +266,9 @@
 1. Один раз от администратора зарегистрируй elevated task:
    - `pwsh -NoProfile -File .\scripts\dev\register-elevated-plugin-sync-task.ps1`
 2. Синкай в staging и автоматически триггерь task из обычной сессии:
-   - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+   - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "$env:USERPROFILE\CaptionPanelsLocal\DevPluginSync\plugin" -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
 3. Для постоянной работы:
-   - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -Watch -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+   - `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "$env:USERPROFILE\CaptionPanelsLocal\DevPluginSync\plugin" -Watch -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
    - рекомендуемый launcher (особенно при запуске из сетевого/UNC пути):
      - `pwsh -NoProfile -File .\scripts\dev\start-plugin-sync-watch.ps1`
    - либо двойным кликом: `scripts\dev\start-plugin-sync-watch.cmd`
@@ -283,11 +283,11 @@
 ## Где смотреть логи
 
 - Word import:
-  - `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/word2json_last.log`
-  - `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/word2json_process_last.log`
+  - `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/word2json_last.log`
+  - `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/word2json_process_last.log`
 - Auto timing:
-  - `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/whisperx_runner_*.log`
-  - `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/align_*.out.txt`
+  - `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/whisperx_runner_*.log`
+  - `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs/align_*.out.txt`
 - Run manifests:
-  - `C:/CaptionPanelsLocal/CaptionPanelsData/runs/word_import/<runId>/run.json`
-  - `C:/CaptionPanelsLocal/CaptionPanelsData/runs/auto_timing/<runId>/run.json`
+  - `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/runs/word_import/<runId>/run.json`
+  - `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/runs/auto_timing/<runId>/run.json`

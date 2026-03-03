@@ -111,10 +111,10 @@ Preflight-проверка окружения:
 - `pwsh -NoProfile -File .\scripts\dev\register-elevated-plugin-sync-task.ps1`
 
 2) В обычной (не admin) сессии запускай синк в staging + автоприменение в `Program Files`:
-- `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+- `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "$env:USERPROFILE\CaptionPanelsLocal\DevPluginSync\plugin" -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
 
 3) Для постоянной разработки включи watch:
-- `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "C:\CaptionPanelsLocal\DevPluginSync\plugin" -Watch -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
+- `pwsh -NoProfile -File .\scripts\dev\sync-plugin.ps1 -AePluginDir "$env:USERPROFILE\CaptionPanelsLocal\DevPluginSync\plugin" -Watch -PostSyncTaskName "CaptionPanels Apply Plugin Sync" -WaitForPostSyncTask`
 - рекомендуемый launcher (лучше для сетевых/UNC путей):
   - `pwsh -NoProfile -File .\scripts\dev\start-plugin-sync-watch.ps1`
 - или двойным кликом запусти лаунчер:

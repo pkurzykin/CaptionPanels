@@ -2,7 +2,7 @@
 param(
     [string]$TaskName = "CaptionPanels Apply Plugin Sync",
     [string]$AePluginDir = "",
-    [string]$StagingDir = "C:\CaptionPanelsLocal\DevPluginSync\plugin",
+    [string]$StagingDir = $(Join-Path $env:USERPROFILE "CaptionPanelsLocal\DevPluginSync\plugin"),
     [string]$PluginName = "CaptionPanels",
     [switch]$SyncAex,
     [switch]$Force

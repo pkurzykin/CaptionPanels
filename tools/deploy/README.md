@@ -3,8 +3,8 @@
 Здесь лежат вспомогательные скрипты/заметки для подготовки офлайн-набора утилит (tools bundle).
 
 Идея:
-- инструменты кладем в `C:\CaptionPanelsLocal\CaptionPanelTools\...`
-- данные/логи кладем в `C:\CaptionPanelsLocal\CaptionPanelsData\...`
+- инструменты кладем в `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\...`
+- данные/логи кладем в `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\...`
 
 Скрипты:
 - `make_offline_bundle.ps1` — собрать переносимый offline bundle (`CaptionPanelsLocal\...`) и создать `bundle_summary.json`.

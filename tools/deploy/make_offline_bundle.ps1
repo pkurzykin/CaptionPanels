@@ -4,9 +4,9 @@
 # Этот скрипт НЕ является "инсталлятором" — он просто копирует файлы.
 #
 # Что копируем:
-# - C:\CaptionPanelsLocal\CaptionPanelTools\word2json\...
-# - C:\CaptionPanelsLocal\CaptionPanelTools\whisperx\...
-# - (опционально) C:\CaptionPanelsLocal\CaptionPanelTools\ffmpeg\ffmpeg.exe
+# - %USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\word2json\...
+# - %USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\whisperx\...
+# - (опционально) %USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\ffmpeg\ffmpeg.exe
 # - (опционально) кэши моделей из профиля пользователя
 #
 # Пример:
@@ -16,8 +16,8 @@ param(
   [Parameter(Mandatory=$true)]
   [string]$OutDir,
 
-  [string]$ToolsRoot = "C:\\CaptionPanelsLocal\\CaptionPanelTools",
-  [string]$DataRoot  = "C:\\CaptionPanelsLocal\\CaptionPanelsData",
+  [string]$ToolsRoot = $(Join-Path $env:USERPROFILE "CaptionPanelsLocal\CaptionPanelTools"),
+  [string]$DataRoot  = $(Join-Path $env:USERPROFILE "CaptionPanelsLocal\CaptionPanelsData"),
 
   [switch]$IncludeHFCache,
   [string]$HFCacheDir = "$env:USERPROFILE\\.cache\\huggingface\\hub",
