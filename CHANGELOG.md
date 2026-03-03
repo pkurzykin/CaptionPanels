@@ -7,6 +7,7 @@
 - Spec v1: добавлены базовые контракты в `docs/spec/` (`config.schema.json`, `job.schema.json`, `results.schema.json`) и обновлена спецификационная документация.
 
 ### Changed
+- AE startup stability: усилены modal-busy retry для host bridge и стартового JSX loader; `uiAlert/uiConfirm/logUi` переведены на безопасный evalScript wrapper с fallback, чтобы исключить всплывающую ошибку `Can not run a script while a modal dialog is waiting for response` при запуске AE.
 - Version: UI version bumped from `2.4.1` to `2.4.2` after runtime path refactor patch cycle.
 - Runtime migration assist: `scripts/dev/migrate-legacy-runtime-to-user-profile.ps1` теперь поддерживает два источника tools (`C:\CaptionPanelsLocal\CaptionPanelTools` и `<packageRoot>/tools` через `-PackageRoot`), инициализирует `%APPDATA%\CaptionPanels\config.json` при отсутствии, а `Diagnostics/Word Import` дополнены fallback-поиском `word2json.exe` в `word2json/runtime/win-x64/self-contained`.
 - Runtime tools discovery: `word_import/auto_timing/diagnostics` теперь ищут tools root не только в `CaptionPanelTools`, но и в соседних `CaptionPanelsTools`/`tools` (рядом с `paths.dataRoot`), чтобы корректно работать при несовпадающей раскладке runtime-папок.

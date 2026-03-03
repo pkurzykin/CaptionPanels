@@ -97,21 +97,35 @@ function formatSpeakerNameForInput(name) {
 }
 
 function uiAlert(msg) {
-    try {
-        csInterface.evalScript("alert(" + JSON.stringify(String(msg)) + ")");
-    } catch (e) {
-        alert(msg);
-    }
+    var text = String(msg || "");
+    var cmd = "alert(" + JSON.stringify(text) + ")";
+    evalScriptWithModalRetry(cmd, {
+        retryDelaysMs: [400, 700, 1000, 1300, 1600, 2000, 2500, 3000, 4000, 5000]
+    }).then(function (out) {
+        if (out && out.ok) return;
+        try { alert(text); } catch (eFallback) {}
+    });
 }
 
 function uiConfirm(msg, cb) {
-    try {
-        csInterface.evalScript("confirm(" + JSON.stringify(String(msg)) + ")", function (res) {
-            cb(String(res).toLowerCase() === "true");
-        });
-    } catch (e) {
-        cb(confirm(msg));
+    var text = String(msg || "");
+    var done = false;
+    function finish(val) {
+        if (done) return;
+        done = true;
+        if (typeof cb === "function") cb(!!val);
     }
+
+    var cmd = "confirm(" + JSON.stringify(text) + ")";
+    evalScriptWithModalRetry(cmd, {
+        retryDelaysMs: [400, 700, 1000, 1300, 1600, 2000, 2500, 3000, 4000, 5000]
+    }).then(function (out) {
+        if (out && out.ok) {
+            finish(String(out.result || "").toLowerCase() === "true");
+            return;
+        }
+        try { finish(confirm(text)); } catch (eFallback) { finish(false); }
+    });
 }
 
 function _taskProgressEls() {
@@ -205,6 +219,47 @@ function parseAeResult(res) {
     return { ok: true, error: "", result: s };
 }
 
+function evalScriptWithModalRetry(script, opts) {
+    var o = opts || {};
+    var retryDelaysMs = (o.retryDelaysMs instanceof Array && o.retryDelaysMs.length)
+        ? o.retryDelaysMs
+        : [300, 600, 1000, 1500, 2000, 2500];
+
+    return new Promise(function (resolve) {
+        var done = false;
+
+        function finish(out, raw, attempts) {
+            if (done) return;
+            done = true;
+            var res = out || { ok: false, error: "Unknown evalScript response", result: "" };
+            res.attempts = Number(attempts || 1);
+            res.raw = raw;
+            resolve(res);
+        }
+
+        function runAttempt(attemptNo) {
+            if (done) return;
+            csInterface.evalScript(String(script || ""), function (rawRes) {
+                if (done) return;
+                var out = parseAeResult(rawRes);
+                var modalBusy = !out.ok &&
+                    (isModalDialogBusyError(out.error) || isModalDialogBusyError(out.result));
+
+                if (modalBusy && attemptNo <= retryDelaysMs.length) {
+                    var delayMs = Number(retryDelaysMs[attemptNo - 1]);
+                    if (isNaN(delayMs) || delayMs < 0) delayMs = 500;
+                    setTimeout(function () { runAttempt(attemptNo + 1); }, delayMs);
+                    return;
+                }
+
+                finish(out, rawRes, attemptNo);
+            });
+        }
+
+        runAttempt(1);
+    });
+}
+
 function aeCall(cmd, cb) {
     return new Promise(function (resolve) {
         csInterface.evalScript(cmd, function (res) {
@@ -244,7 +299,7 @@ function callHost(fnName, args, opts, cb) {
     var requestId = "req_" + (__hostRequestSeq++);
     var startedAt = Date.now();
     var script = "";
-    var modalRetryDelaysMs = [300, 600, 1000, 1500, 1500];
+    var modalRetryDelaysMs = [300, 600, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000];
 
     try {
         if (o.rawScript) {
@@ -352,12 +407,18 @@ function attachClick(id, fn) {
 
 function logUi(msg) {
     try {
-        csInterface.evalScript("logMessage(" + JSON.stringify(String(msg || "")) + ")");
+        evalScriptWithModalRetry(
+            "logMessage(" + JSON.stringify(String(msg || "")) + ")",
+            { retryDelaysMs: [250, 500, 800] }
+        );
     } catch (e) {}
 }
 
 function logUiError(ctx, msg) {
     try {
-        csInterface.evalScript("logError(" + JSON.stringify(String(ctx || "")) + "," + JSON.stringify(String(msg || "")) + ")");
+        evalScriptWithModalRetry(
+            "logError(" + JSON.stringify(String(ctx || "")) + "," + JSON.stringify(String(msg || "")) + ")",
+            { retryDelaysMs: [250, 500, 800] }
+        );
     } catch (e) {}
 }
