@@ -116,7 +116,7 @@
 
     function _dataRoot() {
         var raw = "";
-        try { raw = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (e0) { raw = ""; }
+        try { raw = String(getConfigValue("paths.dataRoot", "") || ""); } catch (e0) { raw = ""; }
         var root = "";
         try {
             if (typeof cpResolvePathRelativeToConfig === "function") {

@@ -172,7 +172,7 @@
     }
 
     function _dataRoot() {
-        var raw = String(_val("captionPanelsDataRoot", "") || "");
+        var raw = String(_val("paths.dataRoot", "") || "");
         var root = _resolvePathRelativeToConfig(raw);
         if (!root) {
             try {
@@ -183,7 +183,7 @@
     }
 
     function _toolsRoot() {
-        var raw = String(_val("captionPanelsToolsRoot", "") || "");
+        var raw = String(_val("paths.toolsRoot", "") || "");
         var root = _resolvePathRelativeToConfig(raw);
         if (!root) {
             try {
@@ -194,21 +194,21 @@
     }
 
     function _wordOutDir() {
-        var raw = String(_val("word2jsonOutDir", "") || "");
+        var raw = String(_val("paths.word2jsonOutDir", "") || "");
         var d = _resolvePathRelativeToConfig(raw);
         if (!d) d = _dataRoot() + "/word2json";
         return _normalizePath(d);
     }
 
     function _autoTimingLogsDir() {
-        var raw = String(_val("autoTimingLogsDir", "") || "");
+        var raw = String(_val("paths.autoTimingLogsDir", "") || "");
         var d = _resolvePathRelativeToConfig(raw);
         if (!d) d = _dataRoot() + "/auto_timing/logs";
         return _normalizePath(d);
     }
 
     function _wordLogsDir() {
-        var raw = String(_val("word2jsonLogsDir", "") || "");
+        var raw = String(_val("paths.word2jsonLogsDir", "") || "");
         var d = _resolvePathRelativeToConfig(raw);
         if (!d) d = _autoTimingLogsDir();
         return _normalizePath(d);
@@ -274,15 +274,15 @@
             }
         }
 
-        var wordExe = _resolveToolPath(String(_val("word2jsonExePath", "") || ""), [
+        var wordExe = _resolveToolPath(String(_val("paths.word2jsonExePath", "") || ""), [
             "word2json/word2json.exe"
         ]);
-        var wxPy = _resolveToolPath(String(_val("whisperxPythonPath", "") || ""), [
+        var wxPy = _resolveToolPath(String(_val("asr.whisperxPythonPath", "") || ""), [
             "whisperx/.venv/Scripts/python.exe",
             "whisperx/venv/Scripts/python.exe",
             "whisperx/python.exe"
         ]);
-        var ffmpeg = _resolveToolPath(String(_val("ffmpegExePath", "") || ""), [
+        var ffmpeg = _resolveToolPath(String(_val("paths.ffmpegExePath", "") || ""), [
             "ffmpeg/ffmpeg.exe",
             "ffmpeg/bin/ffmpeg.exe",
             "ffmpeg.exe"

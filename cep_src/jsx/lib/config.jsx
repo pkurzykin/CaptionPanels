@@ -16,21 +16,6 @@
         subtitleCharsPerLine: "subtitle.charsPerLine",
         subtitleShortWordMaxLen: "subtitle.shortWordMaxLen",
         subtitleBgGapSec: "subtitle.bgGapSec",
-
-        captionPanelsDataRoot: "paths.dataRoot",
-        captionPanelsToolsRoot: "paths.toolsRoot",
-        word2jsonExePath: "paths.word2jsonExePath",
-        word2jsonOutDir: "paths.word2jsonOutDir",
-        word2jsonLogsDir: "paths.word2jsonLogsDir",
-        autoTimingOutDir: "paths.autoTimingOutDir",
-        autoTimingBlocksDir: "paths.autoTimingBlocksDir",
-        autoTimingWhisperXDir: "paths.autoTimingWhisperXDir",
-        autoTimingAlignmentDir: "paths.autoTimingAlignmentDir",
-        autoTimingLogsDir: "paths.autoTimingLogsDir",
-        ffmpegExePath: "paths.ffmpegExePath",
-
-        whisperxPythonPath: "asr.whisperxPythonPath",
-        whisperxRunnerScriptPath: "asr.runnerScriptPath",
         whisperxModel: "asr.model",
         whisperxLanguage: "asr.language",
         whisperxDeviceMode: "asr.deviceMode",
@@ -45,9 +30,7 @@
         whisperxNoSpeechThreshold: "asr.noSpeechThreshold",
         whisperxLogprobThreshold: "asr.logprobThreshold",
         whisperxConditionOnPreviousText: "asr.conditionOnPreviousText",
-        whisperxExtraArgs: "asr.extraArgs",
-
-        transcribeAlignScriptPath: "transcribe.alignScriptPath"
+        whisperxExtraArgs: "asr.extraArgs"
     };
 
     function _resolveRootPath() {
@@ -151,22 +134,6 @@
             } catch (e) {}
         }
 
-        map("captionPanelsDataRoot");
-        map("captionPanelsToolsRoot");
-
-        map("word2jsonExePath");
-        map("word2jsonOutDir");
-        map("word2jsonLogsDir");
-
-        map("autoTimingOutDir");
-        map("autoTimingBlocksDir");
-        map("autoTimingWhisperXDir");
-        map("autoTimingAlignmentDir");
-        map("autoTimingLogsDir");
-
-        map("whisperxPythonPath");
-        map("ffmpegExePath");
-
         mapNested("paths.dataRoot");
         mapNested("paths.toolsRoot");
         mapNested("paths.word2jsonExePath");
@@ -179,8 +146,17 @@
         mapNested("paths.autoTimingLogsDir");
         mapNested("paths.ffmpegExePath");
         mapNested("asr.whisperxPythonPath");
+        mapNested("asr.runnerScriptPath");
+        mapNested("transcribe.alignScriptPath");
 
         return cfg;
+    }
+
+    function _resolveConfigLookupPath(key) {
+        var k = String(key || "");
+        if (!k) return "";
+        if (k.indexOf(".") !== -1) return k;
+        return _CONFIG_KEY_PATHS[k] || "";
     }
 
     function _synchronizeConfigShape(cfg) {
@@ -429,7 +405,7 @@
     getConfigValue = function (key, def) {
         var cfg = getConfig();
         if (cfg && cfg.hasOwnProperty(key)) return cfg[key];
-        var path = _CONFIG_KEY_PATHS[String(key || "")];
+        var path = _resolveConfigLookupPath(key);
         if (cfg && path) {
             var nested = _getByPath(cfg, path);
             if (typeof nested !== "undefined") return nested;
@@ -655,9 +631,13 @@
             if (!k) return respondErr("Empty key");
 
             var cfg = reloadConfig() || {};
-            cfg[k] = value;
             var mappedPath = _CONFIG_KEY_PATHS[k];
-            if (mappedPath) _setByPath(cfg, mappedPath, value);
+            if (k.indexOf(".") !== -1) {
+                _setByPath(cfg, k, value);
+            } else {
+                cfg[k] = value;
+                if (mappedPath) _setByPath(cfg, mappedPath, value);
+            }
 
             var writePath = _preferredWriteConfigPath();
             if (!_writeConfigFileAt(writePath, cfg)) {

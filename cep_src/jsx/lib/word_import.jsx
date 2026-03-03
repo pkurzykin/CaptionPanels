@@ -57,7 +57,7 @@
 
     function _getCaptionPanelsDataRoot() {
         var raw = "";
-        try { raw = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (e) {}
+        try { raw = String(getConfigValue("paths.dataRoot", "") || ""); } catch (e) {}
         var root = _resolvePathRelativeToConfig(raw);
         if (!root) {
             try {
@@ -69,7 +69,7 @@
 
     function _getCaptionPanelsToolsRoot() {
         var raw = "";
-        try { raw = String(getConfigValue("captionPanelsToolsRoot", "") || ""); } catch (e) {}
+        try { raw = String(getConfigValue("paths.toolsRoot", "") || ""); } catch (e) {}
         var root = _resolvePathRelativeToConfig(raw);
         if (!root) {
             try {
@@ -120,7 +120,7 @@
         }
 
         var exeRaw = "";
-        try { exeRaw = String(getConfigValue("word2jsonExePath", "") || ""); } catch (e0) { exeRaw = ""; }
+        try { exeRaw = String(getConfigValue("paths.word2jsonExePath", "") || ""); } catch (e0) { exeRaw = ""; }
         addCandidate(_resolvePathRelativeToConfig(exeRaw));
 
         var toolRoots = _buildToolsRootCandidates();
@@ -315,19 +315,19 @@
 
     function _getWord2JsonLogsDir(outDirFallback) {
         // Prefer explicit Word logs path; fallback to shared auto_timing logs;
-        // then to captionPanelsDataRoot/auto_timing/logs; last fallback is outDir.
+        // then to paths.dataRoot/auto_timing/logs; last fallback is outDir.
         var raw = "";
-        try { raw = String(getConfigValue("word2jsonLogsDir", "") || ""); } catch (e0) { raw = ""; }
+        try { raw = String(getConfigValue("paths.word2jsonLogsDir", "") || ""); } catch (e0) { raw = ""; }
         var dir = _resolvePathRelativeToConfig(raw);
 
         if (!dir) {
-            try { raw = String(getConfigValue("autoTimingLogsDir", "") || ""); } catch (e1) { raw = ""; }
+            try { raw = String(getConfigValue("paths.autoTimingLogsDir", "") || ""); } catch (e1) { raw = ""; }
             dir = _resolvePathRelativeToConfig(raw);
         }
 
         if (!dir) {
             try {
-                var dataRoot = String(getConfigValue("captionPanelsDataRoot", "") || "");
+                var dataRoot = String(getConfigValue("paths.dataRoot", "") || "");
                 dataRoot = _resolvePathRelativeToConfig(dataRoot);
                 if (dataRoot) dir = _normalizePath(dataRoot + "/auto_timing/logs");
             } catch (e2) {}
@@ -551,7 +551,7 @@
             if (!exePath) {
                 var tried = "";
                 try { tried = exeResolved.checked && exeResolved.checked.length ? ("\nChecked:\n- " + exeResolved.checked.join("\n- ")) : ""; } catch (eT) { tried = ""; }
-                return respondErr("word2json.exe not found. Check word2jsonExePath/captionPanelsToolsRoot." + tried);
+                return respondErr("word2json.exe not found. Check paths.word2jsonExePath/paths.toolsRoot." + tried);
             }
 
             var exeFile = new File(exePath);
@@ -560,7 +560,7 @@
             }
 
             // Where to write JSON.
-            var outDirRaw = getConfigValue("word2jsonOutDir", "");
+            var outDirRaw = getConfigValue("paths.word2jsonOutDir", "");
             var outDir = _resolvePathRelativeToConfig(outDirRaw);
             if (!outDir) {
                 try {

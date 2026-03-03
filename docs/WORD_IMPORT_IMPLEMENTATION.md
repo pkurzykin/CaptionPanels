@@ -64,14 +64,14 @@ Config file priority is unchanged:
 2) `<plugin_root>\config.json`
 
 New keys:
-- `captionPanelsDataRoot` — unified data root (recommended: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData`).
-- `captionPanelsToolsRoot` — unified tools root (recommended: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools`).
-- `word2jsonExePath` — path to `word2json.exe`.
+- `paths.dataRoot` — unified data root (recommended: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData`).
+- `paths.toolsRoot` — unified tools root (recommended: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools`).
+- `paths.word2jsonExePath` — path to `word2json.exe`.
   - Recommended: **local path** (not UNC) to avoid Windows policy blocks.
   - Recommended location: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.exe`.
-- `word2jsonOutDir` — where to write the generated JSON.
+- `paths.word2jsonOutDir` — where to write the generated JSON.
   - Recommended: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\word2json`.
-  - If empty: defaults to `captionPanelsDataRoot\word2json`.
+  - If empty: defaults to `paths.dataRoot\word2json`.
 
 
 Sample config is updated:
@@ -109,19 +109,19 @@ Mitigations:
   - Without it, `system.callSystem()` can fail with `Permission denied`.
 
 - Word import creates/overwrites debug log files (helps when AE shows an empty error):
-  - `word2jsonLogsDir/word2json_last.log`
-  - `word2jsonLogsDir/word2json_process_last.log`
-  - If `word2jsonLogsDir` is empty: `autoTimingLogsDir`, then `captionPanelsDataRoot\auto_timing\logs`, then `word2jsonOutDir`.
+  - `paths.word2jsonLogsDir/word2json_last.log`
+  - `paths.word2jsonLogsDir/word2json_process_last.log`
+  - If `paths.word2jsonLogsDir` is empty: `paths.autoTimingLogsDir`, then `paths.dataRoot\auto_timing\logs`, then `paths.word2jsonOutDir`.
 
 
 - Output JSON file:
-  - Written into `word2jsonOutDir/`.
+  - Written into `paths.word2jsonOutDir/`.
   - File name is based on the `.docx` file name: `<docxBase>_YYYYMMDD_HHMMSS.json`.
   - If the `.docx` file name was URI-encoded (e.g. `%D0%A5...`), it is decoded for readability.
 
 
-- Error: `word2jsonExePath is not set in config.json`
-  - Set `word2jsonExePath` in `%APPDATA%\CaptionPanels\config.json`.
+- Error: `paths.word2jsonExePath is not set in config.json`
+  - Set `paths.word2jsonExePath` in `%APPDATA%\CaptionPanels\config.json`.
 
 - Error: `word2json.exe not found`
   - Check path and permissions.
