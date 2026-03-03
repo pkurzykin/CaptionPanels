@@ -13,8 +13,8 @@ CaptionPanels остаётся Windows-first и должен сохранять 
 2. `<plugin_root>\config.json`
 
 Runtime-каталоги находятся вне репозитория:
-- `C:\CaptionPanelsLocal\CaptionPanelTools\...`
-- `C:\CaptionPanelsLocal\CaptionPanelsData\...`
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\...`
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\...`
 
 ## Repository layout
 
@@ -38,7 +38,7 @@ Legacy CEP assets are stored in `archive/legacy_cep`.
 - Tools payload: `dist/CaptionPanels/tools`.
 - Baseline config: `dist/CaptionPanels/config.default.json`.
 - Build metadata: `dist/CaptionPanels/BUILDINFO.txt`.
-- Runtime tools/data/logs обслуживаются через `C:\CaptionPanelsLocal\...`.
+- Runtime tools/data/logs обслуживаются через `%USERPROFILE%\CaptionPanelsLocal\...`.
 
 ## Stability constraints
 

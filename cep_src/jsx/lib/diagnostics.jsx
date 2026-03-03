@@ -8,6 +8,9 @@
 
 (function () {
     function _normalizePath(p) {
+        try {
+            if (typeof cpNormalizePath === "function") return cpNormalizePath(p);
+        } catch (e0) {}
         var s = String(p || "");
         s = s.replace(/^\s+|\s+$/g, "");
         if ((s.charAt(0) === '"' && s.charAt(s.length - 1) === '"') ||
@@ -33,6 +36,11 @@
     }
 
     function _resolvePathRelativeToConfig(pathValue) {
+        try {
+            if (typeof cpResolvePathRelativeToConfig === "function") {
+                return _normalizePath(cpResolvePathRelativeToConfig(pathValue));
+            }
+        } catch (e0) {}
         var v = _normalizePath(pathValue);
         if (!v) return "";
         if (_isAbsolutePath(v)) return v;
@@ -166,14 +174,22 @@
     function _dataRoot() {
         var raw = String(_val("captionPanelsDataRoot", "") || "");
         var root = _resolvePathRelativeToConfig(raw);
-        if (!root) root = "C:/CaptionPanelsLocal/CaptionPanelsData";
+        if (!root) {
+            try {
+                if (typeof cpGetRuntimeDataRootDefault === "function") root = cpGetRuntimeDataRootDefault();
+            } catch (e2) {}
+        }
         return _normalizePath(root);
     }
 
     function _toolsRoot() {
         var raw = String(_val("captionPanelsToolsRoot", "") || "");
         var root = _resolvePathRelativeToConfig(raw);
-        if (!root) root = "C:/CaptionPanelsLocal/CaptionPanelTools";
+        if (!root) {
+            try {
+                if (typeof cpGetRuntimeToolsRootDefault === "function") root = cpGetRuntimeToolsRootDefault();
+            } catch (e2) {}
+        }
         return _normalizePath(root);
     }
 
@@ -213,29 +229,12 @@
         var root = _toolsRoot();
         add(root);
 
-        if (root) {
-            if (/\/CaptionPanelsTools$/i.test(root)) {
-                add(root.replace(/\/CaptionPanelsTools$/i, "/CaptionPanelTools"));
-            } else if (/\/CaptionPanelTools$/i.test(root)) {
-                add(root.replace(/\/CaptionPanelTools$/i, "/CaptionPanelsTools"));
-            } else {
-                add(root + "/CaptionPanelTools");
-                add(root + "/CaptionPanelsTools");
-            }
-        }
-
         try {
             var parent = _dirName(_dataRoot());
             if (parent) {
                 add(parent + "/CaptionPanelTools");
-                add(parent + "/CaptionPanelsTools");
             }
         } catch (e0) {}
-
-        add("C:/CaptionPanelsLocal/CaptionPanelTools");
-        add("C:/CaptionPanelsLocal/CaptionPanelsTools");
-        add("C:/AE/CaptionPanelTools");
-        add("C:/AE/CaptionPanelsTools");
         return out;
     }
 

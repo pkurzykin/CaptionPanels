@@ -11,6 +11,9 @@
 
 (function () {
     function _normalizePath(p) {
+        try {
+            if (typeof cpNormalizePath === "function") return cpNormalizePath(p);
+        } catch (e0) {}
         var s = String(p || "");
         s = s.replace(/^\s+|\s+$/g, "");
         if ((s.charAt(0) === '"' && s.charAt(s.length - 1) === '"') ||
@@ -114,10 +117,17 @@
     function _dataRoot() {
         var raw = "";
         try { raw = String(getConfigValue("captionPanelsDataRoot", "") || ""); } catch (e0) { raw = ""; }
-        var root = _normalizePath(raw);
-        if (!root) root = "C:/CaptionPanelsLocal/CaptionPanelsData";
+        var root = "";
+        try {
+            if (typeof cpResolvePathRelativeToConfig === "function") {
+                root = cpResolvePathRelativeToConfig(raw);
+            }
+        } catch (e1) {}
+        if (!root) root = _normalizePath(raw);
         if (!root) {
-            try { root = _normalizePath(Folder.userData.fsName + "/CaptionPanels"); } catch (e1) { root = ""; }
+            try {
+                if (typeof cpGetRuntimeDataRootDefault === "function") root = cpGetRuntimeDataRootDefault();
+            } catch (e2) {}
         }
         return _normalizePath(root);
     }

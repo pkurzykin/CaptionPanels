@@ -29,9 +29,9 @@
 
 ## Рекомендуемые базовые каталоги (стандарт деплоя)
 Чтобы на рабочих ПК всё было предсказуемо и не требовало прав администратора / правки `PATH`:
-- Данные/артефакты: `C:\CaptionPanelsLocal\CaptionPanelsData\...`
-- Внешние утилиты: `C:\CaptionPanelsLocal\CaptionPanelTools\...`
-- Run manifests (pipeline): `C:\CaptionPanelsLocal\CaptionPanelsData\runs\<kind>\<runId>\run.json`
+- Данные/артефакты: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\...`
+- Внешние утилиты: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\...`
+- Run manifests (pipeline): `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\runs\<kind>\<runId>\run.json`
 
 ## Ключи (reference, секционный формат)
 
@@ -56,8 +56,8 @@
   - Порог разрыва для `subtitle_BG`, дефолт: `3.0`.
 
 ### `paths`
-- `paths.dataRoot` (string) — корень данных/артефактов, напр. `C:/CaptionPanelsLocal/CaptionPanelsData`.
-- `paths.toolsRoot` (string) — корень утилит, напр. `C:/CaptionPanelsLocal/CaptionPanelTools`.
+- `paths.dataRoot` (string) — корень данных/артефактов, напр. `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData`.
+- `paths.toolsRoot` (string) — корень утилит, напр. `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools`.
 - `paths.word2jsonExePath` (string) — путь к `word2json.exe`.
 - `paths.word2jsonOutDir` (string) — куда писать JSON после Word import.
 - `paths.word2jsonLogsDir` (string) — где хранить `word2json_*` логи.
@@ -104,19 +104,19 @@
     "bgGapSec": 3.0
   },
   "paths": {
-    "dataRoot": "C:/CaptionPanelsLocal/CaptionPanelsData",
-    "toolsRoot": "C:/CaptionPanelsLocal/CaptionPanelTools",
-    "word2jsonExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe",
-    "word2jsonOutDir": "C:/CaptionPanelsLocal/CaptionPanelsData/word2json",
-    "word2jsonLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
-    "autoTimingBlocksDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks",
-    "autoTimingWhisperXDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/whisperx",
-    "autoTimingAlignmentDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment",
-    "autoTimingLogsDir": "C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
-    "ffmpegExePath": "C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe"
+    "dataRoot": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData",
+    "toolsRoot": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools",
+    "word2jsonExePath": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe",
+    "word2jsonOutDir": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/word2json",
+    "word2jsonLogsDir": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
+    "autoTimingBlocksDir": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks",
+    "autoTimingWhisperXDir": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/whisperx",
+    "autoTimingAlignmentDir": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment",
+    "autoTimingLogsDir": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs",
+    "ffmpegExePath": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe"
   },
   "asr": {
-    "whisperxPythonPath": "C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe",
+    "whisperxPythonPath": "%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe",
     "runnerScriptPath": "host/tools/whisperx_runner/run_whisperx.py",
     "model": "medium",
     "language": "ru",
@@ -152,7 +152,7 @@
 ## ffmpeg (portable, без PATH)
 - `paths.ffmpegExePath` (string)
   - Путь к `ffmpeg.exe`.
-  - Пример: `C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
+  - Пример: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
   - Если ключ задан и файл существует, плагин **на время запуска WhisperX** добавляет папку ffmpeg в `PATH` процесса (через `cmd.exe /c set PATH=...;%PATH%`).
   - Системный `PATH` не изменяется.
 

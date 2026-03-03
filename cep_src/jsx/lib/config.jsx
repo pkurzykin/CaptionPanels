@@ -62,6 +62,9 @@
     }
 
     function _normalizePath(p) {
+        try {
+            if (typeof cpNormalizePath === "function") return cpNormalizePath(p);
+        } catch (e0) {}
         var s = String(p || "").replace(/\\/g, "/");
         var winMatch = s.match(/^\/([A-Za-z]:\/.*)/);
         if (winMatch) s = winMatch[1];
@@ -119,105 +122,63 @@
             (s.charAt(0) === "'" && s.charAt(s.length - 1) === "'")) {
             s = s.substring(1, s.length - 1);
         }
+        try {
+            if (typeof cpExpandEnvVars === "function") return cpExpandEnvVars(s);
+        } catch (e0) {}
         return _normalizePath(s);
     }
 
-    function _rewriteLegacyPath(pathValue, kind) {
-        var p = _trimPathValue(pathValue);
-        if (!p) return "";
-
-        function _pickExistingToolsVariant(pathStr) {
-            var cur = _normalizePath(pathStr);
-            if (!cur) return cur;
-
-            var alt = "";
-            if (/\/CaptionPanelTools(?=\/|$)/i.test(cur)) {
-                alt = cur.replace(/\/CaptionPanelTools(?=\/|$)/i, "/CaptionPanelsTools");
-            } else if (/\/CaptionPanelsTools(?=\/|$)/i.test(cur)) {
-                alt = cur.replace(/\/CaptionPanelsTools(?=\/|$)/i, "/CaptionPanelTools");
-            }
-            if (!alt) return cur;
-
-            try {
-                if ((new File(cur)).exists || (new Folder(cur)).exists) return cur;
-            } catch (e0) {}
-            try {
-                if ((new File(alt)).exists || (new Folder(alt)).exists) return alt;
-            } catch (e1) {}
-            return cur;
-        }
-
-        function rep(re, to) {
-            p = p.replace(re, to);
-        }
-
-        // Legacy root migration.
-        rep(/^C:\/AE\/CaptionPanelsData(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelsData");
-        rep(/^C:\/AE\/CaptionPanelsTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
-        rep(/^C:\/AE\/CaptionPanelTools(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools");
-
-        // Legacy direct tool folders.
-        rep(/^C:\/AE\/word2json(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools/word2json");
-        rep(/^C:\/AE\/whisperx(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools/whisperx");
-        rep(/^C:\/AE\/ffmpeg(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg");
-
-        if (kind === "wordOutDir") {
-            rep(/^C:\/Temp\/CaptionPanels\/word2json(?=\/|$)/i, "C:/CaptionPanelsLocal/CaptionPanelsData/word2json");
-        }
-
-        // Do not force singular/plural tools folder naming. Pick existing variant if possible.
-        p = _pickExistingToolsVariant(p);
-
-        return p;
+    function _normalizeConfiguredPath(pathValue) {
+        return _trimPathValue(pathValue);
     }
 
     function _canonicalizeConfigPaths(cfg) {
         if (!cfg) return {};
 
-        function map(key, kind) {
+        function map(key) {
             try {
                 if (!cfg.hasOwnProperty(key)) return;
                 if (typeof cfg[key] !== "string") return;
-                cfg[key] = _rewriteLegacyPath(cfg[key], kind || "");
+                cfg[key] = _normalizeConfiguredPath(cfg[key]);
             } catch (e) {}
         }
 
-        function mapNested(path, kind) {
+        function mapNested(path) {
             try {
                 var v = _getByPath(cfg, path);
                 if (typeof v !== "string") return;
-                _setByPath(cfg, path, _rewriteLegacyPath(v, kind || ""));
+                _setByPath(cfg, path, _normalizeConfiguredPath(v));
             } catch (e) {}
         }
 
-        map("captionPanelsDataRoot", "dataRoot");
-        map("captionPanelsToolsRoot", "toolsRoot");
+        map("captionPanelsDataRoot");
+        map("captionPanelsToolsRoot");
 
-        map("word2jsonExePath", "toolExe");
-        map("word2jsonOutDir", "wordOutDir");
-        map("word2jsonLogsDir", "dataDir");
+        map("word2jsonExePath");
+        map("word2jsonOutDir");
+        map("word2jsonLogsDir");
 
-        map("autoTimingOutDir", "dataDir");
-        map("autoTimingBlocksDir", "dataDir");
-        map("autoTimingWhisperXDir", "dataDir");
-        map("autoTimingAlignmentDir", "dataDir");
-        map("autoTimingLogsDir", "dataDir");
+        map("autoTimingOutDir");
+        map("autoTimingBlocksDir");
+        map("autoTimingWhisperXDir");
+        map("autoTimingAlignmentDir");
+        map("autoTimingLogsDir");
 
-        map("whisperxPythonPath", "toolExe");
-        map("ffmpegExePath", "toolExe");
+        map("whisperxPythonPath");
+        map("ffmpegExePath");
 
-        mapNested("paths.dataRoot", "dataRoot");
-        mapNested("paths.toolsRoot", "toolsRoot");
-        mapNested("paths.word2jsonExePath", "toolExe");
-        mapNested("paths.word2jsonOutDir", "wordOutDir");
-        mapNested("paths.word2jsonLogsDir", "dataDir");
-        mapNested("paths.autoTimingOutDir", "dataDir");
-        mapNested("paths.autoTimingBlocksDir", "dataDir");
-        mapNested("paths.autoTimingWhisperXDir", "dataDir");
-        mapNested("paths.autoTimingAlignmentDir", "dataDir");
-        mapNested("paths.autoTimingLogsDir", "dataDir");
-        mapNested("paths.ffmpegExePath", "toolExe");
-        mapNested("asr.whisperxPythonPath", "toolExe");
+        mapNested("paths.dataRoot");
+        mapNested("paths.toolsRoot");
+        mapNested("paths.word2jsonExePath");
+        mapNested("paths.word2jsonOutDir");
+        mapNested("paths.word2jsonLogsDir");
+        mapNested("paths.autoTimingOutDir");
+        mapNested("paths.autoTimingBlocksDir");
+        mapNested("paths.autoTimingWhisperXDir");
+        mapNested("paths.autoTimingAlignmentDir");
+        mapNested("paths.autoTimingLogsDir");
+        mapNested("paths.ffmpegExePath");
+        mapNested("asr.whisperxPythonPath");
 
         return cfg;
     }
