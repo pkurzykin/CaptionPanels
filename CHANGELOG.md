@@ -7,6 +7,7 @@
 - Spec v1: добавлены базовые контракты в `docs/spec/` (`config.schema.json`, `job.schema.json`, `results.schema.json`) и обновлена спецификационная документация.
 
 ### Changed
+- Runtime paths foundation: добавлен единый host-модуль `runtime_paths.jsx` (центральные helper-ы для per-user runtime root `%USERPROFILE%/CaptionPanelsLocal`) и подключен в bootstrap загрузки JSX; фактическая миграция рабочих модулей выполняется поэтапно в следующих PR.
 - Docs: добавлена структурированная иерархия `docs/user`, `docs/dev`, `docs/spec`; добавлены базовые dev-документы (`architecture`, `build`, `deployment`) и обновлены ссылки из `README`.
 - Dev workflow: добавлен `scripts/dev/sync-plugin.ps1` для быстрого синка `client/host/public_api/config/speakers` в установленный AE Plug-ins (`CaptionPanels`) с watch-режимом и опциональным `-SyncAex`.
 - Dev permissions flow: добавлены `scripts/dev/register-elevated-plugin-sync-task.ps1`, `scripts/dev/apply-staged-plugin-sync.ps1` и `scripts/dev/run-elevated-plugin-sync.ps1` для записи в `Program Files` через staged sync + Scheduled Task (`RunLevel Highest`) без постоянного admin-shell.
