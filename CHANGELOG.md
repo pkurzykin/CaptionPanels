@@ -7,6 +7,7 @@
 - Spec v1: добавлены базовые контракты в `docs/spec/` (`config.schema.json`, `job.schema.json`, `results.schema.json`) и обновлена спецификационная документация.
 
 ### Changed
+- AE startup stability: усилены modal-busy retry для host bridge и стартового JSX loader; `uiAlert/uiConfirm/logUi` переведены на безопасный evalScript wrapper с fallback, чтобы исключить всплывающую ошибку `Can not run a script while a modal dialog is waiting for response` при запуске AE.
 - Version: UI version bumped from `2.4.1` to `2.4.2` after runtime path refactor patch cycle.
 - Runtime paths foundation: добавлен единый host-модуль `runtime_paths.jsx` (центральные helper-ы для per-user runtime root `%USERPROFILE%/CaptionPanelsLocal`) и подключен в bootstrap загрузки JSX; фактическая миграция рабочих модулей выполняется поэтапно в следующих PR.
 - Runtime paths usage: `config/word_import/auto_timing/run_registry/diagnostics` переведены на единый per-user runtime resolver (`%USERPROFILE%/CaptionPanelsLocal`) без legacy fallback-путей (`C:/AE`, `C:/CaptionPanelsLocal`, `CaptionPanelsTools`), а shipped `config.json` обновлен на per-user path-шаблоны.
