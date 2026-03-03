@@ -499,6 +499,44 @@
         return best;
     }
 
+    function _findFirstSubtitleLayerInComp(comp) {
+        if (!comp) return null;
+        var best = null;
+        var bestStart = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !_isSubtitleLayerName(l.name)) continue;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) st = 0;
+            if (!best || st < bestStart) {
+                best = l;
+                bestStart = st;
+            }
+        }
+        return best;
+    }
+
+    function _findFirstSubtitleLayerAfter(comp, afterTime) {
+        if (!comp) return null;
+        var t = Number(afterTime);
+        if (isNaN(t)) t = -999999;
+        var EPS = 1.0 / 60.0;
+        var best = null;
+        var bestStart = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !_isSubtitleLayerName(l.name)) continue;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) st = 0;
+            if (st <= t + EPS) continue;
+            if (!best || st < bestStart) {
+                best = l;
+                bestStart = st;
+            }
+        }
+        return best;
+    }
+
     function _findSubtitleLayerNearTime(comp, timeSec) {
         if (!comp) return null;
         var t = Number(timeSec);
@@ -547,7 +585,7 @@
         return prev;
     }
 
-    function _resolveGeotagAnchorLayer(comp, geotagMeta) {
+    function _resolveGeotagAnchorLayer(comp, geotagMeta, afterTimeHint) {
         if (!comp) return null;
         var g = geotagMeta || {};
 
@@ -556,6 +594,24 @@
 
         var byBatch = _findFirstSubtitleLayerByBatch(comp, g.anchorType || "", g.anchorBatch || 0);
         if (byBatch) return byBatch;
+
+        // If anchorType wasn't preserved, still try both subtitle families by batch.
+        var rawBatch = parseInt(g.anchorBatch, 10);
+        if (!isNaN(rawBatch) && rawBatch > 0) {
+            var byVoiceBatch = _findFirstSubtitleLayerByBatch(comp, "VOICEOVER", rawBatch);
+            if (byVoiceBatch) return byVoiceBatch;
+            var bySynchBatch = _findFirstSubtitleLayerByBatch(comp, "SYNCH", rawBatch);
+            if (bySynchBatch) return bySynchBatch;
+        }
+
+        // Parsed mode fallback (do not rely on stale imported time):
+        // place geotag on the first subtitle that starts after previously resolved geotag anchor.
+        var byOrder = _findFirstSubtitleLayerAfter(comp, afterTimeHint);
+        if (byOrder) return byOrder;
+
+        // Last subtitle-only fallback: first subtitle in comp.
+        var firstAny = _findFirstSubtitleLayerInComp(comp);
+        if (firstAny) return firstAny;
 
         return null;
     }
@@ -658,14 +714,15 @@
                 continue;
             }
 
-            var gs = Number(g.start);
             var go = Number(g.out);
-            if (isNaN(gs) || isNaN(go)) {
+            if (isNaN(go)) {
                 state.index++;
                 continue;
             }
 
-            if (gs > endTime + eps) break;
+            // Consume by geotag OUT time (not start). If geotag starts earlier but
+            // ends inside a later SYNCH window, reset must be applied to that window.
+            if (go > endTime + eps) break;
 
             if (go > minStartExclusive + eps && go <= endTime - eps) {
                 chosenOut = go;
@@ -712,15 +769,15 @@
 
         app.beginUndoGroup("Create Geotags (Anchored)");
         var created = [];
+        var lastResolvedAnchorStart = null;
 
         for (var i = 0; i < arr.length; i++) {
             var g = arr[i] || {};
-            var anchor = _resolveGeotagAnchorLayer(comp, g);
+            var anchor = _resolveGeotagAnchorLayer(comp, g, lastResolvedAnchorStart);
             var targetStart = null;
             if (anchor) {
                 targetStart = Number(anchor.inPoint);
-            } else {
-                targetStart = Number(g.time);
+                if (!isNaN(targetStart)) lastResolvedAnchorStart = targetStart;
             }
             if (isNaN(targetStart)) targetStart = t0;
 
