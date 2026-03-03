@@ -9,6 +9,7 @@
 ### Changed
 - Runtime paths foundation: добавлен единый host-модуль `runtime_paths.jsx` (центральные helper-ы для per-user runtime root `%USERPROFILE%/CaptionPanelsLocal`) и подключен в bootstrap загрузки JSX; фактическая миграция рабочих модулей выполняется поэтапно в следующих PR.
 - Runtime paths usage: `config/word_import/auto_timing/run_registry/diagnostics` переведены на единый per-user runtime resolver (`%USERPROFILE%/CaptionPanelsLocal`) без legacy fallback-путей (`C:/AE`, `C:/CaptionPanelsLocal`, `CaptionPanelsTools`), а shipped `config.json` обновлен на per-user path-шаблоны.
+- Runtime cutover docs/scripts: dev sync/offline bundle скрипты и эксплуатационная документация переведены на `%USERPROFILE%\CaptionPanelsLocal\...`; из рабочих инструкций убраны legacy runtime пути.
 - Docs: добавлена структурированная иерархия `docs/user`, `docs/dev`, `docs/spec`; добавлены базовые dev-документы (`architecture`, `build`, `deployment`) и обновлены ссылки из `README`.
 - Dev workflow: добавлен `scripts/dev/sync-plugin.ps1` для быстрого синка `client/host/public_api/config/speakers` в установленный AE Plug-ins (`CaptionPanels`) с watch-режимом и опциональным `-SyncAex`.
 - Dev permissions flow: добавлены `scripts/dev/register-elevated-plugin-sync-task.ps1`, `scripts/dev/apply-staged-plugin-sync.ps1` и `scripts/dev/run-elevated-plugin-sync.ps1` для записи в `Program Files` через staged sync + Scheduled Task (`RunLevel Highest`) без постоянного admin-shell.

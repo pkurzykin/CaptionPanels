@@ -6,7 +6,7 @@
 
 - Источник установки: `dist/CaptionPanels`.
 - Деплой: копирование payload из `dist/CaptionPanels` в каталог AE Plug-ins.
-- Runtime-каталоги: `C:\CaptionPanelsLocal\CaptionPanelTools\...` и `C:\CaptionPanelsLocal\CaptionPanelsData\...`.
+- Runtime-каталоги: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\...` и `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\...`.
 - Приоритет конфига:
   1. `%APPDATA%\CaptionPanels\config.json`
   2. `<plugin_root>\config.json`

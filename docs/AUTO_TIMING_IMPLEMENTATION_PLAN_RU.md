@@ -42,15 +42,15 @@
 
 Все рабочие файлы автотайминга должны храниться под:
 
-`C:\CaptionPanelsLocal\CaptionPanelsData\`
+`%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\`
 
 Внутри создаём структуру:
 
-- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\blocks\`
-- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\whisperx\`
-- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\alignment\`
-- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs\`
-- (для офлайн) `C:\CaptionPanelsLocal\CaptionPanelsData\models\` (контролируемый кэш моделей)
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\auto_timing\blocks\`
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\auto_timing\whisperx\`
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\auto_timing\alignment\`
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs\`
+- (для офлайн) `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\models\` (контролируемый кэш моделей)
 
 Принцип: плагин/утилита сами создают папки при первом запуске.
 
@@ -67,13 +67,13 @@
 
 Минимальные ключи для автотайминга (предлагаемые):
 
-- `captionPanelsDataRoot`: `C:/CaptionPanelsLocal/CaptionPanelsData`
-- `autoTimingBlocksDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks`
-- `autoTimingAlignmentDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment`
-- `autoTimingLogsDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
+- `captionPanelsDataRoot`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData`
+- `autoTimingBlocksDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/blocks`
+- `autoTimingAlignmentDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/alignment`
+- `autoTimingLogsDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
 
 WhisperX:
-- `whisperxPythonPath`: `C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
+- `whisperxPythonPath`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
 - `whisperxModel`: `medium` (позже можно переключать на `small`)
 - `whisperxLanguage`: `ru`
 - `whisperxDevice`: `cuda`
@@ -144,7 +144,7 @@ Transcribe/Align:
 
 Что нужно сделать:
 - обеспечить возможность подготовить модели на ноуте (с интернетом),
-- затем перенести кэш/модели в `C:\CaptionPanelsLocal\CaptionPanelsData\models\` на рабочие ПК,
+- затем перенести кэш/модели в `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\models\` на рабочие ПК,
 - заставить WhisperX использовать этот кэш (через env vars или параметры запуска),
 - документировать процедуру для ИБ (что скачивается, где хранится, какие файлы/процессы запускаются).
 
@@ -165,7 +165,7 @@ Transcribe/Align:
 
 ## Следующий этап (когда дадут команду “делаем”)
 
-Этап A: привести все пути к единому корню `C:\CaptionPanelsLocal\CaptionPanelsData\` и убрать “хаос”:
+Этап A: привести все пути к единому корню `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\` и убрать “хаос”:
 - добавить ключи в config,
 - создать подпапки автоматически,
 - привести экспорт blocks и output alignment к этому корню,

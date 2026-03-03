@@ -14,7 +14,7 @@
 
 1) Инсталляционный payload из `dist/CaptionPanels` (единый источник установки).
    - `plugin/` — содержимое для папки AE Plug-ins
-   - `tools/` — утилиты для `C:\CaptionPanelsLocal\CaptionPanelTools\...`
+   - `tools/` — утилиты для `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\...`
    - `config.default.json` — baseline-конфиг
    - `BUILDINFO.txt` — метаданные сборки/упаковки
 2) AE-плагин (AEX) + ресурсы панели (`client/`, `host/`, …)
@@ -29,22 +29,22 @@
 
 Чтобы на всех машинах было одинаково и предсказуемо, используем 2 корня:
 
-- Инструменты (exe/venv): `C:\CaptionPanelsLocal\CaptionPanelTools\...`
-- Данные (выходные файлы, логи): `C:\CaptionPanelsLocal\CaptionPanelsData\...`
+- Инструменты (exe/venv): `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\...`
+- Данные (выходные файлы, логи): `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\...`
 
 ### 1.1 Пример структуры
 
 Инструменты:
-- `C:\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.exe`
-- `C:\CaptionPanelsLocal\CaptionPanelTools\whisperx\` (папка с `.venv` и пакетами)
-- `C:\CaptionPanelsLocal\CaptionPanelTools\ffmpeg\ffmpeg.exe` (если используем portable)
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.exe`
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\whisperx\` (папка с `.venv` и пакетами)
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\ffmpeg\ffmpeg.exe` (если используем portable)
 
 Данные:
-- `C:\CaptionPanelsLocal\CaptionPanelsData\word2json\` (куда падает json из Word)
-- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\blocks\`
-- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\whisperx\`
-- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\alignment\`
-- `C:\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs\`
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\word2json\` (куда падает json из Word)
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\auto_timing\blocks\`
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\auto_timing\whisperx\`
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\auto_timing\alignment\`
+- `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelsData\auto_timing\logs\`
 
 Папки данных создаются автоматически (если есть права на запись).
 
@@ -67,7 +67,7 @@
 - рабочий источник установки — только `dist/CaptionPanels`.
 
 Рекомендуемый шаг:
-- инструменты из `dist/CaptionPanels/tools` разместить в `C:\CaptionPanelsLocal\CaptionPanelTools\...`.
+- инструменты из `dist/CaptionPanels/tools` разместить в `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\...`.
 
 ---
 
@@ -99,12 +99,12 @@
 ## 5) Что нужно настроить на каждом ПК (минимум)
 
 ### 5.1 Word -> JSON
-- `paths.word2jsonExePath`: `C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
-- `paths.word2jsonOutDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
-- `paths.word2jsonLogsDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
+- `paths.word2jsonExePath`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
+- `paths.word2jsonOutDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/word2json`
+- `paths.word2jsonLogsDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/auto_timing/logs`
 
 ### 5.2 Auto Timing (WhisperX + align)
-- `asr.whisperxPythonPath`: `C:/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
+- `asr.whisperxPythonPath`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/whisperx/.venv/Scripts/python.exe`
 - `asr.model`: например `medium`
 - `asr.language`: `ru`
 - `asr.deviceMode`: `auto` (рекомендуется)
@@ -171,8 +171,8 @@
 
 Если `ffmpeg.exe` не установлен и нельзя править системный `PATH`:
 - используем portable:
-  - кладем `ffmpeg.exe` в `C:\CaptionPanelsLocal\CaptionPanelTools\ffmpeg\ffmpeg.exe`
-  - в `config.json` задаем: `ffmpegExePath: C:/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
+  - кладем `ffmpeg.exe` в `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\ffmpeg\ffmpeg.exe`
+  - в `config.json` задаем: `ffmpegExePath: %USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/ffmpeg/ffmpeg.exe`
   - плагин добавит папку ffmpeg в `PATH` **только на время запуска WhisperX** (системный `PATH` не меняется)
 
 Где взять:

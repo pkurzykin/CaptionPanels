@@ -69,7 +69,7 @@ You can tune parsing without recompiling:
 Template file: `tools/word2json/src/Word2Json/word2json.rules.json`
 
 For production, place a copy next to the executable:
-`C:\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.rules.json`
+`%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.rules.json`
 
 Important: geotag cleanup is style-aware and only applies to `GEO` paragraphs.  
 Default cleanup strips prefixes like `гео:`, `ГЕОТЕГ:`, `гео-тег -`, `гео тег:` (case-insensitive).
@@ -85,12 +85,12 @@ Default cleanup strips prefixes like `гео:`, `ГЕОТЕГ:`, `гео-тег 
 
 For the plugin workflow, keep external tools in a single local folder (easier to deploy and approve by IT/security):
 
-- Copy the `publish/` output to: `C:\CaptionPanelsLocal\CaptionPanelTools\word2json\`
-  - Ensure the main executable is: `C:\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.exe`
+- Copy the `publish/` output to: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\word2json\`
+  - Ensure the main executable is: `%USERPROFILE%\CaptionPanelsLocal\CaptionPanelTools\word2json\word2json.exe`
 
 Then set in the plugin `config.json` (preferably `%APPDATA%\CaptionPanels\config.json`):
 
-- `word2jsonExePath`: `C:/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
-- `word2jsonOutDir`: `C:/CaptionPanelsLocal/CaptionPanelsData/word2json`
+- `word2jsonExePath`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools/word2json/word2json.exe`
+- `word2jsonOutDir`: `%USERPROFILE%/CaptionPanelsLocal/CaptionPanelsData/word2json`
 
 The plugin will create the output folder automatically if needed.

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$AePluginDir = "C:\CaptionPanelsLocal\DevPluginSync\plugin",
+    [string]$AePluginDir = $(Join-Path $env:USERPROFILE "CaptionPanelsLocal\DevPluginSync\plugin"),
     [string]$PostSyncTaskName = "CaptionPanels Apply Plugin Sync",
     [ValidateRange(1, 60)]
     [int]$WatchIntervalSec = 1,
