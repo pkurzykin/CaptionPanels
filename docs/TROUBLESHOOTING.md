@@ -117,6 +117,12 @@
 Что делать:
 - открой `Diagnostics` и проверь `deploymentChecks`;
 - исправь пункты уровня `FAIL` (обычно пути к tool/data, отсутствующий `python.exe`/`word2json.exe`, или отсутствие model cache при `offlineOnly=true`);
+- если после перехода на `%USERPROFILE%\CaptionPanelsLocal\...` инструменты остались в legacy-папке `C:\CaptionPanelsLocal\...`, запусти миграцию:
+  - `pwsh -NoProfile -File .\scripts\dev\migrate-legacy-runtime-to-user-profile.ps1`
+- если legacy-папки нет, но есть `dist/CaptionPanels` (или распакованный release bundle), укажи `-PackageRoot`:
+  - `pwsh -NoProfile -File .\scripts\dev\migrate-legacy-runtime-to-user-profile.ps1 -PackageRoot .\dist\CaptionPanels`
+- проверка без изменений:
+  - `pwsh -NoProfile -File .\scripts\dev\migrate-legacy-runtime-to-user-profile.ps1 -DryRun`
 - после исправления повтори запуск.
 
 ## 12) Как быстро проверить offline bundle перед переносом

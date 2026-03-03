@@ -167,7 +167,7 @@
 
             if (job.type === "generateSubs") {
                 if (typeof generateSubs !== "function") throw new Error("generateSubs not available");
-                generateSubs(payload.text || "", !!payload.italic, !!payload.jumpPlayhead);
+                generateSubs(payload.text || "", !!payload.italic, !!payload.jumpPlayhead, payload.sourceSegId || "");
             } else if (job.type === "deepCleanProject") {
                 if (typeof deepCleanProject !== "function") throw new Error("deepCleanProject not available");
                 deepCleanProject();

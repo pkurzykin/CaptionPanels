@@ -228,11 +228,16 @@
 
         var root = _toolsRoot();
         add(root);
+        try {
+            if (typeof cpGetRuntimeToolsRootDefault === "function") add(cpGetRuntimeToolsRootDefault());
+        } catch (eDef) {}
 
         try {
             var parent = _dirName(_dataRoot());
             if (parent) {
                 add(parent + "/CaptionPanelTools");
+                add(parent + "/CaptionPanelsTools");
+                add(parent + "/tools");
             }
         } catch (e0) {}
         return out;
@@ -275,7 +280,8 @@
         }
 
         var wordExe = _resolveToolPath(String(_val("paths.word2jsonExePath", "") || ""), [
-            "word2json/word2json.exe"
+            "word2json/word2json.exe",
+            "word2json/runtime/win-x64/self-contained/word2json.exe"
         ]);
         var wxPy = _resolveToolPath(String(_val("asr.whisperxPythonPath", "") || ""), [
             "whisperx/.venv/Scripts/python.exe",
@@ -313,6 +319,8 @@
         var hasDataRoot = _folderExists(dataRoot);
         var hasConfiguredToolsRoot = _folderExists(configuredToolsRoot);
         var hasToolsRoot = _folderExists(toolsRoot);
+        var legacyToolsRoot = "C:/CaptionPanelsLocal/CaptionPanelTools";
+        var hasLegacyToolsRoot = _folderExists(legacyToolsRoot);
         var hasFwCacheDir = _folderExists(fwCacheRoot);
         var hasFwModel = hasFwCacheDir && _folderContainsName(fwCacheRoot, String(wxModel || "").toLowerCase());
         var hasHubCache = _folderExists(hfHubRoot) && _folderHasFiles(hfHubRoot);
@@ -325,8 +333,10 @@
             addCheck("tools root", true, "ok", "");
         } else if (hasToolsRoot) {
             addCheck("tools root", true, "warn", "configured tools root not found, using fallback: " + toolsRoot);
+        } else if (hasLegacyToolsRoot) {
+            addCheck("tools root", false, "fail", "tools root folder does not exist; legacy root found at " + legacyToolsRoot + ". Run scripts/dev/migrate-legacy-runtime-to-user-profile.ps1");
         } else {
-            addCheck("tools root", false, "fail", "tools root folder does not exist");
+            addCheck("tools root", false, "fail", "tools root folder does not exist. Copy dist/CaptionPanels/tools to %USERPROFILE%/CaptionPanelsLocal/CaptionPanelTools or run scripts/dev/migrate-legacy-runtime-to-user-profile.ps1");
         }
 
         if (wxOfflineOnly) {

@@ -477,6 +477,42 @@
         return null;
     }
 
+    function _getCommentTagValue(layer, tagName) {
+        if (!layer || !tagName) return "";
+        try {
+            var c = String(layer.comment || "");
+            if (!c) return "";
+            var re = new RegExp("(?:^|\\r?\\n)" + String(tagName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "=([^\\r\\n]+)");
+            var m = c.match(re);
+            return (m && m[1]) ? String(m[1]) : "";
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function _findFirstSubtitleLayerBySegId(comp, segId) {
+        if (!comp) return null;
+        var id = String(segId || "").replace(/^\s+|\s+$/g, "");
+        if (!id) return null;
+
+        var best = null;
+        var bestStart = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !_isSubtitleLayerName(l.name)) continue;
+            var srcId = _getCommentTagValue(l, "CP_SRCSEGID");
+            var layerSegId = _getCommentTagValue(l, "CP_SEGID");
+            if (srcId !== id && layerSegId !== id) continue;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) st = 0;
+            if (!best || st < bestStart) {
+                best = l;
+                bestStart = st;
+            }
+        }
+        return best;
+    }
+
     function _findFirstSubtitleLayerByBatch(comp, typeUpper, batchNum) {
         if (!comp) return null;
         var type = String(typeUpper || "").toUpperCase();
@@ -491,6 +527,54 @@
             if (!l || !l.name || String(l.name).indexOf(prefix) !== 0) continue;
             var st = Number(l.inPoint);
             if (isNaN(st)) st = 0;
+            if (!best || st < bestStart) {
+                best = l;
+                bestStart = st;
+            }
+        }
+        return best;
+    }
+
+    function _findSubtitleLayerByBatchIndex(comp, typeUpper, batchNum, indexNum) {
+        if (!comp) return null;
+        var type = String(typeUpper || "").toUpperCase();
+        var batch = parseInt(batchNum, 10);
+        var idx = parseInt(indexNum, 10);
+        if (!type || isNaN(batch) || batch <= 0 || isNaN(idx) || idx <= 0) return null;
+        var exactName = "Sub_" + type + "_" + String(batch) + "_" + String(idx);
+        return _findSubtitleLayerByExactName(comp, exactName);
+    }
+
+    function _findFirstSubtitleLayerInComp(comp) {
+        if (!comp) return null;
+        var best = null;
+        var bestStart = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !_isSubtitleLayerName(l.name)) continue;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) st = 0;
+            if (!best || st < bestStart) {
+                best = l;
+                bestStart = st;
+            }
+        }
+        return best;
+    }
+
+    function _findFirstSubtitleLayerAfter(comp, afterTime) {
+        if (!comp) return null;
+        var t = Number(afterTime);
+        if (isNaN(t)) t = -999999;
+        var EPS = 1.0 / 60.0;
+        var best = null;
+        var bestStart = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !_isSubtitleLayerName(l.name)) continue;
+            var st = Number(l.inPoint);
+            if (isNaN(st)) st = 0;
+            if (st <= t + EPS) continue;
             if (!best || st < bestStart) {
                 best = l;
                 bestStart = st;
@@ -547,15 +631,46 @@
         return prev;
     }
 
-    function _resolveGeotagAnchorLayer(comp, geotagMeta) {
+    function _resolveGeotagAnchorLayer(comp, geotagMeta, afterTimeHint) {
         if (!comp) return null;
         var g = geotagMeta || {};
+
+        var bySegId = _findFirstSubtitleLayerBySegId(comp, g.anchorSegId || "");
+        if (bySegId) return bySegId;
 
         var byName = _findSubtitleLayerByExactName(comp, g.anchorLayer || "");
         if (byName) return byName;
 
+        var byBatchIndex = _findSubtitleLayerByBatchIndex(comp, g.anchorType || "", g.anchorBatch || 0, g.anchorIndex || 0);
+        if (byBatchIndex) return byBatchIndex;
+
         var byBatch = _findFirstSubtitleLayerByBatch(comp, g.anchorType || "", g.anchorBatch || 0);
         if (byBatch) return byBatch;
+
+        // If anchorType wasn't preserved, still try both subtitle families by batch.
+        var rawBatch = parseInt(g.anchorBatch, 10);
+        var rawIndex = parseInt(g.anchorIndex, 10);
+        if (!isNaN(rawBatch) && rawBatch > 0) {
+            if (!isNaN(rawIndex) && rawIndex > 0) {
+                var byVoiceBatchIndex = _findSubtitleLayerByBatchIndex(comp, "VOICEOVER", rawBatch, rawIndex);
+                if (byVoiceBatchIndex) return byVoiceBatchIndex;
+                var bySynchBatchIndex = _findSubtitleLayerByBatchIndex(comp, "SYNCH", rawBatch, rawIndex);
+                if (bySynchBatchIndex) return bySynchBatchIndex;
+            }
+            var byVoiceBatch = _findFirstSubtitleLayerByBatch(comp, "VOICEOVER", rawBatch);
+            if (byVoiceBatch) return byVoiceBatch;
+            var bySynchBatch = _findFirstSubtitleLayerByBatch(comp, "SYNCH", rawBatch);
+            if (bySynchBatch) return bySynchBatch;
+        }
+
+        // Parsed mode fallback (do not rely on stale imported time):
+        // place geotag on the first subtitle that starts after previously resolved geotag anchor.
+        var byOrder = _findFirstSubtitleLayerAfter(comp, afterTimeHint);
+        if (byOrder) return byOrder;
+
+        // Last subtitle-only fallback: first subtitle in comp.
+        var firstAny = _findFirstSubtitleLayerInComp(comp);
+        if (firstAny) return firstAny;
 
         return null;
     }
@@ -635,7 +750,8 @@
             out.push({
                 start: st,
                 out: en,
-                layerName: layerName
+                layerName: layerName,
+                anchorLayer: String(h.anchorLayer || "")
             });
         }
 
@@ -650,7 +766,7 @@
         if (!state) return null;
         if (typeof state.index !== "number") state.index = 0;
 
-        var chosenOut = null;
+        var chosen = null;
         while (state.index < geotagHints.length) {
             var g = geotagHints[state.index];
             if (!g) {
@@ -658,22 +774,54 @@
                 continue;
             }
 
-            var gs = Number(g.start);
             var go = Number(g.out);
-            if (isNaN(gs) || isNaN(go)) {
+            if (isNaN(go)) {
                 state.index++;
                 continue;
             }
 
-            if (gs > endTime + eps) break;
+            // Consume by geotag OUT time (not start). If geotag starts earlier but
+            // ends inside a later SYNCH window, reset must be applied to that window.
+            if (go > endTime + eps) break;
 
             if (go > minStartExclusive + eps && go <= endTime - eps) {
-                chosenOut = go;
+                chosen = g;
             }
             state.index++;
         }
 
-        return chosenOut;
+        return chosen;
+    }
+
+    function _findGeotagLayerByName(comp, layerName) {
+        if (!comp || !layerName) return null;
+        try {
+            var l = comp.layer(String(layerName));
+            if (l && _isGeotagLayer(l)) return l;
+        } catch (e) {}
+        return null;
+    }
+
+    function _findLatestGeotagLayerEndingAt(comp, outTime, eps) {
+        if (!comp) return null;
+        var target = Number(outTime);
+        if (isNaN(target)) return null;
+        var tol = (typeof eps === "number" && eps > 0) ? eps : (1.0 / 60.0);
+        var best = null;
+        var bestStart = null;
+        for (var i = 1; i <= comp.numLayers; i++) {
+            var l = comp.layer(i);
+            if (!l || !_isGeotagLayer(l)) continue;
+            var en = Number(l.outPoint);
+            var st = Number(l.inPoint);
+            if (isNaN(en) || isNaN(st)) continue;
+            if (Math.abs(en - target) > tol) continue;
+            if (!best || st > bestStart) {
+                best = l;
+                bestStart = st;
+            }
+        }
+        return best;
     }
 
     // =====================================================
@@ -694,7 +842,7 @@
         return respondOk({ created: created ? [created] : [], count: created ? 1 : 0 });
     };
 
-    // GEOTAG LIST: [{text,time,anchorLayer,anchorType,anchorBatch}, ...]
+    // GEOTAG LIST: [{text,time,anchorSegId,anchorLayer,anchorType,anchorBatch,anchorIndex}, ...]
     // Parsed mode prefers subtitle anchor and ignores stale imported "time".
     createGeotagsAtTimes = function (list) {
         var comp = _ensureActiveComp();
@@ -712,15 +860,15 @@
 
         app.beginUndoGroup("Create Geotags (Anchored)");
         var created = [];
+        var lastResolvedAnchorStart = null;
 
         for (var i = 0; i < arr.length; i++) {
             var g = arr[i] || {};
-            var anchor = _resolveGeotagAnchorLayer(comp, g);
+            var anchor = _resolveGeotagAnchorLayer(comp, g, lastResolvedAnchorStart);
             var targetStart = null;
             if (anchor) {
                 targetStart = Number(anchor.inPoint);
-            } else {
-                targetStart = Number(g.time);
+                if (!isNaN(targetStart)) lastResolvedAnchorStart = targetStart;
             }
             if (isNaN(targetStart)) targetStart = t0;
 
@@ -792,12 +940,30 @@
                 var synEnd = Number(syn.end) || en;
                 var st = defaultStart;
 
-                var resetOut = _consumeLatestGeotagResetOutBefore(geoHints, geoState, en, defaultStart, EPS);
-                if (resetOut !== null) st = resetOut;
+                var resetGeo = _consumeLatestGeotagResetOutBefore(geoHints, geoState, en, defaultStart, EPS);
+                if (resetGeo) st = Number(resetGeo.out);
 
                 if ((en - st) > MIN_DUR) {
-                    var anchor = _findLowestRegularLayerInRange(comp, st, en);
+                    var anchor = null;
+                    if (resetGeo && resetGeo.anchorLayer) {
+                        anchor = _findSubtitleLayerByExactName(comp, resetGeo.anchorLayer);
+                    }
+                    if (!anchor) anchor = _findSubtitleLayerNearTime(comp, st + EPS);
+                    if (!anchor) anchor = _findLowestRegularLayerInRange(comp, st, en);
+
                     if (anchor) {
+                        var relatedGeoLayer = null;
+                        if (resetGeo && resetGeo.layerName) {
+                            relatedGeoLayer = _findGeotagLayerByName(comp, resetGeo.layerName);
+                        }
+                        if (!relatedGeoLayer && resetGeo) {
+                            relatedGeoLayer = _findLatestGeotagLayerEndingAt(comp, Number(resetGeo.out), EPS);
+                        }
+
+                        if (relatedGeoLayer && relatedGeoLayer.index < anchor.index) {
+                            try { relatedGeoLayer.moveAfter(anchor); } catch (eGeoMv) {}
+                        }
+
                         var l = comp.layers.add(work);
                         made++;
                         l.name = HEAD_LAYER_PREFIX + "_" + made;
@@ -809,6 +975,9 @@
 
                         // Всегда держим head_topic под блоком субтитров, чтобы не оставались "висящие" слои наверху.
                         try { l.moveAfter(anchor); } catch (eMv) {}
+                        if (relatedGeoLayer) {
+                            try { l.moveBefore(relatedGeoLayer); } catch (eHeadMv) {}
+                        }
                     }
                 }
 
