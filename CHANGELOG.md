@@ -8,6 +8,7 @@
 
 ### Changed
 - Version: UI version bumped from `2.4.1` to `2.4.2` after runtime path refactor patch cycle.
+- Runtime migration assist: `scripts/dev/migrate-legacy-runtime-to-user-profile.ps1` теперь поддерживает два источника tools (`C:\CaptionPanelsLocal\CaptionPanelTools` и `<packageRoot>/tools` через `-PackageRoot`), инициализирует `%APPDATA%\CaptionPanels\config.json` при отсутствии, а `Diagnostics/Word Import` дополнены fallback-поиском `word2json.exe` в `word2json/runtime/win-x64/self-contained`.
 - Runtime paths foundation: добавлен единый host-модуль `runtime_paths.jsx` (центральные helper-ы для per-user runtime root `%USERPROFILE%/CaptionPanelsLocal`) и подключен в bootstrap загрузки JSX; фактическая миграция рабочих модулей выполняется поэтапно в следующих PR.
 - Runtime paths usage: `config/word_import/auto_timing/run_registry/diagnostics` переведены на единый per-user runtime resolver (`%USERPROFILE%/CaptionPanelsLocal`) без legacy fallback-путей (`C:/AE`, `C:/CaptionPanelsLocal`, `CaptionPanelsTools`), а shipped `config.json` обновлен на per-user path-шаблоны.
 - Runtime cutover docs/scripts: dev sync/offline bundle скрипты и эксплуатационная документация переведены на `%USERPROFILE%\CaptionPanelsLocal\...`; из рабочих инструкций убраны legacy runtime пути.

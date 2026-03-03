@@ -126,6 +126,7 @@
         var toolRoots = _buildToolsRootCandidates();
         for (var i = 0; i < toolRoots.length; i++) {
             addCandidate(toolRoots[i] + "/word2json/word2json.exe");
+            addCandidate(toolRoots[i] + "/word2json/runtime/win-x64/self-contained/word2json.exe");
         }
 
         for (var j = 0; j < candidates.length; j++) {
